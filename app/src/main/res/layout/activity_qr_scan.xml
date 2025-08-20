@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#f5f5f5">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="QR 코드 스캔"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#333"
+        android:layout_gravity="center"
+        android:padding="16dp" />
+
+    <!-- 카메라 프리뷰 영역 (화면의 절반) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/card_background"
+        android:layout_margin="8dp"
+        android:padding="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="카메라 프리뷰"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333"
+            android:layout_gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <com.journeyapps.barcodescanner.DecoratedBarcodeView
+            android:id="@+id/barcodeView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </LinearLayout>
+
+    <!-- 메시지 출력 영역 (화면의 절반) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/card_background"
+        android:layout_margin="8dp"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="스캔 결과"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#333" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvScanCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="총 스캔 횟수: 0"
+                android:textSize="12sp"
+                android:textColor="#666" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvLastScanTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="마지막 스캔: 없음"
+            android:textSize="12sp"
+            android:textColor="#666"
+            android:layout_marginBottom="8dp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/edittext_background"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/tvScanResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="QR 코드를 스캔하면 여기에 결과가 표시됩니다."
+                android:textSize="14sp"
+                android:textColor="#333"
+                android:lineSpacingExtra="4dp" />
+
+        </ScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <Button
+                android:id="@+id/btnBack"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="뒤로가기"
+                android:textSize="14sp"
+                android:background="@drawable/button_secondary"
+                android:textColor="#666"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnToggleScan"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="스캔 시작"
+                android:textSize="14sp"
+                android:background="@drawable/button_style"
+                android:textColor="@android:color/white"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/btnClearResults"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="결과 지우기"
+                android:textSize="14sp"
+                android:background="@drawable/button_warning"
+                android:textColor="@android:color/white"
+                android:layout_marginStart="4dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

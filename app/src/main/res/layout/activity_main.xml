@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="16dp"
+    android:background="#f5f5f5">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="쿠폰 매니저"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#333"
+        android:layout_marginBottom="40dp" />
+
+    <Button
+        android:id="@+id/btnAdminSettings"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="관리자 기본설정"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/button_style"
+        android:textColor="@android:color/white" />
+
+    <Button
+        android:id="@+id/btnQRScan"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="QR 코드 스캔"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/button_style"
+        android:textColor="@android:color/white" />
+
+    <Button
+        android:id="@+id/btnServerInfo"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="서버 정보"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/button_server"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>쿠폰 매니저 API 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 1200px;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="url"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="url"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #5a67d8;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .success-button {
+            background: #48bb78;
+        }
+
+        .success-button:hover {
+            background: #38a169;
+        }
+
+        .danger-button {
+            background: #f56565;
+        }
+
+        .danger-button:hover {
+            background: #e53e3e;
+        }
+
+        .token-display {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .response-display {
+            background: #1a202c;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .status {
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status.warning {
+            background: #feebc8;
+            color: #744210;
+        }
+
+        .api-endpoints {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .endpoint-button {
+            background: #4299e1;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .endpoint-button:hover {
+            background: #3182ce;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 쿠폰 매니저 API 테스트</h1>
+
+        <!-- 서버 설정 섹션 -->
+        <div class="section">
+            <h2>⚙️ 서버 설정</h2>
+            <div class="form-group">
+                <label for="serverUrl">API 서버 주소</label>
+                <input type="url" id="serverUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+            </div>
+            <button onclick="checkServerStatus()">서버 상태 확인</button>
+            <div id="serverStatus"></div>
+        </div>
+
+        <!-- 로그인 섹션 -->
+        <div class="section">
+            <h2>🔐 로그인</h2>
+            <div class="form-group">
+                <label for="userId">사용자 ID</label>
+                <input type="text" id="userId" value="admin" placeholder="사용자 ID를 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="password">패스워드</label>
+                <input type="password" id="password" value="admin123" placeholder="패스워드를 입력하세요">
+            </div>
+            <button onclick="login()">로그인</button>
+            <button onclick="clearToken()" class="danger-button">토큰 삭제</button>
+            
+            <div id="loginResult"></div>
+            <div id="tokenDisplay" style="display: none;">
+                <label style="margin-top: 20px;">액세스 토큰:</label>
+                <div class="token-display" id="accessToken"></div>
+            </div>
+        </div>
+
+        <!-- API 테스트 섹션 -->
+        <div class="section">
+            <h2>🚀 API 테스트</h2>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('quick')">빠른 테스트</button>
+                <button class="tab" onclick="switchTab('custom')">커스텀 요청</button>
+                <button class="tab" onclick="switchTab('corporate')">거래처 관리</button>
+            </div>
+
+            <!-- 빠른 테스트 탭 -->
+            <div id="quickTab" class="tab-content active">
+                <h3 style="margin-bottom: 15px;">자주 사용하는 엔드포인트</h3>
+                <div class="api-endpoints">
+                    <button class="endpoint-button" onclick="testApi('GET', '/api')">
+                        GET /api<br><small>서버 정보</small>
+                    </button>
+                    <button class="endpoint-button" onclick="testApi('GET', '/api/server/status')">
+                        GET /api/server/status<br><small>서버 상태</small>
+                    </button>
+                    <button class="endpoint-button" onclick="testApi('GET', '/api/coupons')">
+                        GET /api/coupons<br><small>모든 쿠폰 조회</small>
+                    </button>
+                    <button class="endpoint-button" onclick="testApi('GET', '/api/coupons/COUPON001')">
+                        GET /api/coupons/COUPON001<br><small>특정 쿠폰 조회</small>
+                    </button>
+                    <button class="endpoint-button" onclick="createSampleCoupon()">
+                        POST /api/coupons<br><small>샘플 쿠폰 생성</small>
+                    </button>
+                    <button class="endpoint-button" onclick="validateCoupon()">
+                        POST /api/coupons/validate<br><small>쿠폰 검증</small>
+                    </button>
+                    <button class="endpoint-button" onclick="testApi('GET', '/api/corporates')">
+                        GET /api/corporates<br><small>모든 거래처 조회</small>
+                    </button>
+                    <button class="endpoint-button" onclick="testApi('GET', '/api/corporates/1')">
+                        GET /api/corporates/1<br><small>특정 거래처 조회</small>
+                    </button>
+                    <button class="endpoint-button" onclick="createSampleCorporate()">
+                        POST /api/corporates<br><small>샘플 거래처 생성</small>
+                    </button>
+                    <button class="endpoint-button" onclick="searchCorporate()">
+                        GET /api/corporates/search<br><small>거래처 검색</small>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 커스텀 요청 탭 -->
+            <div id="customTab" class="tab-content">
+                <div class="form-group">
+                    <label for="method">HTTP 메소드</label>
+                    <select id="method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="endpoint">엔드포인트</label>
+                    <input type="text" id="endpoint" placeholder="/api/coupons" value="/api/coupons">
+                </div>
+                <div class="form-group">
+                    <label for="requestBody">요청 본문 (JSON)</label>
+                    <textarea id="requestBody" style="width: 100%; height: 100px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: 'Courier New', monospace;" placeholder='{"key": "value"}'></textarea>
+                </div>
+                <button onclick="sendCustomRequest()">요청 보내기</button>
+            </div>
+
+            <!-- 거래처 관리 탭 -->
+            <div id="corporateTab" class="tab-content">
+                <div class="corporate-management">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>거래처 관리</h3>
+                        <button class="success-button" onclick="showCreateCorporateForm()">+ 새 거래처 추가</button>
+                    </div>
+
+                    <!-- 검색 섹션 -->
+                    <div class="search-section" style="margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="searchInput" placeholder="회사명으로 검색..." style="flex: 1;">
+                            <button onclick="searchCorporates()">검색</button>
+                            <button onclick="loadAllCorporates()" class="success-button">전체 목록</button>
+                        </div>
+                    </div>
+
+                    <!-- 거래처 목록 -->
+                    <div id="corporateList" style="margin-top: 20px;">
+                        <p style="text-align: center; color: #666;">로그인 후 '전체 목록' 버튼을 클릭하여 거래처 목록을 불러오세요.</p>
+                    </div>
+
+                    <!-- 거래처 생성/수정 모달 -->
+                    <div id="corporateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+                            <h3 id="modalTitle">새 거래처 추가</h3>
+                            <form id="corporateForm" onsubmit="submitCorporateForm(event)">
+                                <input type="hidden" id="corporateId" value="">
+                                
+                                <div class="form-group">
+                                    <label for="corporateName">회사명 *</label>
+                                    <input type="text" id="corporateName" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="businessNumber">사업자등록번호</label>
+                                    <input type="text" id="businessNumber" placeholder="0000000000 (10자리)">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="representative">대표자명</label>
+                                    <input type="text" id="representative">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="phone">연락처</label>
+                                    <input type="text" id="phone" placeholder="02-0000-0000">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="email">이메일</label>
+                                    <input type="email" id="email" placeholder="company@example.com">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="address">주소</label>
+                                    <input type="text" id="address" placeholder="서울특별시 강남구...">
+                                </div>
+                                
+                                <div style="text-align: right; margin-top: 30px;">
+                                    <button type="button" onclick="closeCorporateModal()" class="danger-button">취소</button>
+                                    <button type="submit" class="success-button" style="margin-left: 10px;">저장</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="apiResponse" style="margin-top: 20px; display: none;">
+                <h3>응답:</h3>
+                <div class="response-display" id="responseContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = localStorage.getItem('apiToken') || '';
+
+        // 페이지 로드 시 토큰 확인
+        window.onload = function() {
+            if (currentToken) {
+                displayToken(currentToken);
+            }
+        };
+
+        // 서버 상태 확인
+        async function checkServerStatus() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const statusDiv = document.getElementById('serverStatus');
+            
+            statusDiv.innerHTML = '<span class="loading"></span> 확인 중...';
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/server/status`);
+                const data = await response.json();
+                
+                if (data.status === 'running') {
+                    statusDiv.innerHTML = '<span class="status success">✅ 서버 실행 중</span>';
+                } else {
+                    statusDiv.innerHTML = '<span class="status warning">⚠️ 서버 응답 이상</span>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="status error">❌ 서버에 연결할 수 없습니다</span>';
+            }
+        }
+
+        // 로그인
+        async function login() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            if (!userId || !password) {
+                resultDiv.innerHTML = '<span class="status error">사용자 ID와 패스워드를 입력하세요</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<span class="loading"></span> 로그인 중...';
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentToken = data.accessToken;
+                    localStorage.setItem('apiToken', currentToken);
+                    resultDiv.innerHTML = '<span class="status success">✅ 로그인 성공!</span>';
+                    displayToken(currentToken);
+                } else {
+                    resultDiv.innerHTML = `<span class="status error">❌ 로그인 실패: ${data.message}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="status error">❌ 오류: ${error.message}</span>`;
+            }
+        }
+
+        // 토큰 표시
+        function displayToken(token) {
+            document.getElementById('tokenDisplay').style.display = 'block';
+            document.getElementById('accessToken').textContent = token;
+        }
+
+        // 토큰 삭제
+        function clearToken() {
+            currentToken = '';
+            localStorage.removeItem('apiToken');
+            document.getElementById('tokenDisplay').style.display = 'none';
+            document.getElementById('loginResult').innerHTML = '<span class="status warning">토큰이 삭제되었습니다</span>';
+        }
+
+        // API 테스트
+        async function testApi(method, endpoint) {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            try {
+                const response = await fetch(`${serverUrl}${endpoint}`, {
+                    method: method,
+                    headers: headers
+                });
+                
+                const data = await response.json();
+                displayResponse(data, response.status);
+            } catch (error) {
+                displayResponse({ error: error.message }, 0);
+            }
+        }
+
+        // 샘플 쿠폰 생성
+        async function createSampleCoupon() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            const sampleCoupon = {
+                id: `COUPON${Date.now()}`,
+                name: "테스트 쿠폰",
+                discount: 20,
+                type: "percentage"
+            };
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/coupons`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(sampleCoupon)
+                });
+                
+                const data = await response.json();
+                displayResponse(data, response.status);
+            } catch (error) {
+                displayResponse({ error: error.message }, 0);
+            }
+        }
+
+        // 쿠폰 검증
+        async function validateCoupon() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            const couponId = prompt("검증할 쿠폰 ID를 입력하세요:", "COUPON001");
+            if (!couponId) return;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/coupons/validate`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ couponId: couponId })
+                });
+                
+                const data = await response.json();
+                displayResponse(data, response.status);
+            } catch (error) {
+                displayResponse({ error: error.message }, 0);
+            }
+        }
+
+        // 샘플 거래처 생성
+        async function createSampleCorporate() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            const sampleCorporate = {
+                name: "테스트 기업",
+                businessNumber: "1234567890",
+                representative: "김대표",
+                phone: "02-1234-5678",
+                email: "test@example.com",
+                address: "서울특별시 테스트구 테스트로 123"
+            };
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(sampleCorporate)
+                });
+                
+                const data = await response.json();
+                displayResponse(data, response.status);
+            } catch (error) {
+                displayResponse({ error: error.message }, 0);
+            }
+        }
+
+        // 거래처 검색
+        async function searchCorporate() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            const searchName = prompt("검색할 회사명을 입력하세요:", "삼성");
+            if (!searchName) return;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates/search?name=${encodeURIComponent(searchName)}`, {
+                    method: 'GET',
+                    headers: headers
+                });
+                
+                const data = await response.json();
+                displayResponse(data, response.status);
+            } catch (error) {
+                displayResponse({ error: error.message }, 0);
+            }
+        }
+
+        // 커스텀 요청 보내기
+        async function sendCustomRequest() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const method = document.getElementById('method').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const requestBody = document.getElementById('requestBody').value;
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            const options = {
+                method: method,
+                headers: headers
+            };
+            
+            if (method !== 'GET' && requestBody) {
+                try {
+                    JSON.parse(requestBody); // 유효성 검사
+                    options.body = requestBody;
+                } catch (e) {
+                    alert('올바른 JSON 형식이 아닙니다.');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`${serverUrl}${endpoint}`, options);
+                const data = await response.json();
+                displayResponse(data, response.status);
+            } catch (error) {
+                displayResponse({ error: error.message }, 0);
+            }
+        }
+
+        // 응답 표시
+        function displayResponse(data, status) {
+            document.getElementById('apiResponse').style.display = 'block';
+            const responseContent = document.getElementById('responseContent');
+            
+            let statusText = '';
+            if (status === 200 || status === 201) {
+                statusText = '✅ 성공 ';
+            } else if (status === 401) {
+                statusText = '🔐 인증 필요 ';
+            } else if (status === 404) {
+                statusText = '❓ 찾을 수 없음 ';
+            } else if (status >= 400) {
+                statusText = '❌ 오류 ';
+            }
+            
+            responseContent.textContent = `${statusText}(${status})\n\n${JSON.stringify(data, null, 2)}`;
+        }
+
+        // 탭 전환
+        function switchTab(tabName) {
+            // 모든 탭과 컨텐츠 비활성화
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 선택된 탭 활성화
+            if (tabName === 'quick') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('quickTab').classList.add('active');
+            } else if (tabName === 'custom') {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('customTab').classList.add('active');
+            } else if (tabName === 'corporate') {
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                document.getElementById('corporateTab').classList.add('active');
+            }
+        }
+
+        // ========== 거래처 관리 함수들 ==========
+
+        // 모든 거래처 조회
+        async function loadAllCorporates() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const corporateList = document.getElementById('corporateList');
+            
+            corporateList.innerHTML = '<p style="text-align: center;"><span class="loading"></span> 거래처 목록을 불러오는 중...</p>';
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCorporateList(data.data);
+                } else {
+                    corporateList.innerHTML = `<p style="text-align: center; color: #f56565;">❌ ${data.message}</p>`;
+                }
+            } catch (error) {
+                corporateList.innerHTML = `<p style="text-align: center; color: #f56565;">❌ 오류: ${error.message}</p>`;
+            }
+        }
+
+        // 거래처 목록 표시
+        function displayCorporateList(corporates) {
+            const corporateList = document.getElementById('corporateList');
+            
+            if (!corporates || corporates.length === 0) {
+                corporateList.innerHTML = '<p style="text-align: center; color: #666;">등록된 거래처가 없습니다.</p>';
+                return;
+            }
+            
+            let html = `<div style="margin-bottom: 10px; font-weight: bold; color: #667eea;">총 ${corporates.length}개의 거래처</div>`;
+            html += '<div style="display: grid; gap: 15px;">';
+            
+            corporates.forEach(corporate => {
+                html += `
+                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: between; align-items: start;">
+                            <div style="flex: 1;">
+                                <h4 style="color: #333; margin: 0 0 10px 0; font-size: 18px;">${corporate.name}</h4>
+                                <div style="color: #666; font-size: 14px; line-height: 1.5;">
+                                    ${corporate.businessNumber ? `<div><strong>사업자등록번호:</strong> ${formatBusinessNumber(corporate.businessNumber)}</div>` : ''}
+                                    ${corporate.representative ? `<div><strong>대표자:</strong> ${corporate.representative}</div>` : ''}
+                                    ${corporate.phone ? `<div><strong>연락처:</strong> ${corporate.phone}</div>` : ''}
+                                    ${corporate.email ? `<div><strong>이메일:</strong> ${corporate.email}</div>` : ''}
+                                    ${corporate.address ? `<div><strong>주소:</strong> ${corporate.address}</div>` : ''}
+                                    ${corporate.createdAt ? `<div style="margin-top: 10px; color: #999; font-size: 12px;"><strong>등록일:</strong> ${formatDate(corporate.createdAt)}</div>` : ''}
+                                </div>
+                            </div>
+                            <div style="margin-left: 20px;">
+                                <button onclick="editCorporate(${corporate.customerId})" class="success-button" style="padding: 8px 15px; font-size: 14px; margin-right: 5px;">수정</button>
+                                <button onclick="deleteCorporate(${corporate.customerId}, '${corporate.name}')" class="danger-button" style="padding: 8px 15px; font-size: 14px;">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            corporateList.innerHTML = html;
+        }
+
+        // 사업자등록번호 포맷팅
+        function formatBusinessNumber(businessNumber) {
+            if (!businessNumber || businessNumber.length !== 10) return businessNumber;
+            return businessNumber.substring(0, 3) + '-' + businessNumber.substring(3, 5) + '-' + businessNumber.substring(5);
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('ko-KR');
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        // 거래처 검색
+        async function searchCorporates() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            if (!searchTerm) {
+                alert('검색할 회사명을 입력해주세요.');
+                return;
+            }
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const corporateList = document.getElementById('corporateList');
+            
+            corporateList.innerHTML = '<p style="text-align: center;"><span class="loading"></span> 검색 중...</p>';
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates/search?name=${encodeURIComponent(searchTerm)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCorporateList(data.data);
+                } else {
+                    corporateList.innerHTML = `<p style="text-align: center; color: #f56565;">❌ ${data.message}</p>`;
+                }
+            } catch (error) {
+                corporateList.innerHTML = `<p style="text-align: center; color: #f56565;">❌ 오류: ${error.message}</p>`;
+            }
+        }
+
+        // 거래처 생성 폼 표시
+        function showCreateCorporateForm() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            document.getElementById('modalTitle').textContent = '새 거래처 추가';
+            document.getElementById('corporateId').value = '';
+            document.getElementById('corporateForm').reset();
+            document.getElementById('corporateModal').style.display = 'block';
+        }
+
+        // 거래처 수정 폼 표시
+        async function editCorporate(corporateId) {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates/${corporateId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const corporate = data.data;
+                    
+                    document.getElementById('modalTitle').textContent = '거래처 수정';
+                    document.getElementById('corporateId').value = corporate.customerId;
+                    document.getElementById('corporateName').value = corporate.name || '';
+                    document.getElementById('businessNumber').value = corporate.businessNumber || '';
+                    document.getElementById('representative').value = corporate.representative || '';
+                    document.getElementById('phone').value = corporate.phone || '';
+                    document.getElementById('email').value = corporate.email || '';
+                    document.getElementById('address').value = corporate.address || '';
+                    
+                    document.getElementById('corporateModal').style.display = 'block';
+                } else {
+                    alert('거래처 정보를 불러오는데 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // 모달 닫기
+        function closeCorporateModal() {
+            document.getElementById('corporateModal').style.display = 'none';
+        }
+
+        // 거래처 폼 제출
+        async function submitCorporateForm(event) {
+            event.preventDefault();
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const corporateId = document.getElementById('corporateId').value;
+            const isUpdate = corporateId !== '';
+            
+            const corporateData = {
+                name: document.getElementById('corporateName').value.trim(),
+                businessNumber: document.getElementById('businessNumber').value.trim(),
+                representative: document.getElementById('representative').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                address: document.getElementById('address').value.trim()
+            };
+            
+            if (!corporateData.name) {
+                alert('회사명은 필수입니다.');
+                return;
+            }
+            
+            console.log('=== CORPORATE FORM SUBMIT ===');
+            console.log('Method:', isUpdate ? 'PUT' : 'POST');
+            console.log('URL:', isUpdate ? `${serverUrl}/api/corporates/${corporateId}` : `${serverUrl}/api/corporates`);
+            console.log('Data:', JSON.stringify(corporateData, null, 2));
+            console.log('Token:', currentToken ? 'Present' : 'Missing');
+            
+            try {
+                const url = isUpdate ? `${serverUrl}/api/corporates/${corporateId}` : `${serverUrl}/api/corporates`;
+                const method = isUpdate ? 'PUT' : 'POST';
+                
+                const requestOptions = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(corporateData)
+                };
+                
+                console.log('Request options:', requestOptions);
+                
+                const response = await fetch(url, requestOptions);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    alert(isUpdate ? '거래처가 성공적으로 수정되었습니다.' : '거래처가 성공적으로 추가되었습니다.');
+                    closeCorporateModal();
+                    loadAllCorporates(); // 목록 새로고침
+                } else {
+                    alert('오류: ' + data.message);
+                    displayResponse(data, response.status);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // 거래처 삭제
+        async function deleteCorporate(corporateId, corporateName) {
+            if (!confirm(`정말로 "${corporateName}" 거래처를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates/${corporateId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('거래처가 성공적으로 삭제되었습니다.');
+                    loadAllCorporates(); // 목록 새로고침
+                } else {
+                    alert('삭제 실패: ' + data.message);
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // Enter 키로 검색
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchCorporates();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

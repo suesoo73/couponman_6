@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#f5f5f5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 상단 헤더 영역 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <ImageButton
+                android:id="@+id/btnBackArrow"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/button_circle"
+                android:src="@drawable/ic_arrow_back"
+                android:contentDescription="뒤로가기"
+                android:padding="12dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="REST API 서버 정보"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:gravity="center"
+                android:layout_marginEnd="48dp" />
+
+        </LinearLayout>
+
+        <!-- 서버 상태 정보 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_background"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="서버 상태"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="상태:"
+                    android:textSize="14sp"
+                    android:textColor="#666" />
+
+                <TextView
+                    android:id="@+id/tvServerStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="중지됨"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#f44336" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="IP 주소:"
+                    android:textSize="14sp"
+                    android:textColor="#666" />
+
+                <TextView
+                    android:id="@+id/tvServerAddress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="IP 주소를 가져오는 중..."
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#333" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="포트:"
+                    android:textSize="14sp"
+                    android:textColor="#666" />
+
+                <TextView
+                    android:id="@+id/tvServerPort"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="8080"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#333" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="시작 시간:"
+                    android:textSize="14sp"
+                    android:textColor="#666" />
+
+                <TextView
+                    android:id="@+id/tvStartTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="서버가 실행되지 않음"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#333" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- 서버 제어 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_background"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="서버 제어"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStartServer"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:text="서버 시작"
+                    android:textSize="14sp"
+                    android:background="@drawable/button_style"
+                    android:textColor="@android:color/white"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/btnStopServer"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:text="서버 중지"
+                    android:textSize="14sp"
+                    android:background="@drawable/button_stop"
+                    android:textColor="@android:color/white"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:enabled="false" />
+
+                <Button
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="0dp"
+                    android:layout_height="50dp"
+                    android:layout_weight="1"
+                    android:text="새로고침"
+                    android:textSize="14sp"
+                    android:background="@drawable/button_secondary"
+                    android:textColor="#666"
+                    android:layout_marginStart="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- 포트포워딩 정보 (에뮬레이터용) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_background"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="에뮬레이터 접속 정보"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:id="@+id/tvEmulatorInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="에뮬레이터에서 실행 중"
+                android:textSize="14sp"
+                android:textColor="#2196F3"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvPortForwardInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="PC에서 접속:\nhttp://localhost:8080/api"
+                android:textSize="14sp"
+                android:textColor="#333"
+                android:fontFamily="monospace"
+                android:background="@drawable/edittext_background"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnPortForwardHelp"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="포트포워딩 설정 도움말"
+                android:textSize="14sp"
+                android:background="@drawable/button_server"
+                android:textColor="@android:color/white"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- API 엔드포인트 정보 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_background"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="API 엔드포인트"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="16dp" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:background="@drawable/edittext_background"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/tvApiEndpoints"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="서버가 실행되지 않음"
+                    android:textSize="12sp"
+                    android:textColor="#333"
+                    android:fontFamily="monospace"
+                    android:lineSpacingExtra="2dp" />
+
+            </ScrollView>
+
+        </LinearLayout>
+
+        <!-- 사용 안내 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/info_background"
+            android:padding="16dp"
+            android:layout_marginBottom="30dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ℹ️ 사용 안내"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#2196F3"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="• 서버를 시작하면 같은 네트워크의 다른 기기에서 API에 접근할 수 있습니다.\n• 위의 IP 주소와 포트를 사용하여 HTTP 요청을 보낼 수 있습니다.\n• JSON 형식으로 데이터를 주고받습니다.\n• 앱을 종료하면 서버도 함께 중지됩니다."
+                android:textSize="14sp"
+                android:textColor="#666"
+                android:lineSpacingExtra="4dp" />
+
+        </LinearLayout>
+
+        <!-- 뒤로가기 버튼 -->
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="뒤로가기"
+            android:textSize="16sp"
+            android:background="@drawable/button_secondary"
+            android:textColor="#666" />
+
+    </LinearLayout>
+
+</ScrollView>
