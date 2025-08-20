@@ -30,6 +30,7 @@ public class ApiServer extends NanoHTTPD {
     private Context context;
     private SharedPreferences sharedPreferences;
     private CorporateDAO corporateDAO;
+    private EmployeeDAO employeeDAO;
 
     public ApiServer(int port, Context context) {
         super(port);
@@ -39,6 +40,8 @@ public class ApiServer extends NanoHTTPD {
         sharedPreferences = context.getSharedPreferences("AdminSettings", Context.MODE_PRIVATE);
         corporateDAO = new CorporateDAO(context);
         corporateDAO.open();
+        employeeDAO = new EmployeeDAO(context);
+        employeeDAO.open();
         initializeSampleData();
     }
 
@@ -47,6 +50,9 @@ public class ApiServer extends NanoHTTPD {
         super.stop();
         if (corporateDAO != null) {
             corporateDAO.close();
+        }
+        if (employeeDAO != null) {
+            employeeDAO.close();
         }
         Log.i(TAG, "API Server stopped and database connection closed");
     }
@@ -165,6 +171,15 @@ public class ApiServer extends NanoHTTPD {
                             String path = uri.substring("/api/corporates/".length());
                             if (path.equals("search")) {
                                 response = handleSearchCorporates(session);
+                            } else if (path.contains("/employees")) {
+                                // 거래처별 직원 관련 API
+                                String[] parts = path.split("/");
+                                if (parts.length >= 2) {
+                                    String corporateId = parts[0];
+                                    if (Method.GET.equals(method)) {
+                                        response = handleGetEmployeesByCorporate(corporateId);
+                                    }
+                                }
                             } else {
                                 String corporateId = path;
                                 if (Method.GET.equals(method)) {
@@ -174,6 +189,25 @@ public class ApiServer extends NanoHTTPD {
                                 } else if (Method.DELETE.equals(method)) {
                                     response = handleDeleteCorporate(corporateId);
                                 }
+                            }
+                        }
+                    } else if (uri.startsWith("/api/employees")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/employees")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetEmployees();
+                            } else if (Method.POST.equals(method)) {
+                                response = handleCreateEmployee(session);
+                            }
+                        } else if (uri.startsWith("/api/employees/")) {
+                            String employeeId = uri.substring("/api/employees/".length());
+                            if (Method.GET.equals(method)) {
+                                response = handleGetEmployee(employeeId);
+                            } else if (Method.PUT.equals(method)) {
+                                response = handleUpdateEmployee(employeeId, session);
+                            } else if (Method.DELETE.equals(method)) {
+                                response = handleDeleteEmployee(employeeId);
                             }
                         }
                     }
@@ -215,10 +249,16 @@ public class ApiServer extends NanoHTTPD {
                 "PUT /api/corporates/{id} - 거래처 업데이트 (인증 필요)",
                 "DELETE /api/corporates/{id} - 거래처 삭제 (인증 필요)",
                 "GET /api/corporates/search?name={name} - 거래처 이름으로 검색 (인증 필요)",
+                "GET /api/corporates/{id}/employees - 거래처별 직원 목록 조회 (인증 필요)",
+                "GET /api/employees - 모든 직원 조회 (인증 필요)",
+                "GET /api/employees/{id} - 특정 직원 조회 (인증 필요)",
+                "POST /api/employees - 새 직원 생성 (인증 필요)",
+                "PUT /api/employees/{id} - 직원 업데이트 (인증 필요)",
+                "DELETE /api/employees/{id} - 직원 삭제 (인증 필요)",
                 "GET /api/server/status - 서버 상태 조회"
         });
 
-        return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(info));
+        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(info));
     }
 
     private Response handleGetCoupons() {
@@ -227,7 +267,7 @@ public class ApiServer extends NanoHTTPD {
         result.put("data", coupons);
         result.put("count", coupons.size());
 
-        return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
     }
 
     private Response handleGetCoupon(String couponId) {
@@ -236,14 +276,14 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
                 result.put("data", coupon);
-                return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
             }
         }
 
         Map<String, Object> error = new HashMap<>();
         error.put("success", false);
         error.put("message", "쿠폰을 찾을 수 없습니다: " + couponId);
-        return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", gson.toJson(error));
+        return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
     }
 
     private Response handleValidateCoupon(IHTTPSession session) {
@@ -261,7 +301,7 @@ public class ApiServer extends NanoHTTPD {
                     result.put("success", true);
                     result.put("valid", !(Boolean) coupon.get("isUsed"));
                     result.put("coupon", coupon);
-                    return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                    return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
                 }
             }
 
@@ -269,13 +309,13 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("valid", false);
             error.put("message", "존재하지 않는 쿠폰입니다");
-            return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(error));
 
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "요청 처리 중 오류가 발생했습니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -294,13 +334,13 @@ public class ApiServer extends NanoHTTPD {
             result.put("data", newCoupon);
             result.put("message", "쿠폰이 생성되었습니다");
 
-            return newFixedLengthResponse(Response.Status.CREATED, "application/json", gson.toJson(result));
+            return newFixedLengthResponse(Response.Status.CREATED, "application/json; charset=utf-8", gson.toJson(result));
 
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "쿠폰 생성 중 오류가 발생했습니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -320,20 +360,20 @@ public class ApiServer extends NanoHTTPD {
                     result.put("success", true);
                     result.put("data", coupon);
                     result.put("message", "쿠폰이 업데이트되었습니다");
-                    return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                    return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
                 }
             }
 
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "쿠폰을 찾을 수 없습니다: " + couponId);
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
 
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "쿠폰 업데이트 중 오류가 발생했습니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -344,7 +384,7 @@ public class ApiServer extends NanoHTTPD {
         status.put("couponsCount", coupons.size());
         status.put("memory", Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
 
-        return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(status));
+        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(status));
     }
 
     private Response handleLogin(IHTTPSession session) {
@@ -361,7 +401,7 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "요청 본문이 비어있습니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             Map<String, Object> request = gson.fromJson(postData, Map.class);
@@ -387,20 +427,20 @@ public class ApiServer extends NanoHTTPD {
                 result.put("message", "로그인 성공");
                 result.put("expiresIn", "3600");
                 
-                return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
             } else {
                 Log.w(TAG, "Login failed for user: " + userId + " (invalid credentials)");
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "아이디 또는 패스워드가 올바르지 않습니다");
-                return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json; charset=utf-8", gson.toJson(error));
             }
         } catch (Exception e) {
             Log.e(TAG, "Login processing error", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "로그인 처리 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -423,7 +463,7 @@ public class ApiServer extends NanoHTTPD {
         error.put("error", "UNAUTHORIZED");
         
         Response response = newFixedLengthResponse(Response.Status.UNAUTHORIZED, 
-                "application/json", gson.toJson(error));
+                "application/json; charset=utf-8", gson.toJson(error));
         response.addHeader("Access-Control-Allow-Origin", "*");
         return response;
     }
@@ -446,7 +486,7 @@ public class ApiServer extends NanoHTTPD {
             Log.i(TAG, "Content-Type: " + contentType);
             
             // JSON Content-Type 감지 로깅
-            if (contentType != null && contentType.toLowerCase().contains("application/json")) {
+            if (contentType != null && contentType.toLowerCase().contains("application/json; charset=utf-8")) {
                 Log.i(TAG, "Detected JSON content type: " + contentType);
             }
             
@@ -503,7 +543,7 @@ public class ApiServer extends NanoHTTPD {
                             Log.i(TAG, "File exists and is readable: " + value);
                             
                             StringBuilder fileContent = new StringBuilder();
-                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFile))) {
+                            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new java.io.FileInputStream(tempFile), "UTF-8"))) {
                                 String line;
                                 while ((line = reader.readLine()) != null) {
                                     fileContent.append(line).append("\n");
@@ -622,13 +662,13 @@ public class ApiServer extends NanoHTTPD {
             result.put("count", corporates.size());
             
             Log.i(TAG, "Retrieved " + corporates.size() + " corporates");
-            return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
         } catch (Exception e) {
             Log.e(TAG, "Error getting corporates", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "거래처 조회 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -643,24 +683,24 @@ public class ApiServer extends NanoHTTPD {
                 result.put("data", corporate);
                 
                 Log.i(TAG, "Retrieved corporate: " + corporate.getName());
-                return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
             } else {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "거래처를 찾을 수 없습니다: " + corporateId);
-                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
             }
         } catch (NumberFormatException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "잘못된 거래처 ID 형식입니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         } catch (Exception e) {
             Log.e(TAG, "Error getting corporate", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "거래처 조회 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -675,7 +715,7 @@ public class ApiServer extends NanoHTTPD {
                 error.put("success", false);
                 error.put("message", "요청 본문이 비어있습니다");
                 Log.w(TAG, "Create corporate failed: empty body");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             // JSON 형식 검증
@@ -684,7 +724,7 @@ public class ApiServer extends NanoHTTPD {
                 error.put("success", false);
                 error.put("message", "잘못된 JSON 형식입니다: " + postData.substring(0, Math.min(50, postData.length())) + "...");
                 Log.w(TAG, "Invalid JSON format in create request: " + postData);
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             Map<String, Object> data = gson.fromJson(postData, Map.class);
@@ -701,7 +741,7 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "필수 정보가 누락되었습니다. 회사명은 반드시 입력해야 합니다.");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             // 사업자등록번호 중복 체크
@@ -710,7 +750,7 @@ public class ApiServer extends NanoHTTPD {
                     Map<String, Object> error = new HashMap<>();
                     error.put("success", false);
                     error.put("message", "이미 등록된 사업자등록번호입니다");
-                    return newFixedLengthResponse(Response.Status.CONFLICT, "application/json", gson.toJson(error));
+                    return newFixedLengthResponse(Response.Status.CONFLICT, "application/json; charset=utf-8", gson.toJson(error));
                 }
             }
             
@@ -724,19 +764,19 @@ public class ApiServer extends NanoHTTPD {
                 result.put("message", "거래처가 성공적으로 생성되었습니다");
                 
                 Log.i(TAG, "Corporate created: " + corporate.getName() + " (ID: " + id + ")");
-                return newFixedLengthResponse(Response.Status.CREATED, "application/json", gson.toJson(result));
+                return newFixedLengthResponse(Response.Status.CREATED, "application/json; charset=utf-8", gson.toJson(result));
             } else {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "거래처 생성에 실패했습니다");
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
             }
         } catch (Exception e) {
             Log.e(TAG, "Error creating corporate", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "거래처 생성 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -753,7 +793,7 @@ public class ApiServer extends NanoHTTPD {
                 error.put("success", false);
                 error.put("message", "요청 본문이 비어있습니다");
                 Log.w(TAG, "Update corporate failed: empty body");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             // JSON 형식 검증
@@ -762,7 +802,7 @@ public class ApiServer extends NanoHTTPD {
                 error.put("success", false);
                 error.put("message", "잘못된 JSON 형식입니다: " + postData.substring(0, Math.min(50, postData.length())) + "...");
                 Log.w(TAG, "Invalid JSON format in update request: " + postData);
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             Corporate existing = corporateDAO.getCorporateById(id);
@@ -770,7 +810,7 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "거래처를 찾을 수 없습니다: " + corporateId);
-                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             Map<String, Object> data = gson.fromJson(postData, Map.class);
@@ -786,7 +826,7 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "필수 정보가 누락되었습니다. 회사명은 반드시 입력해야 합니다.");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             int rowsAffected = corporateDAO.updateCorporate(existing);
@@ -798,24 +838,24 @@ public class ApiServer extends NanoHTTPD {
                 result.put("message", "거래처가 성공적으로 업데이트되었습니다");
                 
                 Log.i(TAG, "Corporate updated: " + existing.getName() + " (ID: " + id + ")");
-                return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
             } else {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "거래처 업데이트에 실패했습니다");
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
             }
         } catch (NumberFormatException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "잘못된 거래처 ID 형식입니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         } catch (Exception e) {
             Log.e(TAG, "Error updating corporate", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "거래처 업데이트 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -828,7 +868,7 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "거래처를 찾을 수 없습니다: " + corporateId);
-                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             int rowsAffected = corporateDAO.deleteCorporate(id);
@@ -840,24 +880,24 @@ public class ApiServer extends NanoHTTPD {
                 result.put("deletedCorporate", existing);
                 
                 Log.i(TAG, "Corporate deleted: " + existing.getName() + " (ID: " + id + ")");
-                return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
             } else {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "거래처 삭제에 실패했습니다");
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
             }
         } catch (NumberFormatException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "잘못된 거래처 ID 형식입니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
         } catch (Exception e) {
             Log.e(TAG, "Error deleting corporate", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "거래처 삭제 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -870,7 +910,7 @@ public class ApiServer extends NanoHTTPD {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "검색할 회사명을 입력해주세요");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", gson.toJson(error));
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
             List<Corporate> corporates = corporateDAO.searchCorporatesByName(name);
@@ -882,13 +922,275 @@ public class ApiServer extends NanoHTTPD {
             result.put("searchTerm", name);
             
             Log.i(TAG, "Corporate search for '" + name + "' returned " + corporates.size() + " results");
-            return newFixedLengthResponse(Response.Status.OK, "application/json", gson.toJson(result));
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
         } catch (Exception e) {
             Log.e(TAG, "Error searching corporates", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "거래처 검색 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", gson.toJson(error));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    // 직원 관련 핸들러 메소드들
+    private Response handleGetEmployees() {
+        try {
+            List<Employee> employees = employeeDAO.getAllEmployees();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", employees);
+            result.put("count", employees.size());
+            
+            Log.i(TAG, "Retrieved all employees: " + employees.size());
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting employees", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원 목록 조회 중 오류가 발생했습니다");
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleGetEmployeesByCorporate(String corporateId) {
+        try {
+            int id = Integer.parseInt(corporateId);
+            List<Employee> employees = employeeDAO.getEmployeesByCorporateId(id);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", employees);
+            result.put("count", employees.size());
+            result.put("corporateId", id);
+            
+            Log.i(TAG, "Retrieved employees for corporate " + id + ": " + employees.size());
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 거래처 ID 형식입니다");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting employees by corporate", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원 목록 조회 중 오류가 발생했습니다");
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleGetEmployee(String employeeId) {
+        try {
+            int id = Integer.parseInt(employeeId);
+            Employee employee = employeeDAO.getEmployeeById(id);
+            
+            if (employee == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원을 찾을 수 없습니다: " + employeeId);
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", employee);
+            
+            Log.i(TAG, "Retrieved employee: " + employee.getName());
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 직원 ID 형식입니다");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting employee", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원 조회 중 오류가 발생했습니다");
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleCreateEmployee(IHTTPSession session) {
+        Log.i(TAG, "=== CREATE EMPLOYEE REQUEST ===");
+        
+        String postData = extractRequestBody(session);
+        Log.i(TAG, "Raw postData content: [" + postData + "]");
+        
+        if (postData == null || postData.trim().isEmpty()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "요청 본문이 비어있습니다");
+            Log.w(TAG, "Create employee failed: empty body");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        }
+
+        try {
+            Employee newEmployee = gson.fromJson(postData, Employee.class);
+            
+            if (!newEmployee.isValidForSave()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "필수 필드가 누락되었습니다 (거래처 ID, 이름, 핸드폰번호는 필수입니다)");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 핸드폰 번호 중복 확인
+            if (employeeDAO.isPhoneExists(newEmployee.getPhone())) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "이미 등록된 핸드폰 번호입니다: " + newEmployee.getPhone());
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            long id = employeeDAO.insertEmployee(newEmployee);
+            
+            if (id > 0) {
+                newEmployee.setEmployeeId((int) id);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("message", "직원이 성공적으로 생성되었습니다");
+                result.put("data", newEmployee);
+                
+                Log.i(TAG, "Employee created: " + newEmployee.getName() + " (ID: " + id + ")");
+                return newFixedLengthResponse(Response.Status.CREATED, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원 생성에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating employee", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원 생성 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleUpdateEmployee(String employeeId, IHTTPSession session) {
+        Log.i(TAG, "=== UPDATE EMPLOYEE REQUEST === ID: " + employeeId);
+        
+        try {
+            int id = Integer.parseInt(employeeId);
+            
+            String postData = extractRequestBody(session);
+            Log.i(TAG, "Raw postData content: [" + postData + "]");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                Log.w(TAG, "Update employee failed: empty body");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            Employee existing = employeeDAO.getEmployeeById(id);
+            if (existing == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원을 찾을 수 없습니다: " + employeeId);
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            Employee updatedEmployee = gson.fromJson(postData, Employee.class);
+            updatedEmployee.setEmployeeId(id);
+            
+            if (!updatedEmployee.isValidForSave()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "필수 필드가 누락되었습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 핸드폰 번호 변경 시 중복 확인
+            if (!existing.getPhone().equals(updatedEmployee.getPhone())) {
+                if (employeeDAO.isPhoneExists(updatedEmployee.getPhone())) {
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("success", false);
+                    error.put("message", "이미 등록된 핸드폰 번호입니다: " + updatedEmployee.getPhone());
+                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+                }
+            }
+            
+            int rowsAffected = employeeDAO.updateEmployee(updatedEmployee);
+            
+            if (rowsAffected > 0) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("message", "직원 정보가 성공적으로 업데이트되었습니다");
+                result.put("data", updatedEmployee);
+                
+                Log.i(TAG, "Employee updated: " + updatedEmployee.getName() + " (ID: " + id + ")");
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원 정보 업데이트에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 직원 ID 형식입니다");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating employee", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원 정보 업데이트 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleDeleteEmployee(String employeeId) {
+        try {
+            int id = Integer.parseInt(employeeId);
+            
+            Employee existing = employeeDAO.getEmployeeById(id);
+            if (existing == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원을 찾을 수 없습니다: " + employeeId);
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            int rowsAffected = employeeDAO.deleteEmployee(id);
+            
+            if (rowsAffected > 0) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("message", "직원이 성공적으로 삭제되었습니다");
+                result.put("deletedEmployee", existing);
+                
+                Log.i(TAG, "Employee deleted: " + existing.getName() + " (ID: " + id + ")");
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원 삭제에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 직원 ID 형식입니다");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        } catch (Exception e) {
+            Log.e(TAG, "Error deleting employee", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원 삭제 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 }

@@ -273,6 +273,7 @@
                 <button class="tab active" onclick="switchTab('quick')">빠른 테스트</button>
                 <button class="tab" onclick="switchTab('custom')">커스텀 요청</button>
                 <button class="tab" onclick="switchTab('corporate')">거래처 관리</button>
+                <button class="tab" onclick="switchTab('employee')">직원 관리</button>
             </div>
 
             <!-- 빠른 테스트 탭 -->
@@ -403,6 +404,67 @@
                 </div>
             </div>
 
+            <!-- 직원 관리 탭 -->
+            <div id="employeeTab" class="tab-content">
+                <div class="employee-management">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>직원 관리</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="corporateSelectForEmployee" style="min-width: 200px;">
+                                <option value="">거래처를 선택하세요</option>
+                            </select>
+                            <button class="success-button" onclick="showCreateEmployeeForm()" id="addEmployeeBtn" disabled>+ 새 직원 추가</button>
+                        </div>
+                    </div>
+
+                    <!-- 직원 목록 -->
+                    <div id="employeeList" style="margin-top: 20px;">
+                        <p style="text-align: center; color: #666;">거래처를 선택하면 직원 목록이 표시됩니다.</p>
+                    </div>
+
+                    <!-- 직원 생성/수정 모달 -->
+                    <div id="employeeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+                            <h3 id="employeeModalTitle">새 직원 추가</h3>
+                            <form id="employeeForm" onsubmit="submitEmployeeForm(event)">
+                                <input type="hidden" id="employeeId" value="">
+                                <input type="hidden" id="employeeCorporateId" value="">
+                                
+                                <div class="form-group">
+                                    <label for="employeeCorporateName">소속 거래처</label>
+                                    <input type="text" id="employeeCorporateName" readonly style="background: #f0f0f0;">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="employeeName">이름 *</label>
+                                    <input type="text" id="employeeName" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="employeePhone">핸드폰 번호 *</label>
+                                    <input type="text" id="employeePhone" placeholder="010-0000-0000" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="employeeEmail">이메일</label>
+                                    <input type="email" id="employeeEmail" placeholder="employee@example.com">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="employeeDepartment">부서</label>
+                                    <input type="text" id="employeeDepartment" placeholder="예: 개발팀, 영업팀">
+                                </div>
+                                
+                                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                                    <button type="button" onclick="closeEmployeeModal()" style="background: #666;">취소</button>
+                                    <button type="submit" class="success-button">저장</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="apiResponse" style="margin-top: 20px; display: none;">
                 <h3>응답:</h3>
                 <div class="response-display" id="responseContent"></div>
@@ -459,7 +521,7 @@
                 const response = await fetch(`${serverUrl}/api/login`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json; charset=utf-8'
                     },
                     body: JSON.stringify({ userId, password })
                 });
@@ -497,7 +559,7 @@
         async function testApi(method, endpoint) {
             const serverUrl = document.getElementById('serverUrl').value;
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             };
             
             if (currentToken) {
@@ -521,7 +583,7 @@
         async function createSampleCoupon() {
             const serverUrl = document.getElementById('serverUrl').value;
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             };
             
             if (currentToken) {
@@ -553,7 +615,7 @@
         async function validateCoupon() {
             const serverUrl = document.getElementById('serverUrl').value;
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             };
             
             if (currentToken) {
@@ -581,7 +643,7 @@
         async function createSampleCorporate() {
             const serverUrl = document.getElementById('serverUrl').value;
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             };
             
             if (currentToken) {
@@ -615,7 +677,7 @@
         async function searchCorporate() {
             const serverUrl = document.getElementById('serverUrl').value;
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             };
             
             if (currentToken) {
@@ -646,7 +708,7 @@
             const requestBody = document.getElementById('requestBody').value;
             
             const headers = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             };
             
             if (currentToken) {
@@ -712,6 +774,10 @@
             } else if (tabName === 'corporate') {
                 document.querySelectorAll('.tab')[2].classList.add('active');
                 document.getElementById('corporateTab').classList.add('active');
+            } else if (tabName === 'employee') {
+                document.querySelectorAll('.tab')[3].classList.add('active');
+                document.getElementById('employeeTab').classList.add('active');
+                loadCorporatesForEmployeeTab();
             }
         }
 
@@ -941,7 +1007,7 @@
                 const requestOptions = {
                     method: method,
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json; charset=utf-8',
                         'Authorization': `Bearer ${currentToken}`
                     },
                     body: JSON.stringify(corporateData)
@@ -1015,6 +1081,283 @@
                 });
             }
         });
+
+        // ========== 직원 관리 함수들 ==========
+
+        // 직원 탭을 위한 거래처 목록 로드
+        async function loadCorporatesForEmployeeTab() {
+            if (!currentToken) {
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('corporateSelectForEmployee');
+                    select.innerHTML = '<option value="">거래처를 선택하세요</option>';
+                    
+                    data.data.forEach(corporate => {
+                        const option = document.createElement('option');
+                        option.value = corporate.customerId;
+                        option.textContent = corporate.name;
+                        option.dataset.corporateName = corporate.name;
+                        select.appendChild(option);
+                    });
+                    
+                    // 거래처 선택 시 직원 목록 로드
+                    select.onchange = function() {
+                        if (this.value) {
+                            loadEmployeesByCorporate(this.value);
+                            document.getElementById('addEmployeeBtn').disabled = false;
+                        } else {
+                            document.getElementById('employeeList').innerHTML = '<p style="text-align: center; color: #666;">거래처를 선택하면 직원 목록이 표시됩니다.</p>';
+                            document.getElementById('addEmployeeBtn').disabled = true;
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('Error loading corporates:', error);
+            }
+        }
+
+        // 거래처별 직원 목록 로드
+        async function loadEmployeesByCorporate(corporateId) {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const employeeList = document.getElementById('employeeList');
+            
+            employeeList.innerHTML = '<p style="text-align: center;"><span class="loading"></span> 직원 목록 로딩 중...</p>';
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates/${corporateId}/employees`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayEmployeeList(data.data);
+                } else {
+                    employeeList.innerHTML = '<p style="text-align: center; color: red;">직원 목록을 불러오는데 실패했습니다.</p>';
+                }
+            } catch (error) {
+                employeeList.innerHTML = '<p style="text-align: center; color: red;">오류: ' + error.message + '</p>';
+            }
+        }
+
+        // 직원 목록 표시
+        function displayEmployeeList(employees) {
+            const employeeList = document.getElementById('employeeList');
+            
+            if (!employees || employees.length === 0) {
+                employeeList.innerHTML = '<p style="text-align: center; color: #666;">등록된 직원이 없습니다.</p>';
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 15px;">';
+            
+            employees.forEach(employee => {
+                html += `
+                    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: white;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 10px 0; color: #333;">${employee.name}</h4>
+                                <div style="color: #666; font-size: 14px;">
+                                    <p style="margin: 5px 0;"><strong>부서:</strong> ${employee.department || '-'}</p>
+                                    <p style="margin: 5px 0;"><strong>핸드폰:</strong> ${employee.phone}</p>
+                                    <p style="margin: 5px 0;"><strong>이메일:</strong> ${employee.email || '-'}</p>
+                                    <p style="margin: 5px 0; font-size: 12px; color: #999;">등록일: ${formatDate(employee.createdAt)}</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="editEmployee(${employee.employeeId})" class="edit-button" style="padding: 8px 15px; font-size: 14px;">수정</button>
+                                <button onclick="deleteEmployee(${employee.employeeId}, '${employee.name}')" class="danger-button" style="padding: 8px 15px; font-size: 14px;">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            employeeList.innerHTML = html;
+        }
+
+        // 새 직원 추가 폼 표시
+        function showCreateEmployeeForm() {
+            const select = document.getElementById('corporateSelectForEmployee');
+            const corporateId = select.value;
+            const corporateName = select.options[select.selectedIndex].dataset.corporateName;
+            
+            if (!corporateId) {
+                alert('먼저 거래처를 선택해주세요.');
+                return;
+            }
+            
+            document.getElementById('employeeModalTitle').textContent = '새 직원 추가';
+            document.getElementById('employeeId').value = '';
+            document.getElementById('employeeCorporateId').value = corporateId;
+            document.getElementById('employeeCorporateName').value = corporateName;
+            document.getElementById('employeeName').value = '';
+            document.getElementById('employeePhone').value = '';
+            document.getElementById('employeeEmail').value = '';
+            document.getElementById('employeeDepartment').value = '';
+            
+            document.getElementById('employeeModal').style.display = 'block';
+        }
+
+        // 직원 수정
+        async function editEmployee(employeeId) {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/employees/${employeeId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const employee = data.data;
+                    const select = document.getElementById('corporateSelectForEmployee');
+                    const corporateName = select.options[select.selectedIndex].dataset.corporateName;
+                    
+                    document.getElementById('employeeModalTitle').textContent = '직원 정보 수정';
+                    document.getElementById('employeeId').value = employee.employeeId;
+                    document.getElementById('employeeCorporateId').value = employee.corporateId;
+                    document.getElementById('employeeCorporateName').value = corporateName;
+                    document.getElementById('employeeName').value = employee.name;
+                    document.getElementById('employeePhone').value = employee.phone;
+                    document.getElementById('employeeEmail').value = employee.email || '';
+                    document.getElementById('employeeDepartment').value = employee.department || '';
+                    
+                    document.getElementById('employeeModal').style.display = 'block';
+                } else {
+                    alert('직원 정보를 불러오는데 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // 직원 모달 닫기
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').style.display = 'none';
+        }
+
+        // 직원 폼 제출
+        async function submitEmployeeForm(event) {
+            event.preventDefault();
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const employeeId = document.getElementById('employeeId').value;
+            const isUpdate = employeeId !== '';
+            
+            const employeeData = {
+                corporateId: parseInt(document.getElementById('employeeCorporateId').value),
+                name: document.getElementById('employeeName').value.trim(),
+                phone: document.getElementById('employeePhone').value.trim(),
+                email: document.getElementById('employeeEmail').value.trim(),
+                department: document.getElementById('employeeDepartment').value.trim()
+            };
+            
+            if (!employeeData.name || !employeeData.phone) {
+                alert('이름과 핸드폰 번호는 필수입니다.');
+                return;
+            }
+            
+            try {
+                const url = isUpdate ? `${serverUrl}/api/employees/${employeeId}` : `${serverUrl}/api/employees`;
+                const method = isUpdate ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(employeeData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(isUpdate ? '직원 정보가 성공적으로 수정되었습니다.' : '직원이 성공적으로 추가되었습니다.');
+                    closeEmployeeModal();
+                    loadEmployeesByCorporate(employeeData.corporateId);
+                } else {
+                    alert('오류: ' + data.message);
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // 직원 삭제
+        async function deleteEmployee(employeeId, employeeName) {
+            if (!confirm(`정말로 "${employeeName}" 직원을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/employees/${employeeId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('직원이 성공적으로 삭제되었습니다.');
+                    const corporateId = document.getElementById('corporateSelectForEmployee').value;
+                    if (corporateId) {
+                        loadEmployeesByCorporate(corporateId);
+                    }
+                } else {
+                    alert('삭제 실패: ' + data.message);
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
