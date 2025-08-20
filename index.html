@@ -548,13 +548,17 @@
                                 <div class="form-group">
                                     <label>포인트 설정:</label>
                                     <div style="margin-bottom: 10px;">
-                                        <label style="display: inline-flex; align-items: center; margin-right: 20px; font-weight: normal;">
+                                        <label style="display: inline-flex; align-items: center; margin-right: 15px; font-weight: normal;">
                                             <input type="radio" name="pointType" value="percentage" onchange="togglePointInput()" checked>
                                             <span style="margin-left: 5px;">정률 (%)</span>
                                         </label>
-                                        <label style="display: inline-flex; align-items: center; font-weight: normal;">
+                                        <label style="display: inline-flex; align-items: center; margin-right: 15px; font-weight: normal;">
                                             <input type="radio" name="pointType" value="fixed" onchange="togglePointInput()">
-                                            <span style="margin-left: 5px;">정액 (포인트)</span>
+                                            <span style="margin-left: 5px;">정액 (쿠폰당)</span>
+                                        </label>
+                                        <label style="display: inline-flex; align-items: center; font-weight: normal;">
+                                            <input type="radio" name="pointType" value="total" onchange="togglePointInput()">
+                                            <span style="margin-left: 5px;">총 포인트 (균등배분)</span>
                                         </label>
                                     </div>
                                     <input type="text" id="pointValue" placeholder="10" onchange="calculateDistribution()" oninput="formatPointInput(this)" style="padding: 16px;">
@@ -566,6 +570,12 @@
                                 <!-- 만료일 설정 -->
                                 <div class="form-group">
                                     <label for="expireDate">쿠폰 만료일:</label>
+                                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+                                        <button type="button" onclick="setExpireDate(1)" class="quick-date-btn" style="padding: 8px 12px; font-size: 12px; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#3182ce'" onmouseout="this.style.background='#4299e1'">1개월</button>
+                                        <button type="button" onclick="setExpireDate(3)" class="quick-date-btn" style="padding: 8px 12px; font-size: 12px; background: #48bb78; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#38a169'" onmouseout="this.style.background='#48bb78'">3개월</button>
+                                        <button type="button" onclick="setExpireDate(6)" class="quick-date-btn" style="padding: 8px 12px; font-size: 12px; background: #ed8936; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dd6b20'" onmouseout="this.style.background='#ed8936'">6개월</button>
+                                        <span style="color: #666; font-size: 12px; margin-left: 5px;">또는 직접 선택:</span>
+                                    </div>
                                     <input type="date" id="expireDate" style="padding: 16px;">
                                 </div>
 
@@ -1851,10 +1861,8 @@
                         select.appendChild(option);
                     });
 
-                    // 만료일 기본값 설정 (30일 후)
-                    const expireDate = new Date();
-                    expireDate.setDate(expireDate.getDate() + 30);
-                    document.getElementById('expireDate').value = expireDate.toISOString().split('T')[0];
+                    // 만료일 기본값 설정 (1개월 후)
+                    setExpireDate(1);
                 }
             } catch (error) {
                 console.error('Error loading corporates for coupon:', error);
@@ -1919,9 +1927,16 @@
                 if (pointValue.value) {
                     formatPointInput(pointValue);
                 }
-            } else {
+            } else if (pointType === 'fixed') {
                 pointDescription.textContent = '쿠폰 1장당 고정 포인트 지급';
                 pointValue.placeholder = '1,000';
+                // 기존 값이 있으면 포맷 다시 적용
+                if (pointValue.value) {
+                    formatPointInput(pointValue);
+                }
+            } else if (pointType === 'total') {
+                pointDescription.textContent = '총 포인트를 직원들에게 균등 분배';
+                pointValue.placeholder = '100,000';
                 // 기존 값이 있으면 포맷 다시 적용
                 if (pointValue.value) {
                     formatPointInput(pointValue);
@@ -1951,7 +1966,7 @@
             calculateDistribution();
         }
 
-        // 포인트 입력 포맷팅 함수 (정률일 때는 소수점 허용, 정액일 때는 콤마 표시)
+        // 포인트 입력 포맷팅 함수 (정률일 때는 소수점 허용, 정액/총포인트일 때는 콤마 표시)
         function formatPointInput(input) {
             const pointType = document.querySelector('input[name="pointType"]:checked').value;
             
@@ -1965,7 +1980,7 @@
                 }
                 input.value = value;
             } else {
-                // 정액일 때는 천단위 콤마 적용
+                // 정액/총포인트일 때는 천단위 콤마 적용
                 let value = input.value.replace(/[^\d]/g, '');
                 if (value === '') {
                     input.value = '';
@@ -1999,8 +2014,11 @@
             let pointPerEmployee = 0;
             if (pointType === 'percentage') {
                 pointPerEmployee = Math.round((cashPerEmployee * pointValue / 100) * 100) / 100; // 소수점 2자리
-            } else {
+            } else if (pointType === 'fixed') {
                 pointPerEmployee = pointValue;
+            } else if (pointType === 'total') {
+                // 총 포인트를 직원 수로 나누어 균등 배분
+                pointPerEmployee = Math.round((pointValue / employeeCount) * 100) / 100;
             }
 
             // 테이블 업데이트
@@ -2051,8 +2069,10 @@
             let pointDescription = '';
             if (pointType === 'percentage') {
                 pointDescription = `현금의 ${pointValue}%`;
-            } else {
-                pointDescription = `쿠폰당 ${pointValue}P`;
+            } else if (pointType === 'fixed') {
+                pointDescription = `쿠폰당 ${pointValue.toLocaleString()}P`;
+            } else if (pointType === 'total') {
+                pointDescription = `총 ${pointValue.toLocaleString()}P 균등배분`;
             }
             
             summary.innerHTML = `
@@ -2077,6 +2097,20 @@
                     </div>
                 </div>
             `;
+        }
+
+        // 만료일 빠른 설정
+        function setExpireDate(months) {
+            const today = new Date();
+            const expireDate = new Date(today);
+            expireDate.setMonth(expireDate.getMonth() + months);
+            
+            // YYYY-MM-DD 형식으로 변환
+            const formattedDate = expireDate.toISOString().split('T')[0];
+            document.getElementById('expireDate').value = formattedDate;
+            
+            // 배분 재계산 (만료일 변경 시 발행 버튼 활성화 상태 업데이트)
+            calculateDistribution();
         }
 
         // 사용 가능 요일 문자열 생성
@@ -2115,8 +2149,10 @@
             let pointPerEmployee = 0;
             if (pointType === 'percentage') {
                 pointPerEmployee = Math.round((cashPerEmployee * pointValue / 100) * 100) / 100;
-            } else {
+            } else if (pointType === 'fixed') {
                 pointPerEmployee = pointValue;
+            } else if (pointType === 'total') {
+                pointPerEmployee = Math.round((pointValue / employeeCount) * 100) / 100;
             }
 
             const corporateName = document.getElementById('couponCorporateSelect').options[document.getElementById('couponCorporateSelect').selectedIndex].textContent;
