@@ -414,6 +414,7 @@
                                 <option value="">거래처를 선택하세요</option>
                             </select>
                             <button class="success-button" onclick="showCreateEmployeeForm()" id="addEmployeeBtn" disabled>+ 새 직원 추가</button>
+                            <button class="success-button" onclick="showBulkImportForm()" id="bulkImportBtn" disabled style="background: #38a169;">📊 Excel 붙여넣기</button>
                         </div>
                     </div>
 
@@ -460,6 +461,55 @@
                                     <button type="submit" class="success-button">저장</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- Excel 데이터 붙여넣기 모달 -->
+                    <div id="bulkImportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                            <h3 style="margin-bottom: 20px;">📊 Excel 데이터 일괄 등록</h3>
+                            
+                            <!-- 사용법 안내 -->
+                            <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4299e1;">
+                                <h4 style="margin: 0 0 10px 0; color: #2c5aa0;">사용 방법:</h4>
+                                <p style="margin: 5px 0; font-size: 14px;">1. Excel에서 직원 데이터를 선택하여 복사 (Ctrl+C)</p>
+                                <p style="margin: 5px 0; font-size: 14px;">2. 아래 텍스트 박스에 붙여넣기 (Ctrl+V)</p>
+                                <p style="margin: 5px 0; font-size: 14px;">3. '데이터 미리보기' 버튼을 클릭하여 확인</p>
+                                <p style="margin: 5px 0; font-size: 14px;">4. '일괄 등록' 버튼을 클릭하여 저장</p>
+                            </div>
+
+                            <!-- 데이터 형식 안내 -->
+                            <div style="background: #fff8dc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f6ad55;">
+                                <h4 style="margin: 0 0 10px 0; color: #c05621;">데이터 형식 (열 순서):</h4>
+                                <p style="margin: 5px 0; font-size: 14px; font-family: 'Courier New', monospace;"><strong>이름 | 핸드폰번호* | 이메일 | 부서</strong></p>
+                                <p style="margin: 5px 0; font-size: 14px; font-family: 'Courier New', monospace;">또는 <strong>핸드폰번호* | 이메일 | 부서</strong></p>
+                                <p style="margin: 5px 0; font-size: 12px; color: #666;">예1: 김철수	010-1234-5678	kim@company.com	개발팀</p>
+                                <p style="margin: 5px 0; font-size: 12px; color: #666;">예2: 010-1234-5678	kim@company.com	개발팀</p>
+                                <p style="margin: 5px 0; font-size: 12px; color: #e53e3e;">* 핸드폰번호만 필수입니다 (이름 생략 가능)</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bulkDataInput">Excel 데이터 붙여넣기:</label>
+                                <textarea id="bulkDataInput" 
+                                    placeholder="Excel에서 복사한 데이터를 여기에 붙여넣으세요..." 
+                                    style="width: 100%; height: 200px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; resize: vertical;">
+                                </textarea>
+                            </div>
+
+                            <!-- 미리보기 영역 -->
+                            <div id="dataPreview" style="display: none; margin-top: 20px;">
+                                <h4 style="color: #667eea; margin-bottom: 10px;">데이터 미리보기:</h4>
+                                <div id="previewTable" style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                </div>
+                                <div id="previewSummary" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                                <button type="button" onclick="closeBulkImportModal()" style="background: #666;">취소</button>
+                                <button type="button" onclick="previewBulkData()" style="background: #4299e1;">데이터 미리보기</button>
+                                <button type="button" onclick="processBulkImport()" class="success-button" id="bulkImportSubmitBtn" disabled>일괄 등록</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1119,9 +1169,11 @@
                         if (this.value) {
                             loadEmployeesByCorporate(this.value);
                             document.getElementById('addEmployeeBtn').disabled = false;
+                            document.getElementById('bulkImportBtn').disabled = false;
                         } else {
                             document.getElementById('employeeList').innerHTML = '<p style="text-align: center; color: #666;">거래처를 선택하면 직원 목록이 표시됩니다.</p>';
                             document.getElementById('addEmployeeBtn').disabled = true;
+                            document.getElementById('bulkImportBtn').disabled = true;
                         }
                     };
                 }
@@ -1178,7 +1230,7 @@
                     <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: white;">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1;">
-                                <h4 style="margin: 0 0 10px 0; color: #333;">${employee.name}</h4>
+                                <h4 style="margin: 0 0 10px 0; color: #333;">${employee.name || employee.phone}</h4>
                                 <div style="color: #666; font-size: 14px;">
                                     <p style="margin: 5px 0;"><strong>부서:</strong> ${employee.department || '-'}</p>
                                     <p style="margin: 5px 0;"><strong>핸드폰:</strong> ${employee.phone}</p>
@@ -1290,8 +1342,8 @@
                 department: document.getElementById('employeeDepartment').value.trim()
             };
             
-            if (!employeeData.name || !employeeData.phone) {
-                alert('이름과 핸드폰 번호는 필수입니다.');
+            if (!employeeData.phone) {
+                alert('핸드폰 번호는 필수입니다.');
                 return;
             }
             
@@ -1356,6 +1408,290 @@
                 }
             } catch (error) {
                 alert('오류: ' + error.message);
+            }
+        }
+
+        // ========== Excel 데이터 일괄 등록 함수들 ==========
+
+        // Excel 데이터 일괄 등록 폼 표시
+        function showBulkImportForm() {
+            const select = document.getElementById('corporateSelectForEmployee');
+            if (!select.value) {
+                alert('먼저 거래처를 선택해주세요.');
+                return;
+            }
+            
+            document.getElementById('bulkDataInput').value = '';
+            document.getElementById('dataPreview').style.display = 'none';
+            document.getElementById('bulkImportSubmitBtn').disabled = true;
+            document.getElementById('bulkImportModal').style.display = 'block';
+        }
+
+        // Excel 데이터 일괄 등록 모달 닫기
+        function closeBulkImportModal() {
+            document.getElementById('bulkImportModal').style.display = 'none';
+        }
+
+        // 데이터 미리보기
+        function previewBulkData() {
+            const input = document.getElementById('bulkDataInput').value.trim();
+            if (!input) {
+                alert('먼저 Excel 데이터를 붙여넣어주세요.');
+                return;
+            }
+
+            try {
+                const parsedData = parseExcelData(input);
+                displayDataPreview(parsedData);
+                document.getElementById('dataPreview').style.display = 'block';
+                document.getElementById('bulkImportSubmitBtn').disabled = parsedData.validRows.length === 0;
+            } catch (error) {
+                alert('데이터 파싱 오류: ' + error.message);
+            }
+        }
+
+        // Excel 데이터 파싱
+        function parseExcelData(input) {
+            const lines = input.split('\n').filter(line => line.trim());
+            const validRows = [];
+            const invalidRows = [];
+            
+            lines.forEach((line, index) => {
+                // 탭, 쉼표, 공백으로 구분된 데이터 처리
+                const cells = line.split(/\t|,|\s{2,}/).map(cell => cell.trim()).filter(cell => cell);
+                
+                if (cells.length < 1) {
+                    invalidRows.push({
+                        lineNumber: index + 1,
+                        data: line,
+                        error: '최소 핸드폰 번호가 필요합니다'
+                    });
+                    return;
+                }
+
+                // 첫 번째 열이 핸드폰 번호인 경우와 이름이 먼저인 경우 구분
+                let name = '', phone = '', email = '', department = '';
+                
+                // 첫 번째 셀이 핸드폰 번호 형식인지 확인
+                const phonePattern = /^010-?\d{4}-?\d{4}$/;
+                const firstCellClean = cells[0].replace(/\s/g, '');
+                
+                if (phonePattern.test(firstCellClean)) {
+                    // 첫 번째 열이 핸드폰 번호인 경우: phone, email, department 순서
+                    phone = cells[0] || '';
+                    email = cells[1] || '';
+                    department = cells[2] || '';
+                } else {
+                    // 기본 순서: name, phone, email, department
+                    name = cells[0] || '';
+                    phone = cells[1] || '';
+                    email = cells[2] || '';
+                    department = cells[3] || '';
+                }
+                
+                // 필수 필드 검증 (핸드폰 번호만 필수)
+                if (!phone) {
+                    invalidRows.push({
+                        lineNumber: index + 1,
+                        data: line,
+                        error: '핸드폰 번호는 필수입니다'
+                    });
+                    return;
+                }
+
+                // 핸드폰 번호 형식 간단 검증
+                const cleanPhone = phone.replace(/\s/g, '');
+                if (!phonePattern.test(cleanPhone)) {
+                    invalidRows.push({
+                        lineNumber: index + 1,
+                        data: line,
+                        error: '핸드폰 번호 형식이 올바르지 않습니다'
+                    });
+                    return;
+                }
+
+                validRows.push({
+                    lineNumber: index + 1,
+                    name: name,
+                    phone: formatPhoneNumber(cleanPhone),
+                    email: email || '',
+                    department: department || ''
+                });
+            });
+
+            return { validRows, invalidRows };
+        }
+
+        // 핸드폰 번호 형식 정리
+        function formatPhoneNumber(phone) {
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length === 11 && cleaned.startsWith('010')) {
+                return cleaned.substring(0, 3) + '-' + cleaned.substring(3, 7) + '-' + cleaned.substring(7);
+            }
+            return phone;
+        }
+
+        // 데이터 미리보기 표시
+        function displayDataPreview(parsedData) {
+            const { validRows, invalidRows } = parsedData;
+            
+            let html = '';
+            
+            // 유효한 데이터 테이블
+            if (validRows.length > 0) {
+                html += '<h5 style="color: #48bb78; margin: 10px 0;">✅ 등록 가능한 데이터 (' + validRows.length + '건)</h5>';
+                html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">';
+                html += '<thead style="background: #f8f9fa;"><tr>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">줄</th>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">이름</th>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">핸드폰</th>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">이메일</th>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">부서</th>';
+                html += '</tr></thead><tbody>';
+                
+                validRows.forEach(row => {
+                    html += '<tr>';
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px;">${row.lineNumber}</td>`;
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px;">${row.name}</td>`;
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px;">${row.phone}</td>`;
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px;">${row.email}</td>`;
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px;">${row.department}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            // 오류 데이터 테이블
+            if (invalidRows.length > 0) {
+                html += '<h5 style="color: #f56565; margin: 10px 0;">❌ 오류가 있는 데이터 (' + invalidRows.length + '건)</h5>';
+                html += '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">';
+                html += '<thead style="background: #fed7d7;"><tr>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">줄</th>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">데이터</th>';
+                html += '<th style="border: 1px solid #e0e0e0; padding: 8px; text-align: left;">오류 내용</th>';
+                html += '</tr></thead><tbody>';
+                
+                invalidRows.forEach(row => {
+                    html += '<tr>';
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px;">${row.lineNumber}</td>`;
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px; font-family: monospace;">${row.data}</td>`;
+                    html += `<td style="border: 1px solid #e0e0e0; padding: 8px; color: #e53e3e;">${row.error}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+            }
+            
+            document.getElementById('previewTable').innerHTML = html;
+            
+            // 요약 정보
+            const summaryHtml = `
+                <strong>총 ${validRows.length + invalidRows.length}줄</strong> - 
+                <span style="color: #48bb78;">등록 가능: ${validRows.length}건</span>, 
+                <span style="color: #f56565;">오류: ${invalidRows.length}건</span>
+            `;
+            document.getElementById('previewSummary').innerHTML = summaryHtml;
+        }
+
+        // Excel 데이터 일괄 등록 처리
+        async function processBulkImport() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const input = document.getElementById('bulkDataInput').value.trim();
+            if (!input) {
+                alert('데이터를 입력해주세요.');
+                return;
+            }
+
+            try {
+                const parsedData = parseExcelData(input);
+                const { validRows } = parsedData;
+
+                if (validRows.length === 0) {
+                    alert('등록할 수 있는 유효한 데이터가 없습니다.');
+                    return;
+                }
+
+                if (!confirm(`총 ${validRows.length}명의 직원을 등록하시겠습니까?`)) {
+                    return;
+                }
+
+                const corporateId = parseInt(document.getElementById('corporateSelectForEmployee').value);
+                const serverUrl = document.getElementById('serverUrl').value;
+                
+                let successCount = 0;
+                let failCount = 0;
+                const errors = [];
+
+                // 등록 진행 상태 표시
+                const submitBtn = document.getElementById('bulkImportSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '등록 중...';
+
+                for (let i = 0; i < validRows.length; i++) {
+                    const row = validRows[i];
+                    
+                    try {
+                        const employeeData = {
+                            corporateId: corporateId,
+                            name: row.name || row.phone,  // 이름이 없으면 핸드폰 번호 사용
+                            phone: row.phone,
+                            email: row.email,
+                            department: row.department
+                        };
+
+                        const response = await fetch(`${serverUrl}/api/employees`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json; charset=utf-8',
+                                'Authorization': `Bearer ${currentToken}`
+                            },
+                            body: JSON.stringify(employeeData)
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            errors.push(`${row.lineNumber}줄 (${row.name}): ${data.message}`);
+                        }
+                    } catch (error) {
+                        failCount++;
+                        errors.push(`${row.lineNumber}줄 (${row.name}): ${error.message}`);
+                    }
+
+                    // 진행률 업데이트
+                    submitBtn.textContent = `등록 중... (${i + 1}/${validRows.length})`;
+                }
+
+                // 결과 알림
+                let message = `등록 완료!\n성공: ${successCount}건, 실패: ${failCount}건`;
+                if (errors.length > 0) {
+                    message += '\n\n실패 내역:\n' + errors.slice(0, 5).join('\n');
+                    if (errors.length > 5) {
+                        message += `\n... 외 ${errors.length - 5}건 더`;
+                    }
+                }
+
+                alert(message);
+
+                if (successCount > 0) {
+                    closeBulkImportModal();
+                    loadEmployeesByCorporate(corporateId);
+                }
+
+            } catch (error) {
+                alert('일괄 등록 오류: ' + error.message);
+            } finally {
+                const submitBtn = document.getElementById('bulkImportSubmitBtn');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '일괄 등록';
             }
         }
     </script>

@@ -130,7 +130,6 @@ public class Employee {
      */
     public boolean isValidForSave() {
         return corporateId > 0 && 
-               name != null && !name.trim().isEmpty() &&
                phone != null && !phone.trim().isEmpty();
     }
 
@@ -171,10 +170,11 @@ public class Employee {
      * 표시용 이름 반환 (이름 + 부서)
      */
     public String getDisplayName() {
+        String displayName = (name != null && !name.trim().isEmpty()) ? name : phone;
         if (department != null && !department.trim().isEmpty()) {
-            return name + " (" + department + ")";
+            return displayName + " (" + department + ")";
         }
-        return name;
+        return displayName;
     }
 
     /**
