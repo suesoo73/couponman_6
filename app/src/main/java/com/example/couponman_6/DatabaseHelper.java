@@ -10,7 +10,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     // 데이터베이스 정보
     private static final String DATABASE_NAME = "couponman.db";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
     
     // Corporate 테이블 정보
     public static final String TABLE_CORPORATE = "corporate";
@@ -57,6 +57,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_TRANSACTION_BALANCE_BEFORE = "balance_before";
     public static final String COLUMN_TRANSACTION_BALANCE_AFTER = "balance_after";
     public static final String COLUMN_TRANSACTION_DESCRIPTION = "description";
+    
+    // Coupon Delivery 테이블 정보
+    public static final String TABLE_COUPON_DELIVERY = "coupon_deliveries";
+    public static final String COLUMN_DELIVERY_ID = "delivery_id";
+    public static final String COLUMN_DELIVERY_COUPON_ID = "coupon_id";
+    public static final String COLUMN_DELIVERY_TYPE = "delivery_type";
+    public static final String COLUMN_DELIVERY_STATUS = "delivery_status";
+    public static final String COLUMN_DELIVERY_RECIPIENT_ADDRESS = "recipient_address";
+    public static final String COLUMN_DELIVERY_SENT_AT = "sent_at";
+    public static final String COLUMN_DELIVERY_DELIVERED_AT = "delivered_at";
+    public static final String COLUMN_DELIVERY_FAILED_AT = "failed_at";
+    public static final String COLUMN_DELIVERY_RETRY_COUNT = "retry_count";
+    public static final String COLUMN_DELIVERY_LAST_RETRY_AT = "last_retry_at";
+    public static final String COLUMN_DELIVERY_ERROR_MESSAGE = "error_message";
+    public static final String COLUMN_DELIVERY_SUBJECT = "sbj";
+    public static final String COLUMN_DELIVERY_MESSAGE = "msg";
+    public static final String COLUMN_DELIVERY_METADATA = "metadata";
+    public static final String COLUMN_DELIVERY_CREATED_AT = "created_at";
+    public static final String COLUMN_DELIVERY_UPDATED_AT = "updated_at";
     
     // Corporate 테이블 생성 SQL
     private static final String CREATE_TABLE_CORPORATE = 
@@ -118,6 +137,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             TABLE_COUPON + "(" + COLUMN_COUPON_ID + ") ON DELETE CASCADE" +
             ");";
     
+    // Coupon Delivery 테이블 생성 SQL
+    private static final String CREATE_TABLE_COUPON_DELIVERY = 
+            "CREATE TABLE " + TABLE_COUPON_DELIVERY + " (" +
+            COLUMN_DELIVERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            COLUMN_DELIVERY_COUPON_ID + " INTEGER NOT NULL, " +
+            COLUMN_DELIVERY_TYPE + " VARCHAR(20) NOT NULL, " +
+            COLUMN_DELIVERY_STATUS + " VARCHAR(20) NOT NULL DEFAULT 'PENDING', " +
+            COLUMN_DELIVERY_RECIPIENT_ADDRESS + " TEXT NOT NULL, " +
+            COLUMN_DELIVERY_SENT_AT + " DATETIME NULL, " +
+            COLUMN_DELIVERY_DELIVERED_AT + " DATETIME NULL, " +
+            COLUMN_DELIVERY_FAILED_AT + " DATETIME NULL, " +
+            COLUMN_DELIVERY_RETRY_COUNT + " INTEGER DEFAULT 0, " +
+            COLUMN_DELIVERY_LAST_RETRY_AT + " DATETIME NULL, " +
+            COLUMN_DELIVERY_ERROR_MESSAGE + " TEXT NULL, " +
+            COLUMN_DELIVERY_SUBJECT + " TEXT NULL, " +
+            COLUMN_DELIVERY_MESSAGE + " TEXT NULL, " +
+            COLUMN_DELIVERY_METADATA + " TEXT NULL, " +
+            COLUMN_DELIVERY_CREATED_AT + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+            COLUMN_DELIVERY_UPDATED_AT + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+            "FOREIGN KEY(" + COLUMN_DELIVERY_COUPON_ID + ") REFERENCES " + 
+            TABLE_COUPON + "(" + COLUMN_COUPON_ID + ") ON DELETE CASCADE" +
+            ");";
+    
     // 인덱스 생성 SQL (검색 성능 향상을 위해)
     private static final String CREATE_INDEX_BUSINESS_NUMBER = 
             "CREATE INDEX idx_business_number ON " + TABLE_CORPORATE + "(" + COLUMN_BUSINESS_NUMBER + ");";
@@ -174,6 +216,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL(CREATE_TABLE_TRANSACTION);
             Log.i(TAG, "Transaction table created successfully");
             
+            // Coupon Delivery 테이블 생성
+            db.execSQL(CREATE_TABLE_COUPON_DELIVERY);
+            Log.i(TAG, "Coupon Delivery table created successfully");
+            
             // 인덱스 생성
             db.execSQL(CREATE_INDEX_BUSINESS_NUMBER);
             db.execSQL(CREATE_INDEX_NAME);
@@ -200,6 +246,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         
         // 간단한 업그레이드: 기존 테이블 삭제 후 재생성
         // 실제 운영 환경에서는 데이터 마이그레이션을 고려해야 함
+        try {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_COUPON_DELIVERY);
+        } catch (Exception e) {
+            Log.w(TAG, "Error dropping coupon delivery table: " + e.getMessage());
+        }
         try {
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRANSACTION);
         } catch (Exception e) {
@@ -296,6 +347,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
             
             Log.i(TAG, "Sample coupon data inserted successfully: " + sampleCouponData.length + " records");
+            
+            // 각 쿠폰에 대해 쿠폰 코드 생성 및 업데이트
+            Log.i(TAG, "Generating coupon codes for sample data");
+            for (int couponId = 1; couponId <= sampleCouponData.length; couponId++) {
+                try {
+                    // 쿠폰 코드 생성 로직을 단순화해서 적용
+                    String availableDaysCode = (couponId % 2 == 0) ? "1111111" : "1111100";
+                    String couponIdPadded = String.format("%010d", couponId);
+                    String paymentTypeCode = "1"; // prepaid
+                    String parity = String.format("%03d", (couponId * 123) % 1000);
+                    String businessNumber = "0000000000"; // 기본 사업자번호
+                    
+                    String fullCouponCode = businessNumber + "-" + availableDaysCode + "-" + couponIdPadded + "-" + paymentTypeCode + "-" + parity;
+                    
+                    String updateSql = "UPDATE " + TABLE_COUPON + " SET " + COLUMN_COUPON_FULL_CODE + " = ? WHERE " + COLUMN_COUPON_ID + " = ?";
+                    db.execSQL(updateSql, new Object[]{fullCouponCode, couponId});
+                    
+                    Log.d(TAG, "Generated coupon code for ID " + couponId + ": " + fullCouponCode);
+                } catch (Exception e) {
+                    Log.w(TAG, "Error generating coupon code for ID " + couponId, e);
+                }
+            }
             
             // 샘플 거래내역 데이터 (쿠폰 ID 1-5에 대한 충전/사용 내역)
             String[] sampleTransactionData = {

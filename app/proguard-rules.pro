@@ -19,3 +19,16 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep JavaMail classes
+-keep class javax.mail.** { *; }
+-keep class javax.activation.** { *; }
+-keep class com.sun.mail.** { *; }
+-keepclassmembers class javax.mail.** { *; }
+-dontwarn javax.mail.**
+-dontwarn javax.activation.**
+-dontwarn com.sun.mail.**
+
+# Keep NanoHTTPD classes  
+-keep class fi.iki.elonen.** { *; }
+-dontwarn fi.iki.elonen.**

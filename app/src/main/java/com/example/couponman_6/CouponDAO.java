@@ -90,6 +90,29 @@ public class CouponDAO {
     }
 
     /**
+     * 쿠폰 코드 업데이트
+     */
+    public boolean updateCouponCode(int couponId, String fullCouponCode) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseHelper.COLUMN_COUPON_FULL_CODE, fullCouponCode);
+
+        try {
+            int rowsAffected = database.update(
+                DatabaseHelper.TABLE_COUPON,
+                values,
+                DatabaseHelper.COLUMN_COUPON_ID + " = ?",
+                new String[]{String.valueOf(couponId)}
+            );
+            
+            Log.i(TAG, "Coupon code updated for ID: " + couponId + ", Code: " + fullCouponCode);
+            return rowsAffected > 0;
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Error updating coupon code", e);
+            return false;
+        }
+    }
+
+    /**
      * 쿠폰 정보 업데이트
      */
     public int updateCoupon(Coupon coupon) {
@@ -303,6 +326,42 @@ public class CouponDAO {
             
         } catch (SQLiteException e) {
             Log.e(TAG, "Error getting all coupons", e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        
+        return coupons;
+    }
+
+    /**
+     * 거래처별 쿠폰 조회
+     */
+    public List<Coupon> getCouponsByCorporateId(int corporateId) {
+        List<Coupon> coupons = new ArrayList<>();
+        Cursor cursor = null;
+        
+        try {
+            // 쿠폰 테이블과 직원 테이블을 조인하여 거래처 ID로 필터링
+            String sql = "SELECT c.* FROM " + DatabaseHelper.TABLE_COUPON + " c " +
+                        "JOIN " + DatabaseHelper.TABLE_EMPLOYEE + " e ON c." + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + " = e." + DatabaseHelper.COLUMN_EMPLOYEE_ID + " " +
+                        "WHERE e." + DatabaseHelper.COLUMN_EMPLOYEE_CORPORATE_ID + " = ? " +
+                        "ORDER BY c." + DatabaseHelper.COLUMN_COUPON_CREATED_AT + " DESC";
+            
+            cursor = database.rawQuery(sql, new String[]{String.valueOf(corporateId)});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    Coupon coupon = cursorToCoupon(cursor);
+                    coupons.add(coupon);
+                } while (cursor.moveToNext());
+            }
+            
+            Log.i(TAG, "Retrieved " + coupons.size() + " coupons for corporate ID: " + corporateId);
+            
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Error getting coupons by corporate ID", e);
         } finally {
             if (cursor != null) {
                 cursor.close();

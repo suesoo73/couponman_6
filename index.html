@@ -275,6 +275,9 @@
                 <button class="tab" onclick="switchTab('corporate')">거래처 관리</button>
                 <button class="tab" onclick="switchTab('employee')">직원 관리</button>
                 <button class="tab" onclick="switchTab('coupon')">쿠폰 발행</button>
+                <button class="tab" onclick="switchTab('send')">쿠폰 발송</button>
+                <button class="tab" onclick="switchTab('deliveryHistory')">발송 기록</button>
+                <button class="tab" onclick="switchTab('emailConfig')">이메일 설정</button>
             </div>
 
             <!-- 빠른 테스트 탭 -->
@@ -583,13 +586,13 @@
                                 <div class="form-group">
                                     <label>사용 가능 요일:</label>
                                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                        <label style="font-weight: normal;"><input type="checkbox" value="1" class="available-day" checked> 월</label>
-                                        <label style="font-weight: normal;"><input type="checkbox" value="2" class="available-day" checked> 화</label>
-                                        <label style="font-weight: normal;"><input type="checkbox" value="3" class="available-day" checked> 수</label>
-                                        <label style="font-weight: normal;"><input type="checkbox" value="4" class="available-day" checked> 목</label>
-                                        <label style="font-weight: normal;"><input type="checkbox" value="5" class="available-day" checked> 금</label>
-                                        <label style="font-weight: normal;"><input type="checkbox" value="6" class="available-day"> 토</label>
-                                        <label style="font-weight: normal;"><input type="checkbox" value="0" class="available-day"> 일</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="sun" class="available-day"> 일</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="mon" class="available-day" checked> 월</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="tue" class="available-day" checked> 화</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="wed" class="available-day" checked> 수</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="thu" class="available-day" checked> 목</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="fri" class="available-day" checked> 금</label>
+                                        <label style="font-weight: normal;"><input type="checkbox" value="sat" class="available-day"> 토</label>
                                     </div>
                                 </div>
                             </div>
@@ -639,6 +642,272 @@
                             <li style="margin: 8px 0;">만료일과 사용가능 요일을 설정하세요</li>
                             <li style="margin: 8px 0;">배분 현황을 확인 후 일괄 발행하세요</li>
                         </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 쿠폰 발송 탭 -->
+            <div id="sendTab" class="tab-content">
+                <div class="coupon-send">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📤 쿠폰 발송</h3>
+                    </div>
+
+                    <!-- 거래처 선택 -->
+                    <div class="form-group" style="margin-bottom: 30px;">
+                        <label for="sendCorporateSelect">발송할 거래처 선택:</label>
+                        <select id="sendCorporateSelect" style="width: 100%; max-width: 400px; padding: 16px;" onchange="loadCouponsForSend()">
+                            <option value="">거래처를 선택하세요</option>
+                        </select>
+                    </div>
+
+                    <!-- 쿠폰 목록 및 발송 현황 -->
+                    <div id="couponSendPanel" style="display: none;">
+                        <h4 style="margin: 0 0 15px 0; color: #667eea;">🎫 쿠폰 발송 현황</h4>
+                        
+                        <!-- 발송 요약 정보 -->
+                        <div id="sendSummary" style="background: #e6f3ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4299e1;">
+                        </div>
+
+                        <!-- 일괄 발송 버튼 -->
+                        <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                            <button onclick="sendAllEmails()" class="success-button" style="background: #e53e3e;">📧 전체 이메일 발송</button>
+                            <button onclick="sendAllSMS()" class="success-button" style="background: #48bb78;">📱 전체 SMS 발송</button>
+                            <button onclick="sendAllKakao()" class="success-button" style="background: #f6ad55;">💬 전체 카카오톡 발송</button>
+                        </div>
+
+                        <!-- 쿠폰 목록 테이블 -->
+                        <div style="max-height: 500px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <table id="couponSendTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">쿠폰번호</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 100px;">이름</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">전화번호</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 180px;">이메일주소</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 80px;">발송여부</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 250px;">발송 액션</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="couponSendBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 쿠폰 발송 안내 -->
+                    <div id="sendInstructions" style="background: #f0f8ff; padding: 20px; border-radius: 8px; border-left: 4px solid #4299e1;">
+                        <h4 style="margin: 0 0 15px 0; color: #2c5aa0;">📋 쿠폰 발송 방법</h4>
+                        <ol style="margin: 0; padding-left: 20px; color: #2c5aa0;">
+                            <li style="margin: 8px 0;">발송할 거래처를 선택하세요</li>
+                            <li style="margin: 8px 0;">해당 거래처의 쿠폰 목록이 자동으로 로드됩니다</li>
+                            <li style="margin: 8px 0;">개별 발송: 각 쿠폰별로 이메일/SMS/카카오톡 버튼 클릭</li>
+                            <li style="margin: 8px 0;">일괄 발송: 상단의 전체 발송 버튼 클릭</li>
+                            <li style="margin: 8px 0;">발송 상태는 실시간으로 업데이트됩니다</li>
+                        </ol>
+                        <div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: 4px; border-left: 3px solid #28a745;">
+                            <strong>✅ 상태:</strong> 쿠폰 발송 기능이 활성화되었습니다. 발송 시 데이터베이스에 기록됩니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 발송 기록 탭 -->
+            <div id="deliveryHistoryTab" class="tab-content">
+                <div class="delivery-history">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📊 쿠폰 발송 기록</h3>
+                        <button onclick="loadDeliveryHistory()" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🔄 새로고침</button>
+                    </div>
+
+                    <!-- 검색 및 필터 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                            <div>
+                                <label for="deliverySearchType">검색 유형:</label>
+                                <select id="deliverySearchType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="">전체</option>
+                                    <option value="email">이메일</option>
+                                    <option value="sms">SMS</option>
+                                    <option value="kakao">카카오톡</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="deliverySearchStatus">발송 상태:</label>
+                                <select id="deliverySearchStatus" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="">전체</option>
+                                    <option value="pending">대기</option>
+                                    <option value="sent">발송됨</option>
+                                    <option value="failed">실패</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="deliverySearchDate">발송일:</label>
+                                <input type="date" id="deliverySearchDate" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <button onclick="filterDeliveryHistory()" style="background: #48bb78; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🔍 필터</button>
+                        </div>
+                    </div>
+
+                    <!-- 통계 요약 -->
+                    <div id="deliveryStats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <!-- 통계 카드들이 여기에 동적으로 생성됩니다 -->
+                    </div>
+
+                    <!-- 발송 기록 테이블 -->
+                    <div style="max-height: 600px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                        <table id="deliveryHistoryTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 80px;">ID</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">쿠폰번호</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 80px;">발송유형</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">수신자</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 180px;">제목</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 80px;">상태</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 150px;">발송일시</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 80px;">액션</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 발송 기록 데이터가 여기에 동적으로 생성됩니다 -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 페이지네이션 -->
+                    <div id="deliveryPagination" style="margin-top: 20px; text-align: center;">
+                        <!-- 페이지네이션 버튼들이 여기에 동적으로 생성됩니다 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 이메일 설정 탭 -->
+            <div id="emailConfigTab" class="tab-content">
+                <div class="email-config">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📧 이메일 서버 설정</h3>
+                        <button onclick="testEmailConnection()" style="background: #38a169; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">연결 테스트</button>
+                    </div>
+
+                    <!-- 이메일 서버 설정 폼 -->
+                    <div class="form-container" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- SMTP 서버 설정 -->
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; color: #667eea;">🔧 SMTP 서버 설정</h4>
+                                
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smtpHost">SMTP 호스트:</label>
+                                    <input type="text" id="smtpHost" placeholder="smtp.gmail.com" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smtpPort">SMTP 포트:</label>
+                                    <input type="number" id="smtpPort" placeholder="587" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label>보안 설정:</label>
+                                    <div style="display: flex; gap: 15px; margin-top: 8px;">
+                                        <label style="font-weight: normal; display: flex; align-items: center;">
+                                            <input type="radio" name="security" value="none" style="margin-right: 5px;"> 없음
+                                        </label>
+                                        <label style="font-weight: normal; display: flex; align-items: center;">
+                                            <input type="radio" name="security" value="tls" checked style="margin-right: 5px;"> TLS
+                                        </label>
+                                        <label style="font-weight: normal; display: flex; align-items: center;">
+                                            <input type="radio" name="security" value="ssl" style="margin-right: 5px;"> SSL
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 인증 정보 -->
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; color: #667eea;">🔐 인증 정보</h4>
+                                
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smtpUsername">사용자명 (이메일):</label>
+                                    <input type="email" id="smtpUsername" placeholder="your-email@gmail.com" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smtpPassword">비밀번호:</label>
+                                    <input type="password" id="smtpPassword" placeholder="앱 비밀번호 또는 계정 비밀번호" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label>
+                                        <input type="checkbox" id="useAuth" checked style="margin-right: 8px;">
+                                        SMTP 인증 사용
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 발송자 정보 -->
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                            <h4 style="margin: 0 0 15px 0; color: #667eea;">👤 발송자 정보</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label for="senderName">발송자 이름:</label>
+                                    <input type="text" id="senderName" placeholder="쿠폰관리시스템" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="senderEmail">발송자 이메일:</label>
+                                    <input type="email" id="senderEmail" placeholder="noreply@company.com" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 저장 버튼 -->
+                        <div style="margin-top: 25px; text-align: center;">
+                            <button onclick="saveEmailConfig()" style="background: #4299e1; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-right: 10px;">💾 설정 저장</button>
+                            <button onclick="loadEmailConfig()" style="background: #718096; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">🔄 설정 불러오기</button>
+                        </div>
+                    </div>
+
+                    <!-- 프리셋 설정 -->
+                    <div class="preset-container" style="background: #e6fffa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 15px 0; color: #2c7a7b;">⚡ 빠른 설정 (프리셋)</h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="applyGmailPreset()" style="background: #ea4335; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📬 Gmail</button>
+                            <button onclick="applyOutlookPreset()" style="background: #0078d4; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📮 Outlook</button>
+                            <button onclick="applyYahooPreset()" style="background: #720e9e; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📪 Yahoo</button>
+                            <button onclick="applyNaverPreset()" style="background: #03c75a; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📫 Naver</button>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 14px; color: #2c7a7b;">
+                            <strong>주의:</strong> Gmail의 경우 앱 비밀번호를 생성해서 사용해야 합니다.
+                        </div>
+                    </div>
+
+                    <!-- 이메일 템플릿 설정 -->
+                    <div class="template-container" style="background: #fef5e7; padding: 20px; border-radius: 8px;">
+                        <h4 style="margin: 0 0 15px 0; color: #c05621;">📝 이메일 템플릿 설정</h4>
+                        
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="emailSubject">이메일 제목:</label>
+                            <input type="text" id="emailSubject" placeholder="[쿠폰 발송] {{회사명}} 쿠폰이 발급되었습니다" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="emailTemplate">이메일 내용 템플릿:</label>
+                            <textarea id="emailTemplate" rows="8" placeholder="안녕하세요 {{이름}}님,
+
+{{회사명}}에서 쿠폰이 발급되었습니다.
+
+쿠폰 코드: {{쿠폰코드}}
+충전 금액: {{충전금액}}원
+포인트: {{포인트}}P
+유효기간: {{유효기간}}
+
+감사합니다." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="margin-top: 10px; font-size: 14px; color: #c05621;">
+                            <strong>사용 가능한 변수:</strong> {{이름}}, {{회사명}}, {{쿠폰코드}}, {{충전금액}}, {{포인트}}, {{유효기간}}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -960,6 +1229,18 @@
                 document.querySelectorAll('.tab')[4].classList.add('active');
                 document.getElementById('couponTab').classList.add('active');
                 loadCorporatesForCouponTab();
+            } else if (tabName === 'send') {
+                document.querySelectorAll('.tab')[5].classList.add('active');
+                document.getElementById('sendTab').classList.add('active');
+                loadCorporatesForSendTab();
+            } else if (tabName === 'deliveryHistory') {
+                document.querySelectorAll('.tab')[6].classList.add('active');
+                document.getElementById('deliveryHistoryTab').classList.add('active');
+                loadDeliveryHistory();
+            } else if (tabName === 'emailConfig') {
+                document.querySelectorAll('.tab')[7].classList.add('active');
+                document.getElementById('emailConfigTab').classList.add('active');
+                loadEmailConfig();
             }
         }
 
@@ -2113,11 +2394,18 @@
             calculateDistribution();
         }
 
-        // 사용 가능 요일 문자열 생성
+        // 사용 가능 요일 문자열 생성 (7자리 0과 1로 구성된 문자열)
+        // 일월화수목금토 순서로 사용가능하면 1, 불가능하면 0
         function getAvailableDaysString() {
-            const checkedDays = document.querySelectorAll('.available-day:checked');
-            const days = Array.from(checkedDays).map(cb => cb.value).sort();
-            return days.join(',');
+            const dayOrder = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+            let binaryString = '';
+            
+            for (const day of dayOrder) {
+                const checkbox = document.querySelector(`.available-day[value="${day}"]`);
+                binaryString += checkbox && checkbox.checked ? '1' : '0';
+            }
+            
+            return binaryString;
         }
 
         // 쿠폰 일괄 발행
@@ -2179,14 +2467,17 @@
                     const employee = couponEmployees[i];
                     
                     try {
+                        // 쿠폰 데이터 준비
+                        // Full coupon code는 서버에서 자동 생성됨:
+                        // {발급자_사업자등록번호}-{사용가능요일(7자리)}-{coupon_id(10자리)}-{결제유형코드}-{패리티(3자리)}
                         const couponData = {
                             employeeId: employee.employeeId,
                             cashBalance: cashPerEmployee,
                             pointBalance: pointPerEmployee,
                             expireDate: expireDate,
                             status: 'ACTIVE',
-                            paymentType: 'PREPAID',
-                            availableDays: availableDays
+                            paymentType: 'PREPAID',  // 결제유형: PREPAID(1) or POSTPAID(2)
+                            availableDays: availableDays  // 7자리 이진 문자열 (일월화수목금토)
                         };
 
                         const response = await fetch(`${serverUrl}/api/coupons`, {
@@ -2241,6 +2532,1029 @@
                 issueBtn.disabled = false;
                 issueBtn.textContent = '🎫 쿠폰 일괄 발행';
             }
+        }
+
+        // ========== 쿠폰 발송 함수들 ==========
+        
+        // 쿠폰 발송 탭을 위한 거래처 목록 로드
+        async function loadCorporatesForSendTab() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                });
+                
+                const data = await response.json();
+                const select = document.getElementById('sendCorporateSelect');
+                
+                if (data.success) {
+                    select.innerHTML = '<option value="">거래처를 선택하세요</option>';
+                    data.data.forEach(corporate => {
+                        const option = document.createElement('option');
+                        option.value = corporate.customerId;
+                        option.textContent = `${corporate.name} (${corporate.representative || '대표자 미등록'})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    alert('거래처 목록을 불러오는데 실패했습니다.');
+                }
+            } catch (error) {
+                alert('거래처 목록 로드 오류: ' + error.message);
+            }
+        }
+        
+        // 선택된 거래처의 쿠폰 목록 로드
+        async function loadCouponsForSend() {
+            const corporateId = document.getElementById('sendCorporateSelect').value;
+            const couponPanel = document.getElementById('couponSendPanel');
+            const instructions = document.getElementById('sendInstructions');
+            
+            if (!corporateId) {
+                couponPanel.style.display = 'none';
+                instructions.style.display = 'block';
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            try {
+                // 해당 거래처의 쿠폰 목록 가져오기
+                const couponResponse = await fetch(`${serverUrl}/api/corporates/${corporateId}/coupons`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                });
+                
+                const couponData = await couponResponse.json();
+                
+                if (!couponData.success) {
+                    alert('쿠폰 정보를 불러오는데 실패했습니다.');
+                    return;
+                }
+                
+                const coupons = couponData.data || [];
+                
+                // 각 쿠폰에 대한 발송 기록 조회
+                const couponsWithDeliveryStatus = await Promise.all(coupons.map(async (coupon) => {
+                    try {
+                        const deliveryResponse = await fetch(`${serverUrl}/api/coupon-send/history?couponId=${coupon.id}`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${currentToken}`,
+                                'Content-Type': 'application/json; charset=utf-8'
+                            }
+                        });
+                        
+                        const deliveryData = await deliveryResponse.json();
+                        const deliveries = deliveryData.success ? deliveryData.data : [];
+                        
+                        // 발송 유형별 성공 여부 확인
+                        const emailSent = deliveries.some(d => d.deliveryType === 'EMAIL' && (d.deliveryStatus === 'SENT' || d.deliveryStatus === 'DELIVERED'));
+                        const smsSent = deliveries.some(d => d.deliveryType === 'SMS' && (d.deliveryStatus === 'SENT' || d.deliveryStatus === 'DELIVERED'));
+                        const kakaoSent = deliveries.some(d => d.deliveryType === 'KAKAO' && (d.deliveryStatus === 'SENT' || d.deliveryStatus === 'DELIVERED'));
+                        
+                        return {
+                            ...coupon,
+                            emailSent,
+                            smsSent,
+                            kakaoSent,
+                            recipientName: coupon.recipientName || '수신자',
+                            recipientPhone: coupon.recipientPhone || '-',
+                            recipientEmail: coupon.recipientEmail || '-'
+                        };
+                    } catch (error) {
+                        console.error('발송 기록 조회 오류:', error);
+                        return {
+                            ...coupon,
+                            emailSent: false,
+                            smsSent: false,
+                            kakaoSent: false,
+                            recipientName: coupon.recipientName || '수신자',
+                            recipientPhone: coupon.recipientPhone || '-',
+                            recipientEmail: coupon.recipientEmail || '-'
+                        };
+                    }
+                }));
+                
+                // 전역 변수에 저장 (다른 함수에서 사용하기 위해)
+                window.currentCoupons = couponsWithDeliveryStatus;
+                
+                // 발송 현황 업데이트
+                updateSendSummary(couponsWithDeliveryStatus);
+                
+                // 쿠폰 테이블 업데이트
+                updateCouponSendTable(couponsWithDeliveryStatus);
+                
+                // 패널 표시
+                couponPanel.style.display = 'block';
+                instructions.style.display = 'none';
+                
+            } catch (error) {
+                alert('쿠폰 정보 로드 오류: ' + error.message);
+            }
+        }
+        
+        // 발송 현황 요약 업데이트
+        function updateSendSummary(couponData) {
+            const totalCount = couponData.length;
+            const emailSentCount = couponData.filter(c => c.emailSent).length;
+            const smsSentCount = couponData.filter(c => c.smsSent).length;
+            const kakaoSentCount = couponData.filter(c => c.kakaoSent).length;
+            
+            const summaryHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #4299e1;">${totalCount}</div>
+                        <div style="color: #666;">총 쿠폰 수</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #48bb78;">${emailSentCount}</div>
+                        <div style="color: #666;">이메일 발송</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #ed8936;">${smsSentCount}</div>
+                        <div style="color: #666;">SMS 발송</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #9f7aea;">${kakaoSentCount}</div>
+                        <div style="color: #666;">카카오톡 발송</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="sendAllEmails()" style="background: #48bb78; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">📧 이메일 전체 발송</button>
+                    <button onclick="sendAllSMS()" style="background: #ed8936; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">📱 SMS 전체 발송</button>
+                    <button onclick="sendAllKakao()" style="background: #9f7aea; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">💬 카카오톡 전체 발송</button>
+                </div>
+            `;
+            
+            document.getElementById('sendSummary').innerHTML = summaryHtml;
+        }
+        
+        // 쿠폰 발송 테이블 업데이트
+        function updateCouponSendTable(couponData) {
+            const tbody = document.querySelector('#couponSendTable tbody');
+            tbody.innerHTML = '';
+            
+            couponData.forEach((coupon, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${coupon.fullCouponCode || coupon.couponCode || `CP${String(coupon.couponId).padStart(4, '0')}`}</td>
+                    <td>${coupon.recipientName}</td>
+                    <td>${coupon.recipientPhone}</td>
+                    <td>${coupon.recipientEmail}</td>
+                    <td>
+                        <span style="color: ${coupon.emailSent ? '#48bb78' : '#999'};">📧 ${coupon.emailSent ? '발송됨' : '미발송'}</span><br>
+                        <span style="color: ${coupon.smsSent ? '#ed8936' : '#999'};">📱 ${coupon.smsSent ? '발송됨' : '미발송'}</span><br>
+                        <span style="color: ${coupon.kakaoSent ? '#9f7aea' : '#999'};">💬 ${coupon.kakaoSent ? '발송됨' : '미발송'}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            <button onclick="sendIndividualEmail(${coupon.couponId})" 
+                                    style="background: #48bb78; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;"
+                                    ${coupon.emailSent ? 'disabled' : ''}>📧</button>
+                            <button onclick="sendIndividualSMS(${coupon.couponId})" 
+                                    style="background: #ed8936; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;"
+                                    ${coupon.smsSent ? 'disabled' : ''}>📱</button>
+                            <button onclick="sendIndividualKakao(${coupon.couponId})" 
+                                    style="background: #9f7aea; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;"
+                                    ${coupon.kakaoSent ? 'disabled' : ''}>💬</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 이메일 설정 확인 함수
+        async function checkEmailSettings() {
+            console.log('[EMAIL-CHECK] 이메일 설정 확인 시작');
+            
+            if (!currentToken) {
+                console.error('[EMAIL-CHECK] 토큰이 없음');
+                return false;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/email-config`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('[EMAIL-CHECK] 이메일 설정 조회 실패:', response.status);
+                    return false;
+                }
+                
+                const data = await response.json();
+                console.log('[EMAIL-CHECK] 이메일 설정:', data);
+                
+                if (data.success && data.config) {
+                    const config = data.config;
+                    const hasBasicSettings = config.smtpHost && config.smtpPort && config.username;
+                    console.log('[EMAIL-CHECK] 기본 설정 완료 여부:', hasBasicSettings);
+                    return hasBasicSettings;
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('[EMAIL-CHECK] 이메일 설정 확인 오류:', error);
+                return false;
+            }
+        }
+        
+        // 전체 이메일 발송
+        async function sendAllEmails() {
+            console.log('[EMAIL-BULK] 전체 이메일 발송 시작');
+            
+            if (!window.currentCoupons || window.currentCoupons.length === 0) {
+                alert('발송할 쿠폰이 없습니다.');
+                return;
+            }
+            
+            const unsentCoupons = window.currentCoupons.filter(c => !c.emailSent && c.recipientEmail && c.recipientEmail !== '-');
+            console.log(`[EMAIL-BULK] 발송 대상 쿠폰 수: ${unsentCoupons.length}`);
+            
+            if (unsentCoupons.length === 0) {
+                alert('이메일 발송 가능한 쿠폰이 없습니다.');
+                return;
+            }
+            
+            // 이메일 설정 확인
+            console.log('[EMAIL-BULK] 이메일 설정 확인 중...');
+            const emailConfigured = await checkEmailSettings();
+            if (!emailConfigured) {
+                console.warn('[EMAIL-BULK] 이메일 설정이 완료되지 않음');
+                if (!confirm('이메일 설정이 완료되지 않았습니다. 그래도 계속하시겠습니까? (실제 이메일은 발송되지 않습니다)')) {
+                    return;
+                }
+            }
+            
+            if (!confirm(`${unsentCoupons.length}개의 쿠폰을 이메일로 발송하시겠습니까?`)) {
+                return;
+            }
+            
+            console.log('[EMAIL-BULK] 개별 이메일 발송 시작');
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (let i = 0; i < unsentCoupons.length; i++) {
+                const coupon = unsentCoupons[i];
+                console.log(`[EMAIL-BULK] 발송 진행 (${i + 1}/${unsentCoupons.length}) - 쿠폰ID: ${coupon.couponId}`);
+                
+                try {
+                    const success = await sendIndividualEmail(coupon.couponId, false); // false = 개별 알림 안함
+                    if (success) {
+                        successCount++;
+                        console.log(`[EMAIL-BULK] 발송 성공 - 쿠폰ID: ${coupon.couponId}`);
+                    } else {
+                        errorCount++;
+                        console.error(`[EMAIL-BULK] 발송 실패 - 쿠폰ID: ${coupon.couponId}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`[EMAIL-BULK] 발송 예외 - 쿠폰ID: ${coupon.couponId}`, error);
+                }
+                
+                // 발송 간격 (서버 부하 방지)
+                if (i < unsentCoupons.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100)); // 100ms 간격
+                }
+            }
+            
+            console.log(`[EMAIL-BULK] 전체 발송 완료 - 성공: ${successCount}, 실패: ${errorCount}`);
+            alert(`이메일 발송 완료: ${successCount}/${unsentCoupons.length}건 성공${errorCount > 0 ? `, ${errorCount}건 실패` : ''}`);
+            loadCouponsForSend(); // 테이블 새로고침
+        }
+        
+        // 전체 SMS 발송
+        async function sendAllSMS() {
+            if (!window.currentCoupons || window.currentCoupons.length === 0) {
+                alert('발송할 쿠폰이 없습니다.');
+                return;
+            }
+            
+            const unsentCoupons = window.currentCoupons.filter(c => !c.smsSent && c.recipientPhone && c.recipientPhone !== '-');
+            
+            if (unsentCoupons.length === 0) {
+                alert('SMS 발송 가능한 쿠폰이 없습니다.');
+                return;
+            }
+            
+            if (!confirm(`${unsentCoupons.length}개의 쿠폰을 SMS로 발송하시겠습니까?`)) {
+                return;
+            }
+            
+            let successCount = 0;
+            for (const coupon of unsentCoupons) {
+                const success = await sendIndividualSMS(coupon.couponId, false); // false = 개별 알림 안함
+                if (success) successCount++;
+            }
+            
+            alert(`SMS 발송 완료: ${successCount}/${unsentCoupons.length}건`);
+            loadCouponsForSend(); // 테이블 새로고침
+        }
+        
+        // 전체 카카오톡 발송
+        async function sendAllKakao() {
+            if (!window.currentCoupons || window.currentCoupons.length === 0) {
+                alert('발송할 쿠폰이 없습니다.');
+                return;
+            }
+            
+            const unsentCoupons = window.currentCoupons.filter(c => !c.kakaoSent);
+            
+            if (unsentCoupons.length === 0) {
+                alert('카카오톡 발송 가능한 쿠폰이 없습니다.');
+                return;
+            }
+            
+            if (!confirm(`${unsentCoupons.length}개의 쿠폰을 카카오톡으로 발송하시겠습니까?`)) {
+                return;
+            }
+            
+            let successCount = 0;
+            for (const coupon of unsentCoupons) {
+                const success = await sendIndividualKakao(coupon.couponId, false); // false = 개별 알림 안함
+                if (success) successCount++;
+            }
+            
+            alert(`카카오톡 발송 완료: ${successCount}/${unsentCoupons.length}건`);
+            loadCouponsForSend(); // 테이블 새로고침
+        }
+        
+        // 개별 이메일 발송
+        async function sendIndividualEmail(couponId, showAlert = true) {
+            console.log(`[EMAIL-SEND] 이메일 발송 시작 - 쿠폰ID: ${couponId}, 알림표시: ${showAlert}`);
+            
+            if (!currentToken) {
+                console.error('[EMAIL-SEND] 토큰이 없음');
+                if (showAlert) alert('먼저 로그인해주세요.');
+                return false;
+            }
+            console.log(`[EMAIL-SEND] 토큰 확인됨: ${currentToken.substring(0, 20)}...`);
+            
+            const coupon = window.currentCoupons?.find(c => c.couponId === couponId);
+            if (!coupon) {
+                console.error(`[EMAIL-SEND] 쿠폰을 찾을 수 없음 - 쿠폰ID: ${couponId}, 전체 쿠폰 수: ${window.currentCoupons?.length || 0}`);
+                if (showAlert) alert('쿠폰 정보를 찾을 수 없습니다.');
+                return false;
+            }
+            console.log(`[EMAIL-SEND] 쿠폰 정보 확인됨:`, {
+                couponId: coupon.couponId,
+                recipientName: coupon.recipientName,
+                recipientEmail: coupon.recipientEmail,
+                fullCouponCode: coupon.fullCouponCode
+            });
+            
+            if (!coupon.recipientEmail || coupon.recipientEmail === '-') {
+                console.error(`[EMAIL-SEND] 이메일 주소 없음 - 수신자: ${coupon.recipientName}, 이메일: ${coupon.recipientEmail}`);
+                if (showAlert) alert('이메일 주소가 없습니다.');
+                return false;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log(`[EMAIL-SEND] 서버 URL: ${serverUrl}`);
+            
+            const requestData = {
+                couponId: couponId,
+                recipientEmail: coupon.recipientEmail,
+                recipientName: coupon.recipientName,
+                subject: `[쿠폰 발송] ${coupon.recipientName}님의 쿠폰이 발급되었습니다`,
+                message: `안녕하세요 ${coupon.recipientName}님,\n\n쿠폰이 발급되었습니다.\n쿠폰번호: ${coupon.fullCouponCode || coupon.couponCode || 'N/A'}\n\n감사합니다.`
+            };
+            console.log(`[EMAIL-SEND] 요청 데이터:`, requestData);
+            
+            try {
+                console.log(`[EMAIL-SEND] API 호출 시작: ${serverUrl}/api/coupon-send/email`);
+                const response = await fetch(`${serverUrl}/api/coupon-send/email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                console.log(`[EMAIL-SEND] API 응답 상태: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    console.error(`[EMAIL-SEND] HTTP 오류: ${response.status} ${response.statusText}`);
+                    const errorText = await response.text();
+                    console.error(`[EMAIL-SEND] 오류 응답 내용:`, errorText);
+                    if (showAlert) alert(`이메일 발송 HTTP 오류: ${response.status} - ${errorText}`);
+                    return false;
+                }
+                
+                const data = await response.json();
+                console.log(`[EMAIL-SEND] API 응답 데이터:`, data);
+                
+                if (data.success) {
+                    console.log(`[EMAIL-SEND] 이메일 발송 성공 - 쿠폰ID: ${couponId}`);
+                    if (showAlert) alert('이메일 발송이 완료되었습니다.');
+                    return true;
+                } else {
+                    console.error(`[EMAIL-SEND] 이메일 발송 실패 - 쿠폰ID: ${couponId}, 메시지: ${data.message}`);
+                    if (showAlert) alert('이메일 발송 실패: ' + data.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error(`[EMAIL-SEND] 예외 발생:`, error);
+                console.error(`[EMAIL-SEND] 스택 트레이스:`, error.stack);
+                if (showAlert) alert('이메일 발송 오류: ' + error.message);
+                return false;
+            }
+        }
+        
+        // 개별 SMS 발송
+        async function sendIndividualSMS(couponId, showAlert = true) {
+            if (!currentToken) {
+                if (showAlert) alert('먼저 로그인해주세요.');
+                return false;
+            }
+            
+            const coupon = window.currentCoupons?.find(c => c.couponId === couponId);
+            if (!coupon) {
+                if (showAlert) alert('쿠폰 정보를 찾을 수 없습니다.');
+                return false;
+            }
+            
+            if (!coupon.recipientPhone || coupon.recipientPhone === '-') {
+                if (showAlert) alert('전화번호가 없습니다.');
+                return false;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/coupon-send/sms`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({
+                        couponId: couponId,
+                        recipientPhone: coupon.recipientPhone
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (showAlert) alert('SMS 발송이 완료되었습니다.');
+                    return true;
+                } else {
+                    if (showAlert) alert('SMS 발송 실패: ' + data.message);
+                    return false;
+                }
+            } catch (error) {
+                if (showAlert) alert('SMS 발송 오류: ' + error.message);
+                return false;
+            }
+        }
+        
+        // 개별 카카오톡 발송
+        async function sendIndividualKakao(couponId, showAlert = true) {
+            if (!currentToken) {
+                if (showAlert) alert('먼저 로그인해주세요.');
+                return false;
+            }
+            
+            const coupon = window.currentCoupons?.find(c => c.couponId === couponId);
+            if (!coupon) {
+                if (showAlert) alert('쿠폰 정보를 찾을 수 없습니다.');
+                return false;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/coupon-send/kakao`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({
+                        couponId: couponId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (showAlert) alert('카카오톡 발송이 완료되었습니다.');
+                    return true;
+                } else {
+                    if (showAlert) alert('카카오톡 발송 실패: ' + data.message);
+                    return false;
+                }
+            } catch (error) {
+                if (showAlert) alert('카카오톡 발송 오류: ' + error.message);
+                return false;
+            }
+        }
+
+        // ========== 이메일 설정 함수들 ==========
+        
+        // 이메일 설정 저장
+        async function saveEmailConfig() {
+            console.log('[EMAIL-CONFIG] 이메일 설정 저장 시작');
+            
+            if (!currentToken) {
+                console.error('[EMAIL-CONFIG] 토큰이 없음');
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const emailConfig = {
+                smtpHost: document.getElementById('smtpHost').value,
+                smtpPort: document.getElementById('smtpPort').value,
+                security: document.querySelector('input[name="security"]:checked').value,
+                username: document.getElementById('smtpUsername').value,
+                password: document.getElementById('smtpPassword').value,
+                useAuth: document.getElementById('useAuth').checked,
+                senderName: document.getElementById('senderName').value,
+                senderEmail: document.getElementById('senderEmail').value,
+                emailSubject: document.getElementById('emailSubject').value,
+                emailTemplate: document.getElementById('emailTemplate').value
+            };
+
+            console.log('[EMAIL-CONFIG] 저장할 설정:', {
+                smtpHost: emailConfig.smtpHost,
+                smtpPort: emailConfig.smtpPort,
+                security: emailConfig.security,
+                username: emailConfig.username,
+                useAuth: emailConfig.useAuth,
+                senderName: emailConfig.senderName,
+                senderEmail: emailConfig.senderEmail,
+                emailSubject: emailConfig.emailSubject,
+                passwordSet: emailConfig.password ? '설정됨' : '미설정',
+                templateLength: emailConfig.emailTemplate ? emailConfig.emailTemplate.length : 0
+            });
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log('[EMAIL-CONFIG] 서버 URL:', serverUrl);
+
+            try {
+                console.log('[EMAIL-CONFIG] API 호출 시작');
+                const response = await fetch(`${serverUrl}/api/email-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(emailConfig)
+                });
+
+                console.log('[EMAIL-CONFIG] API 응답 상태:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    console.error('[EMAIL-CONFIG] HTTP 오류:', response.status);
+                    const errorText = await response.text();
+                    console.error('[EMAIL-CONFIG] 오류 응답:', errorText);
+                    alert(`이메일 설정 저장 HTTP 오류: ${response.status} - ${errorText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[EMAIL-CONFIG] API 응답 데이터:', data);
+                
+                if (data.success) {
+                    console.log('[EMAIL-CONFIG] 이메일 설정 저장 성공');
+                    alert('이메일 설정이 저장되었습니다.');
+                    
+                    // 저장 후 즉시 설정을 다시 로드하여 확인
+                    console.log('[EMAIL-CONFIG] 저장 확인을 위해 설정 다시 로드');
+                    setTimeout(() => {
+                        loadEmailConfig();
+                    }, 500);
+                } else {
+                    console.error('[EMAIL-CONFIG] 이메일 설정 저장 실패:', data.message);
+                    alert('이메일 설정 저장 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('[EMAIL-CONFIG] 이메일 설정 저장 예외:', error);
+                alert('이메일 설정 저장 오류: ' + error.message);
+            }
+        }
+
+        // 이메일 설정 불러오기
+        async function loadEmailConfig() {
+            console.log('[EMAIL-CONFIG] 이메일 설정 불러오기 시작');
+            
+            if (!currentToken) {
+                console.warn('[EMAIL-CONFIG] 토큰이 없어서 설정 불러오기 건너뜀');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log('[EMAIL-CONFIG] 서버 URL:', serverUrl);
+
+            try {
+                console.log('[EMAIL-CONFIG] 설정 조회 API 호출');
+                const response = await fetch(`${serverUrl}/api/email-config`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                });
+
+                console.log('[EMAIL-CONFIG] 설정 조회 응답 상태:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    console.error('[EMAIL-CONFIG] 설정 조회 HTTP 오류:', response.status);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[EMAIL-CONFIG] 설정 조회 응답 데이터:', data);
+                
+                if (data.success && data.data) {
+                    const config = data.data;
+                    console.log('[EMAIL-CONFIG] 불러온 설정:', {
+                        smtpHost: config.smtpHost,
+                        smtpPort: config.smtpPort,
+                        security: config.security,
+                        username: config.username,
+                        useAuth: config.useAuth,
+                        senderName: config.senderName,
+                        senderEmail: config.senderEmail,
+                        passwordSet: config.password ? '설정됨' : '미설정'
+                    });
+                    
+                    document.getElementById('smtpHost').value = config.smtpHost || '';
+                    document.getElementById('smtpPort').value = config.smtpPort || '';
+                    
+                    const securityRadio = document.querySelector(`input[name="security"][value="${config.security || 'tls'}"]`);
+                    if (securityRadio) securityRadio.checked = true;
+                    
+                    document.getElementById('smtpUsername').value = config.username || '';
+                    document.getElementById('smtpPassword').value = config.password || '';
+                    document.getElementById('useAuth').checked = config.useAuth !== false;
+                    document.getElementById('senderName').value = config.senderName || '';
+                    document.getElementById('senderEmail').value = config.senderEmail || '';
+                    
+                    document.getElementById('emailSubject').value = config.emailSubject || '[쿠폰 발송] {{회사명}} 쿠폰이 발급되었습니다';
+                    document.getElementById('emailTemplate').value = config.emailTemplate || `안녕하세요 {{이름}}님,
+
+{{회사명}}에서 쿠폰이 발급되었습니다.
+
+쿠폰 코드: {{쿠폰코드}}
+충전 금액: {{충전금액}}원
+포인트: {{포인트}}P
+유효기간: {{유효기간}}
+
+감사합니다.`;
+                    
+                    console.log('[EMAIL-CONFIG] 폼 필드 업데이트 완료');
+                } else {
+                    console.warn('[EMAIL-CONFIG] 설정 데이터가 없거나 실패:', data);
+                }
+            } catch (error) {
+                console.error('[EMAIL-CONFIG] 이메일 설정 불러오기 예외:', error);
+            }
+        }
+
+        // 이메일 연결 테스트
+        async function testEmailConnection() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const emailConfig = {
+                smtpHost: document.getElementById('smtpHost').value,
+                smtpPort: document.getElementById('smtpPort').value,
+                security: document.querySelector('input[name="security"]:checked').value,
+                username: document.getElementById('smtpUsername').value,
+                password: document.getElementById('smtpPassword').value,
+                useAuth: document.getElementById('useAuth').checked
+            };
+
+            if (!emailConfig.smtpHost || !emailConfig.smtpPort || !emailConfig.username) {
+                alert('SMTP 호스트, 포트, 사용자명을 모두 입력해주세요.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+
+            try {
+                const response = await fetch(`${serverUrl}/api/email-config/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(emailConfig)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ 이메일 서버 연결에 성공했습니다!');
+                } else {
+                    alert('❌ 이메일 서버 연결 실패: ' + data.message);
+                }
+            } catch (error) {
+                alert('❌ 이메일 연결 테스트 오류: ' + error.message);
+            }
+        }
+
+        // Gmail 프리셋 적용
+        function applyGmailPreset() {
+            document.getElementById('smtpHost').value = 'smtp.gmail.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            alert('Gmail 프리셋이 적용되었습니다. 사용자명과 앱 비밀번호를 입력해주세요.');
+        }
+
+        // Outlook 프리셋 적용
+        function applyOutlookPreset() {
+            document.getElementById('smtpHost').value = 'smtp-mail.outlook.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            alert('Outlook 프리셋이 적용되었습니다. 사용자명과 비밀번호를 입력해주세요.');
+        }
+
+        // Yahoo 프리셋 적용
+        function applyYahooPreset() {
+            document.getElementById('smtpHost').value = 'smtp.mail.yahoo.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            alert('Yahoo 프리셋이 적용되었습니다. 사용자명과 앱 비밀번호를 입력해주세요.');
+        }
+
+        // Naver 프리셋 적용
+        function applyNaverPreset() {
+            document.getElementById('smtpHost').value = 'smtp.naver.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            alert('Naver 프리셋이 적용되었습니다. 사용자명과 비밀번호를 입력해주세요.');
+        }
+
+        // ========== 발송 기록 관련 함수들 ==========
+        
+        // 전역 변수
+        let deliveryHistoryData = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+
+        // 발송 기록 로드
+        async function loadDeliveryHistory() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/coupon-send/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    deliveryHistoryData = data.data || [];
+                    updateDeliveryStats();
+                    displayDeliveryHistory();
+                } else {
+                    alert('발송 기록 로드 실패: ' + data.message);
+                }
+            } catch (error) {
+                alert('발송 기록 로드 오류: ' + error.message);
+            }
+        }
+
+        // 발송 기록 통계 업데이트
+        function updateDeliveryStats() {
+            const stats = {
+                total: deliveryHistoryData.length,
+                email: deliveryHistoryData.filter(d => d.deliveryType === 'email').length,
+                sms: deliveryHistoryData.filter(d => d.deliveryType === 'sms').length,
+                kakao: deliveryHistoryData.filter(d => d.deliveryType === 'kakao').length,
+                sent: deliveryHistoryData.filter(d => d.status === 'sent').length,
+                failed: deliveryHistoryData.filter(d => d.status === 'failed').length,
+                pending: deliveryHistoryData.filter(d => d.status === 'pending').length
+            };
+
+            const statsHtml = `
+                <div style="background: #e6f3ff; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #667eea;">${stats.total}</div>
+                    <div style="color: #666;">전체 발송</div>
+                </div>
+                <div style="background: #e6ffed; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #48bb78;">${stats.sent}</div>
+                    <div style="color: #666;">발송 성공</div>
+                </div>
+                <div style="background: #fff2f0; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #ff4d4f;">${stats.failed}</div>
+                    <div style="color: #666;">발송 실패</div>
+                </div>
+                <div style="background: #fff7e6; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #fa8c16;">${stats.pending}</div>
+                    <div style="color: #666;">대기 중</div>
+                </div>
+            `;
+            
+            document.getElementById('deliveryStats').innerHTML = statsHtml;
+        }
+
+        // 발송 기록 표시
+        function displayDeliveryHistory(filteredData = null) {
+            const dataToShow = filteredData || deliveryHistoryData;
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = dataToShow.slice(startIndex, endIndex);
+            
+            const tbody = document.querySelector('#deliveryHistoryTable tbody');
+            tbody.innerHTML = '';
+            
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 20px; color: #666;">
+                            발송 기록이 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            pageData.forEach(delivery => {
+                const row = document.createElement('tr');
+                
+                // 발송 유형 아이콘
+                const typeIcon = {
+                    'email': '📧',
+                    'sms': '📱',
+                    'kakao': '💬'
+                }[delivery.deliveryType] || '📄';
+                
+                // 상태 표시
+                const statusBadge = getStatusBadge(delivery.status);
+                
+                // 날짜 포맷팅
+                const sentDate = delivery.sentAt ? new Date(delivery.sentAt).toLocaleString('ko-KR') : '-';
+                
+                row.innerHTML = `
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${delivery.deliveryId}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${delivery.couponCode || 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${typeIcon} ${delivery.deliveryType.toUpperCase()}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${delivery.recipient}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${delivery.subject || ''}">${delivery.subject || '-'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${statusBadge}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${sentDate}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: center;">
+                        <button onclick="showDeliveryDetails(${delivery.deliveryId})" 
+                                style="background: #667eea; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                            상세
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            // 페이지네이션 업데이트
+            updatePagination(dataToShow.length);
+        }
+
+        // 상태 배지 생성
+        function getStatusBadge(status) {
+            const badges = {
+                'sent': '<span style="background: #52c41a; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">발송됨</span>',
+                'failed': '<span style="background: #ff4d4f; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">실패</span>',
+                'pending': '<span style="background: #fa8c16; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">대기</span>'
+            };
+            return badges[status] || '<span style="background: #d9d9d9; color: #666; padding: 2px 8px; border-radius: 12px; font-size: 12px;">알 수 없음</span>';
+        }
+
+        // 페이지네이션 업데이트
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const pagination = document.getElementById('deliveryPagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let paginationHtml = '';
+            
+            // 이전 버튼
+            if (currentPage > 1) {
+                paginationHtml += `<button onclick="changePage(${currentPage - 1})" style="margin: 0 2px; padding: 6px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">이전</button>`;
+            }
+            
+            // 페이지 번호
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                paginationHtml += `<button onclick="changePage(${i})" style="margin: 0 2px; padding: 6px 12px; border: 1px solid #ddd; background: ${isActive ? '#667eea' : 'white'}; color: ${isActive ? 'white' : 'black'}; cursor: pointer;">${i}</button>`;
+            }
+            
+            // 다음 버튼
+            if (currentPage < totalPages) {
+                paginationHtml += `<button onclick="changePage(${currentPage + 1})" style="margin: 0 2px; padding: 6px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">다음</button>`;
+            }
+            
+            pagination.innerHTML = paginationHtml;
+        }
+
+        // 페이지 변경
+        function changePage(page) {
+            currentPage = page;
+            displayDeliveryHistory();
+        }
+
+        // 발송 기록 필터링
+        function filterDeliveryHistory() {
+            const searchType = document.getElementById('deliverySearchType').value;
+            const searchStatus = document.getElementById('deliverySearchStatus').value;
+            const searchDate = document.getElementById('deliverySearchDate').value;
+            
+            let filteredData = deliveryHistoryData;
+            
+            // 발송 유형 필터
+            if (searchType) {
+                filteredData = filteredData.filter(d => d.deliveryType === searchType);
+            }
+            
+            // 상태 필터
+            if (searchStatus) {
+                filteredData = filteredData.filter(d => d.status === searchStatus);
+            }
+            
+            // 날짜 필터
+            if (searchDate) {
+                filteredData = filteredData.filter(d => {
+                    if (!d.sentAt) return false;
+                    const deliveryDate = new Date(d.sentAt).toISOString().split('T')[0];
+                    return deliveryDate === searchDate;
+                });
+            }
+            
+            currentPage = 1; // 필터링 시 첫 페이지로 리셋
+            displayDeliveryHistory(filteredData);
+        }
+
+        // 발송 상세 정보 표시
+        function showDeliveryDetails(deliveryId) {
+            const delivery = deliveryHistoryData.find(d => d.deliveryId === deliveryId);
+            if (!delivery) {
+                alert('발송 기록을 찾을 수 없습니다.');
+                return;
+            }
+            
+            const details = `
+발송 ID: ${delivery.deliveryId}
+쿠폰 ID: ${delivery.couponId}
+쿠폰 번호: ${delivery.couponCode || 'N/A'}
+발송 유형: ${delivery.deliveryType.toUpperCase()}
+수신자: ${delivery.recipient}
+제목: ${delivery.subject || '-'}
+내용: ${delivery.message || '-'}
+상태: ${delivery.status}
+발송일시: ${delivery.sentAt ? new Date(delivery.sentAt).toLocaleString('ko-KR') : '-'}
+생성일시: ${delivery.createdAt ? new Date(delivery.createdAt).toLocaleString('ko-KR') : '-'}
+메타데이터: ${delivery.metadata || '-'}
+            `;
+            
+            alert(details);
         }
     </script>
 </body>

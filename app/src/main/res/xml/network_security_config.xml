@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- SMTP 서버들을 위한 cleartext 허용 -->
+        <domain includeSubdomains="true">smtp.gmail.com</domain>
+        <domain includeSubdomains="true">smtp.naver.com</domain>
+        <domain includeSubdomains="true">smtp.daum.net</domain>
+        <domain includeSubdomains="true">wsmtp.ecount.com</domain>
+        <domain includeSubdomains="true">mail.ecount.com</domain>
+    </domain-config>
+    
+    <!-- 기본 설정: HTTPS 우선, 하지만 cleartext도 허용 -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>

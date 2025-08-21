@@ -1,13 +1,258 @@
 
-[쿠폰 코드 생성 규칙]
+[full coupon code 생성 규칙]
 
 ** 쿠폰 코드는 다음 형식으로 자동 생성됩니다.
-    `{발급자_등록번호}-{사용가능요일}-{쿠폰_번호(10자리_제로패딩)}-{결제_유형_코드}-{패리티}`
+    `{발급자_사업자등록번호}-{사용가능요일}-{coupon_id(10자리_제로패딩)}-{결제_유형_코드}-{패리티}`
     *   **발급자 등록번호**: `settings.json`에서 로드함.
     *   **사용가능일**: 0과 1로된 7자리수, 사용가능한 요일은 1, 불가능한 요일은 0, 일월화수목금토 순으로.
     *   **쿠폰 번호**: 데이터베이스에서 조회된 쿠폰 번호를 10자리로 제로 패딩합니다.
     *   **결제 유형 코드**: 데이터베이스에서 조회된 `payment_type`이 'prepaid'이면 '1', 그 외에는 '2'입니다.
     *   **패리티**: 랜덤 넘버로 3자리수
 
-[adb 저장경로]
-C:\Users\suesoo\AppData\Local\Android\Sdk\platform-tools\adb.ex
+
+기업체 직원에게 쿠폰을 발행하고, 금액을 충전하며, 사용할 때마다 차감하는 시스템을 위한 데이터베이스 스키마는 크게 직원 정보, 쿠폰 정보, 그리고 사용 내역을 관리하는 세 개의 테이블로 구성할 수 있습니다.
+
+Employees 테이블: 직원의 기본 정보를 저장합니다.
+
+employee_id (PK): 직원을 고유하게 식별하는 ID, 사번 또는 모바일 전화번호
+
+corporate_id(FK): 직원이 소속된 거래처 기업 사업자등록번호 (거래처 사업자번호로 연결되어 있어야 한다.)
+
+name: 직원의 이름.
+
+phone: 핸드폰 번호
+
+email: 주소
+
+department: 직원의 부서.
+
+
+Coupons 테이블: 발행된 쿠폰과 잔액을 관리합니다.
+
+coupon_id (PK): 쿠폰을 고유하게 식별하는 ID. auto_incremental로 10자리 제로패딩
+
+full_coupon_code: 
+    full coupon code 생성 규칙
+
+    ** 쿠폰 코드는 다음 형식으로 자동 생성됩니다.
+        `{발급자_사업자등록번호}-{사용가능요일}-{coupon_id(10자리_제로패딩)}-{결제_유형_코드}-{패리티}`
+        *   **발급자 등록번호**: `settings.json`에서 로드함.
+        *   **사용가능일**: 0과 1로된 7자리수, 사용가능한 요일은 1, 불가능한 요일은 0, 일월화수목금토 순으로.
+        *   **쿠폰 번호**: 데이터베이스에서 조회된 쿠폰 번호를 10자리로 제로 패딩합니다.
+        *   **결제 유형 코드**: 데이터베이스에서 조회된 `payment_type`이 'prepaid'이면 '1', 그 외에는 '2'입니다.
+        *   **패리티**: 랜덤 넘버로 3자리수
+
+employee_id (FK): 쿠폰이 속한 직원을 나타내는 ID.
+
+cash_balance: 현재 쿠폰에 남아있는 잔액.
+
+point_balance: 현재 쿠폰에 남아있는 잔액.
+
+expire_date: 쿠폰의 만기일자.
+
+status: 쿠폰의 상태 (예: '사용 가능', '만료됨').
+
+
+
+Transactions 테이블: 쿠폰의 충전 및 사용 내역을 기록합니다.
+
+transaction_id (PK): 거래를 고유하게 식별하는 ID.
+
+coupon_id (FK): 거래가 발생한 쿠폰 ID.
+
+amount: 거래 금액 (충전 시 양수, 사용 시 음수).
+
+transaction_type: 거래 유형 (예: '충전', '사용').
+
+transaction_date: 거래가 발생한 날짜와 시간.
+
+
+
+
+
+
+ 1. coupon_deliveries (쿠폰 발송 기록 테이블)      
+
+  CREATE TABLE coupon_deliveries (
+      delivery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      coupon_id INTEGER NOT NULL,
+      delivery_type VARCHAR(20) NOT NULL, -- 'EMAIL', 'SMS', 'KAKAO'
+      delivery_status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'SENT', 'DELIVERED', 'FAILED', 'BOUNCED'       
+      recipient_address TEXT NOT NULL, -- 이메일 주소, 전화번호 등
+      sent_at DATETIME NULL,
+      delivered_at DATETIME NULL,
+      failed_at DATETIME NULL,
+      retry_count INTEGER DEFAULT 0,
+      last_retry_at DATETIME NULL,
+      error_message TEXT NULL,
+      sbj TEXT NULL, -- message subject      
+      msg TEXT NULL, -- message
+      metadata TEXT NULL, -- JSON 형태의 추가 정보
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (coupon_id) REFERENCES coupons(coupon_id),
+  );
+
+  2. delivery_templates (발송 템플릿 테이블)
+
+  CREATE TABLE delivery_templates (
+      template_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_name VARCHAR(100) NOT NULL,
+      template_type VARCHAR(20) NOT NULL, -- 'EMAIL', 'SMS', 'KAKAO'
+      subject VARCHAR(100) NULL, -- 이메일 제목 (이메일용)
+      content TEXT NOT NULL,
+      is_default BOOLEAN DEFAULT 0,
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+
+  3. delivery_campaigns (발송 캠페인 테이블)
+
+  CREATE TABLE delivery_campaigns (
+      campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_name VARCHAR(100) NOT NULL,
+      corporate_id INTEGER NOT NULL,
+      campaign_type VARCHAR(20) NOT NULL, -- 'BULK', 'INDIVIDUAL', 'SCHEDULED'
+      delivery_types TEXT NOT NULL, -- JSON 배열: ["EMAIL", "SMS", "KAKAO"]
+      target_count INTEGER DEFAULT 0,
+      sent_count INTEGER DEFAULT 0,
+      delivered_count INTEGER DEFAULT 0,
+      failed_count INTEGER DEFAULT 0,
+      campaign_status VARCHAR(20) NOT NULL DEFAULT 'DRAFT', -- 'DRAFT', 'RUNNING', 'COMPLETED', 'CANCELLED', 'PAUSED'      
+      scheduled_at DATETIME NULL,
+      started_at DATETIME NULL,
+      completed_at DATETIME NULL,
+      created_by VARCHAR(50) NOT NULL,
+      email_template_id INTEGER NULL,
+      sms_template_id INTEGER NULL,
+      kakao_template_id INTEGER NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (corporate_id) REFERENCES corporates(customer_id),
+      FOREIGN KEY (email_template_id) REFERENCES delivery_templates(template_id),
+      FOREIGN KEY (sms_template_id) REFERENCES delivery_templates(template_id),
+      FOREIGN KEY (kakao_template_id) REFERENCES delivery_templates(template_id)
+  );
+
+  3. delivery_templates (발송 템플릿 테이블)
+
+  CREATE TABLE delivery_templates (
+      template_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_name VARCHAR(100) NOT NULL,
+      template_type VARCHAR(20) NOT NULL, -- 'EMAIL', 'SMS', 'KAKAO'
+      subject VARCHAR(100) NULL, -- 이메일 제목 (이메일용)
+      content TEXT NOT NULL,
+      is_default BOOLEAN DEFAULT 0,
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  4. delivery_schedules (발송 스케줄 테이블)
+
+  CREATE TABLE delivery_schedules (
+      schedule_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER NOT NULL,
+      coupon_id INTEGER NOT NULL,
+      employee_id INTEGER NOT NULL,
+      delivery_type VARCHAR(20) NOT NULL,
+      scheduled_at DATETIME NOT NULL,
+      priority INTEGER DEFAULT 5, -- 1(최고) ~ 10(최저)
+      schedule_status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED', -- 'SCHEDULED', 'PROCESSING', 'COMPLETED', 'CANCELLED'     
+      processed_at DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (campaign_id) REFERENCES delivery_campaigns(campaign_id),
+      FOREIGN KEY (coupon_id) REFERENCES coupons(coupon_id),
+      FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
+  );
+
+  5. delivery_settings (발송 설정 테이블)
+
+  CREATE TABLE delivery_settings (
+      setting_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setting_category VARCHAR(50) NOT NULL, -- 'EMAIL', 'SMS', 'KAKAO', 'GENERAL'
+      setting_key VARCHAR(100) NOT NULL,
+      setting_value TEXT NOT NULL,
+      setting_type VARCHAR(20) NOT NULL DEFAULT 'STRING', -- 'STRING', 'INTEGER', 'BOOLEAN', 'JSON'
+      description TEXT NULL,
+      is_encrypted BOOLEAN DEFAULT 0, -- 비밀번호 등 민감 정보
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(setting_category, setting_key)
+  );
+
+  6. delivery_blacklist (발송 차단 목록 테이블)
+
+  CREATE TABLE delivery_blacklist (
+      blacklist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contact_type VARCHAR(20) NOT NULL, -- 'EMAIL', 'PHONE'
+      contact_value VARCHAR(200) NOT NULL,
+      blacklist_reason VARCHAR(200) NULL,
+      blacklisted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      blacklisted_by VARCHAR(50) NOT NULL,
+      is_active BOOLEAN DEFAULT 1,
+      UNIQUE(contact_type, contact_value)
+  );
+
+  7. delivery_statistics (발송 통계 테이블)
+
+  CREATE TABLE delivery_statistics (
+      stat_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      corporate_id INTEGER NULL,
+      campaign_id INTEGER NULL,
+      stat_date DATE NOT NULL,
+      delivery_type VARCHAR(20) NOT NULL,
+      total_sent INTEGER DEFAULT 0,
+      total_delivered INTEGER DEFAULT 0,
+      total_failed INTEGER DEFAULT 0,
+      total_bounced INTEGER DEFAULT 0,
+      total_opened INTEGER DEFAULT 0, -- 이메일 열람
+      total_clicked INTEGER DEFAULT 0, -- 링크 클릭
+      delivery_rate DECIMAL(5,2) DEFAULT 0.00, -- 배송 성공률
+      open_rate DECIMAL(5,2) DEFAULT 0.00, -- 열람률
+      click_rate DECIMAL(5,2) DEFAULT 0.00, -- 클릭률
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (corporate_id) REFERENCES corporates(customer_id),
+      FOREIGN KEY (campaign_id) REFERENCES delivery_campaigns(campaign_id),
+      UNIQUE(corporate_id, campaign_id, stat_date, delivery_type)
+  );
+
+  📋 인덱스 제안
+
+  -- 성능 최적화를 위한 인덱스
+  CREATE INDEX idx_coupon_deliveries_coupon_id ON coupon_deliveries(coupon_id);
+  CREATE INDEX idx_coupon_deliveries_employee_id ON coupon_deliveries(employee_id);
+  CREATE INDEX idx_coupon_deliveries_status ON coupon_deliveries(delivery_status);
+  CREATE INDEX idx_coupon_deliveries_type ON coupon_deliveries(delivery_type);
+  CREATE INDEX idx_coupon_deliveries_sent_at ON coupon_deliveries(sent_at);
+
+  CREATE INDEX idx_delivery_campaigns_corporate_id ON delivery_campaigns(corporate_id);
+  CREATE INDEX idx_delivery_campaigns_status ON delivery_campaigns(campaign_status);
+  CREATE INDEX idx_delivery_campaigns_scheduled_at ON delivery_campaigns(scheduled_at);
+
+  CREATE INDEX idx_delivery_schedules_scheduled_at ON delivery_schedules(scheduled_at);
+  CREATE INDEX idx_delivery_schedules_status ON delivery_schedules(schedule_status);
+  CREATE INDEX idx_delivery_schedules_priority ON delivery_schedules(priority);
+
+  CREATE INDEX idx_delivery_statistics_date ON delivery_statistics(stat_date);
+  CREATE INDEX idx_delivery_statistics_corporate ON delivery_statistics(corporate_id, stat_date);
+
+  🔄 기존 테이블과의 관계
+
+  - coupons 테이블: coupon_id로 연결
+  - employees 테이블: employee_id로 연결
+  - corporates 테이블: customer_id로 연결
+
+  💡 주요 특징
+
+  1. 발송 상태 추적: 각 발송 채널별 상세한 상태 관리
+  2. 캠페인 관리: 대량 발송을 위한 캠페인 단위 관리
+  3. 템플릿 시스템: 재사용 가능한 발송 템플릿
+  4. 스케줄링: 예약 발송 기능
+  5. 통계 및 분석: 발송 성과 분석
+  6. 차단 목록: 스팸 방지 및 옵트아웃 관리
+  7. 설정 관리: 각 발송 채널별 설정 저장
+
+

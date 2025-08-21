@@ -1,0 +1,33 @@
+cmd /c "C:\Users\suesoo\AppData\Local\Android\Sdk\platform-tools\adb.exe forward tcp:8080 tcp:8080"
+
+[adb 저장경로]
+C:\Users\suesoo\AppData\Local\Android\Sdk\platform-tools\adb.exe
+
+
+db를 만들고, 거래처 기업에 대한 테이블을 만들어라
+### `corporate` 테이블
+
+*   **목적:** 회사 고객 정보를 기록합니다.
+*   **주요 컬럼:** `customer_id` (PK), `name`, `business_number`, `representative`, `phone`, `email`, `address`, `created_at`
+
+
+index.html에서 거래처 기업 정보를 CRUD 할수 있도록 메뉴와 화면을 만들고, api도 준비해라 
+
+
+오류: 잘못된 JSON 형식입니다: /data/user/0/com.example.couponman_6/cache/NanoHTT...
+
+
+
+
+쿠폰 발송 탭에서 거래처는 corporate 테이블에서 가져와 채워라
+현재는 undefined(undefined)로 표시된다.
+거래처를 선택하면,
+쿠폰번호, 이름, 전화번호, 이메일주소, 발송여부, 이메일/sms/카카오톡 발송버튼을 보여주도록 하고,
+이메일/sms/카카오톡 발송버튼을 클릭했을때 작동하는 코드는 나중에 작성할 예정이다.
+
+
+ 메뉴를 작성해라
+
+거래처를 선택하면 직원들을 불러와서 이름/전화번호/이메일/현금충전금액/포인트충전금액을 표시하도록 하고, 총 금액을 입력하면 자동으로 
+직원들에게 균등하게 배분되도록 하고, 포인트도 배분되도록 해라
+포인트는 정률 또는 정액을 선택할 수 있게 하고, 정률이면 %, 정액이면 쿠폰한장당 포인트 숫자를 입력하도록 해라

@@ -21,6 +21,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+// 네트워크 관련 imports
+import java.net.*;
+import java.io.*;
+import javax.net.ssl.*;
+import java.util.Base64;
+
+// 파일 I/O imports
+import java.io.FileInputStream;
+import java.io.ByteArrayOutputStream;
+
 public class ApiServer extends NanoHTTPD {
 
     private static final String TAG = "ApiServer";
@@ -31,6 +41,8 @@ public class ApiServer extends NanoHTTPD {
     private SharedPreferences sharedPreferences;
     private CorporateDAO corporateDAO;
     private EmployeeDAO employeeDAO;
+    private CouponDAO couponDAO;
+    private CouponDeliveryDAO couponDeliveryDAO;
 
     public ApiServer(int port, Context context) {
         super(port);
@@ -42,6 +54,10 @@ public class ApiServer extends NanoHTTPD {
         corporateDAO.open();
         employeeDAO = new EmployeeDAO(context);
         employeeDAO.open();
+        couponDAO = new CouponDAO(context);
+        couponDAO.open();
+        couponDeliveryDAO = new CouponDeliveryDAO(context);
+        couponDeliveryDAO.open();
         initializeSampleData();
     }
 
@@ -53,6 +69,12 @@ public class ApiServer extends NanoHTTPD {
         }
         if (employeeDAO != null) {
             employeeDAO.close();
+        }
+        if (couponDAO != null) {
+            couponDAO.close();
+        }
+        if (couponDeliveryDAO != null) {
+            couponDeliveryDAO.close();
         }
         Log.i(TAG, "API Server stopped and database connection closed");
     }
@@ -180,6 +202,15 @@ public class ApiServer extends NanoHTTPD {
                                         response = handleGetEmployeesByCorporate(corporateId);
                                     }
                                 }
+                            } else if (path.contains("/coupons")) {
+                                // 거래처별 쿠폰 관련 API
+                                String[] parts = path.split("/");
+                                if (parts.length >= 2) {
+                                    String corporateId = parts[0];
+                                    if (Method.GET.equals(method)) {
+                                        response = handleGetCouponsByCorporate(corporateId);
+                                    }
+                                }
                             } else {
                                 String corporateId = path;
                                 if (Method.GET.equals(method)) {
@@ -208,6 +239,43 @@ public class ApiServer extends NanoHTTPD {
                                 response = handleUpdateEmployee(employeeId, session);
                             } else if (Method.DELETE.equals(method)) {
                                 response = handleDeleteEmployee(employeeId);
+                            }
+                        }
+                    } else if (uri.startsWith("/api/email-config")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/email-config")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetEmailConfig();
+                            } else if (Method.POST.equals(method)) {
+                                response = handleSaveEmailConfig(session);
+                            }
+                        } else if (uri.equals("/api/email-config/test")) {
+                            if (Method.POST.equals(method)) {
+                                response = handleTestEmailConnection(session);
+                            }
+                        }
+                    } else if (uri.startsWith("/api/coupon-send")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/coupon-send/email")) {
+                            if (Method.POST.equals(method)) {
+                                response = handleSendCouponEmail(session);
+                            }
+                        } else if (uri.equals("/api/coupon-send/sms")) {
+                            if (Method.POST.equals(method)) {
+                                response = handleSendCouponSMS(session);
+                            }
+                        } else if (uri.equals("/api/coupon-send/kakao")) {
+                            if (Method.POST.equals(method)) {
+                                response = handleSendCouponKakao(session);
+                            }
+                        } else if (uri.startsWith("/api/coupon-send/")) {
+                            String path = uri.substring("/api/coupon-send/".length());
+                            if (path.equals("history")) {
+                                if (Method.GET.equals(method)) {
+                                    response = handleGetDeliveryHistory(session);
+                                }
                             }
                         }
                     }
@@ -250,11 +318,19 @@ public class ApiServer extends NanoHTTPD {
                 "DELETE /api/corporates/{id} - 거래처 삭제 (인증 필요)",
                 "GET /api/corporates/search?name={name} - 거래처 이름으로 검색 (인증 필요)",
                 "GET /api/corporates/{id}/employees - 거래처별 직원 목록 조회 (인증 필요)",
+                "GET /api/corporates/{id}/coupons - 거래처별 쿠폰 목록 조회 (인증 필요)",
                 "GET /api/employees - 모든 직원 조회 (인증 필요)",
                 "GET /api/employees/{id} - 특정 직원 조회 (인증 필요)",
                 "POST /api/employees - 새 직원 생성 (인증 필요)",
                 "PUT /api/employees/{id} - 직원 업데이트 (인증 필요)",
                 "DELETE /api/employees/{id} - 직원 삭제 (인증 필요)",
+                "GET /api/email-config - 이메일 설정 조회 (인증 필요)",
+                "POST /api/email-config - 이메일 설정 저장 (인증 필요)",
+                "POST /api/email-config/test - 이메일 연결 테스트 (인증 필요)",
+                "POST /api/coupon-send/email - 쿠폰 이메일 발송 (인증 필요)",
+                "POST /api/coupon-send/sms - 쿠폰 SMS 발송 (인증 필요)",
+                "POST /api/coupon-send/kakao - 쿠폰 카카오톡 발송 (인증 필요)",
+                "GET /api/coupon-send/history - 발송 기록 조회 (인증 필요)",
                 "GET /api/server/status - 서버 상태 조회"
         });
 
@@ -982,6 +1058,58 @@ public class ApiServer extends NanoHTTPD {
         }
     }
 
+    private Response handleGetCouponsByCorporate(String corporateId) {
+        try {
+            int id = Integer.parseInt(corporateId);
+            List<Coupon> coupons = couponDAO.getCouponsByCorporateId(id);
+            
+            // 쿠폰에 수신자 정보 추가 및 쿠폰 코드 확인/생성
+            for (Coupon coupon : coupons) {
+                try {
+                    // 직원 정보 설정
+                    Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
+                    if (employee != null) {
+                        coupon.setRecipientName(employee.getName());
+                        coupon.setRecipientPhone(employee.getPhone());
+                        coupon.setRecipientEmail(employee.getEmail());
+                    }
+                    
+                    // 쿠폰 코드가 없는 경우 생성
+                    if (coupon.getFullCouponCode() == null || coupon.getFullCouponCode().trim().isEmpty()) {
+                        Log.d(TAG, "[CORPORATE-COUPONS] 쿠폰 코드가 없음 - 생성 시작, ID: " + coupon.getCouponId());
+                        String generatedCode = coupon.generateFullCouponCode(context);
+                        coupon.setFullCouponCode(generatedCode);
+                        couponDAO.updateCouponCode(coupon.getCouponId(), generatedCode);
+                        Log.d(TAG, "[CORPORATE-COUPONS] 쿠폰 코드 생성 완료 - ID: " + coupon.getCouponId() + ", 코드: " + generatedCode);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed to load employee info for coupon " + coupon.getCouponId(), e);
+                }
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", coupons);
+            result.put("count", coupons.size());
+            result.put("corporateId", id);
+            
+            Log.i(TAG, "Retrieved coupons for corporate " + id + ": " + coupons.size());
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 거래처 ID 형식입니다");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting coupons by corporate", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "쿠폰 목록 조회 중 오류가 발생했습니다");
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
     private Response handleGetEmployee(String employeeId) {
         try {
             int id = Integer.parseInt(employeeId);
@@ -1191,6 +1319,1050 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "직원 삭제 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    // ========== 이메일 설정 관련 핸들러 ==========
+    
+    /**
+     * 이메일 설정 조회
+     */
+    private Response handleGetEmailConfig() {
+        try {
+            SharedPreferences emailPrefs = context.getSharedPreferences("EmailSettings", Context.MODE_PRIVATE);
+            
+            Map<String, Object> config = new HashMap<>();
+            config.put("smtpHost", emailPrefs.getString("smtp_host", ""));
+            config.put("smtpPort", emailPrefs.getString("smtp_port", "587"));
+            config.put("security", emailPrefs.getString("security", "tls"));
+            config.put("username", emailPrefs.getString("username", ""));
+            config.put("password", emailPrefs.getString("password", ""));
+            config.put("useAuth", emailPrefs.getBoolean("use_auth", true));
+            config.put("senderName", emailPrefs.getString("sender_name", ""));
+            config.put("senderEmail", emailPrefs.getString("sender_email", ""));
+            config.put("emailSubject", emailPrefs.getString("email_subject", "[쿠폰 발송] {{회사명}} 쿠폰이 발급되었습니다"));
+            config.put("emailTemplate", emailPrefs.getString("email_template", 
+                "안녕하세요 {{이름}}님,\n\n{{회사명}}에서 쿠폰이 발급되었습니다.\n\n" +
+                "쿠폰 코드: {{쿠폰코드}}\n충전 금액: {{충전금액}}원\n포인트: {{포인트}}P\n" +
+                "유효기간: {{유효기간}}\n\n감사합니다."));
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", config);
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting email config", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "이메일 설정 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 이메일 설정 저장
+     */
+    private Response handleSaveEmailConfig(IHTTPSession session) {
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> configData = gson.fromJson(postData, Map.class);
+            
+            SharedPreferences emailPrefs = context.getSharedPreferences("EmailSettings", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = emailPrefs.edit();
+            
+            editor.putString("smtp_host", (String) configData.get("smtpHost"));
+            editor.putString("smtp_port", (String) configData.get("smtpPort"));
+            editor.putString("security", (String) configData.get("security"));
+            editor.putString("username", (String) configData.get("username"));
+            editor.putString("password", (String) configData.get("password"));
+            editor.putBoolean("use_auth", (Boolean) configData.getOrDefault("useAuth", true));
+            editor.putString("sender_name", (String) configData.get("senderName"));
+            editor.putString("sender_email", (String) configData.get("senderEmail"));
+            editor.putString("email_subject", (String) configData.get("emailSubject"));
+            editor.putString("email_template", (String) configData.get("emailTemplate"));
+            
+            editor.apply();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "이메일 설정이 저장되었습니다");
+            
+            Log.i(TAG, "Email configuration saved successfully");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving email config", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "이메일 설정 저장 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 이메일 연결 테스트
+     */
+    private Response handleTestEmailConnection(IHTTPSession session) {
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> configData = gson.fromJson(postData, Map.class);
+            
+            String smtpHost = (String) configData.get("smtpHost");
+            String smtpPort = (String) configData.get("smtpPort");
+            String username = (String) configData.get("username");
+            String password = (String) configData.get("password");
+            
+            // 필수 값 검증
+            if (smtpHost == null || smtpHost.trim().isEmpty() ||
+                smtpPort == null || smtpPort.trim().isEmpty() ||
+                username == null || username.trim().isEmpty()) {
+                
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "SMTP 호스트, 포트, 사용자명은 필수 입력 항목입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 실제 SMTP 연결 테스트를 위한 코드는 여기서 구현
+            // 현재는 간단한 유효성 검사만 수행
+            try {
+                int port = Integer.parseInt(smtpPort);
+                if (port <= 0 || port > 65535) {
+                    throw new NumberFormatException("Invalid port range");
+                }
+            } catch (NumberFormatException e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "유효하지 않은 포트 번호입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // TODO: 실제 SMTP 서버 연결 테스트 구현
+            // 현재는 설정 값이 올바른지만 확인
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "이메일 설정이 유효합니다 (실제 연결 테스트는 추후 구현됩니다)");
+            
+            Log.i(TAG, "Email connection test completed for host: " + smtpHost);
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error testing email connection", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "이메일 연결 테스트 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    // ========== 쿠폰 발송 관련 핸들러 ==========
+    
+    /**
+     * 쿠폰 이메일 발송
+     */
+    private Response handleSendCouponEmail(IHTTPSession session) {
+        Log.i(TAG, "[EMAIL-SEND] 이메일 발송 요청 시작");
+        
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            Log.i(TAG, "[EMAIL-SEND] POST 데이터 크기: " + (postData != null ? postData.length() : 0));
+            Log.i(TAG, "[EMAIL-SEND] POST 데이터 내용: " + postData);
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Log.e(TAG, "[EMAIL-SEND] 요청 본문이 비어있음");
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> requestData;
+            try {
+                requestData = gson.fromJson(postData, Map.class);
+                Log.i(TAG, "[EMAIL-SEND] 파싱된 요청 데이터: " + requestData);
+            } catch (Exception e) {
+                Log.e(TAG, "[EMAIL-SEND] JSON 파싱 오류", e);
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "JSON 파싱 오류: " + e.getMessage());
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 필수 파라미터 검증
+            Object couponIdObj = requestData.get("couponId");
+            String recipientEmail = (String) requestData.get("recipientEmail");
+            String recipientName = (String) requestData.get("recipientName");
+            String subject = (String) requestData.get("subject");
+            String message = (String) requestData.get("message");
+            
+            Log.i(TAG, "[EMAIL-SEND] 파라미터 검증 - 쿠폰ID: " + couponIdObj + ", 수신자: " + recipientEmail + ", 이름: " + recipientName);
+            
+            if (couponIdObj == null || recipientEmail == null || recipientEmail.trim().isEmpty()) {
+                Log.e(TAG, "[EMAIL-SEND] 필수 파라미터 누락 - 쿠폰ID: " + couponIdObj + ", 이메일: " + recipientEmail);
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "쿠폰 ID와 수신자 이메일은 필수 입력 항목입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            int couponId;
+            try {
+                if (couponIdObj instanceof Double) {
+                    couponId = ((Double) couponIdObj).intValue();
+                } else {
+                    couponId = Integer.parseInt(couponIdObj.toString());
+                }
+                Log.i(TAG, "[EMAIL-SEND] 쿠폰 ID 변환 성공: " + couponId);
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "[EMAIL-SEND] 쿠폰 ID 변환 실패: " + couponIdObj, e);
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "유효하지 않은 쿠폰 ID입니다: " + couponIdObj);
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 기본값 설정
+            if (subject == null || subject.trim().isEmpty()) {
+                subject = "[쿠폰 발송] " + (recipientName != null ? recipientName + "님의 " : "") + "쿠폰이 발급되었습니다";
+            }
+            if (message == null || message.trim().isEmpty()) {
+                message = "안녕하세요" + (recipientName != null ? " " + recipientName + "님" : "") + ",\n\n쿠폰이 발급되었습니다.\n\n감사합니다.";
+            }
+            
+            Log.i(TAG, "[EMAIL-SEND] 최종 이메일 정보 - 제목: " + subject + ", 메시지 길이: " + message.length());
+            
+            // 쿠폰 코드 변수를 미리 선언 (스코프 해결)
+            String fullCouponCode = null;
+            
+            // 쿠폰 존재 여부 확인 및 쿠폰 코드 가져오기
+            try {
+                Coupon coupon = couponDAO.getCouponById(couponId);
+                if (coupon == null) {
+                    Log.e(TAG, "[EMAIL-SEND] 쿠폰을 찾을 수 없음 - ID: " + couponId);
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("success", false);
+                    error.put("message", "존재하지 않는 쿠폰입니다: " + couponId);
+                    return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+                }
+                
+                // 쿠폰 코드가 없는 경우 생성
+                if (coupon.getFullCouponCode() == null || coupon.getFullCouponCode().trim().isEmpty()) {
+                    Log.i(TAG, "[EMAIL-SEND] 쿠폰 코드가 없음 - 생성 시작");
+                    String generatedCode = coupon.generateFullCouponCode(context);
+                    coupon.setFullCouponCode(generatedCode);
+                    
+                    // 데이터베이스에 업데이트
+                    couponDAO.updateCouponCode(couponId, generatedCode);
+                    Log.i(TAG, "[EMAIL-SEND] 쿠폰 코드 생성 완료 - " + generatedCode);
+                }
+                
+                // 쿠폰 코드를 변수에 저장
+                fullCouponCode = coupon.getFullCouponCode();
+                Log.i(TAG, "[EMAIL-SEND] 쿠폰 확인됨 - ID: " + couponId + ", 코드: " + fullCouponCode);
+                
+            } catch (Exception e) {
+                Log.e(TAG, "[EMAIL-SEND] 쿠폰 조회 중 오류", e);
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "쿠폰 조회 중 오류가 발생했습니다: " + e.getMessage());
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 발송 기록 저장
+            String metadata = gson.toJson(requestData);
+            Log.i(TAG, "[EMAIL-SEND] 발송 기록 저장 시작");
+            
+            long deliveryId = couponDeliveryDAO.insertDelivery(
+                couponId, 
+                CouponDelivery.TYPE_EMAIL, 
+                recipientEmail, 
+                subject, 
+                message, 
+                metadata
+            );
+            
+            Log.i(TAG, "[EMAIL-SEND] 발송 기록 저장 완료 - 배송 ID: " + deliveryId);
+            
+            if (deliveryId > 0) {
+                // 실제 이메일 발송
+                Log.i(TAG, "[EMAIL-SEND] 실제 이메일 발송 시작");
+                
+                // 이메일 설정 확인
+                SharedPreferences emailSettings = context.getSharedPreferences("EmailSettings", Context.MODE_PRIVATE);
+                String smtpHost = emailSettings.getString("smtp_host", "");
+                String smtpPort = emailSettings.getString("smtp_port", "");
+                String security = emailSettings.getString("security", "tls");
+                String username = emailSettings.getString("username", "");
+                String password = emailSettings.getString("password", "");
+                boolean useAuth = emailSettings.getBoolean("use_auth", true);
+                String senderName = emailSettings.getString("sender_name", "");
+                String senderEmail = emailSettings.getString("sender_email", "");
+                
+                Log.i(TAG, "[EMAIL-SEND] 이메일 설정 확인 - SMTP 호스트: " + smtpHost + ", 포트: " + smtpPort + ", 사용자: " + username + ", 보안: " + security);
+                
+                boolean emailSentSuccessfully = false;
+                String errorMessage = null;
+                
+                if (smtpHost.isEmpty() || smtpPort.isEmpty() || username.isEmpty()) {
+                    Log.w(TAG, "[EMAIL-SEND] 이메일 설정이 불완전함 - 시뮬레이션으로 처리");
+                    errorMessage = "이메일 설정이 완료되지 않았습니다. '이메일 설정' 탭에서 SMTP 설정을 완료해주세요.";
+                    emailSentSuccessfully = false;
+                } else {
+                    // 실제 이메일 발송 시도 (별도 스레드에서 실행)
+                    try {
+                        // final 변수로 복사
+                        final String finalSmtpHost = smtpHost;
+                        final String finalSmtpPort = smtpPort;
+                        final String finalSecurity = security;
+                        final String finalUsername = username;
+                        final String finalPassword = password;
+                        final boolean finalUseAuth = useAuth;
+                        final String finalSenderName = senderName;
+                        final String finalSenderEmail = senderEmail;
+                        final String finalRecipientEmail = recipientEmail;
+                        final String finalSubject = subject;
+                        final String finalMessage = message;
+                        final String finalFullCouponCode = fullCouponCode;
+                        
+                        // 동기식 실행을 위한 변수들
+                        final boolean[] result = {false};
+                        final String[] error = {null};
+                        final Object lock = new Object();
+                        final boolean[] completed = {false};
+                        
+                        // 별도 스레드에서 이메일 발송
+                        Thread emailThread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    boolean success = sendEmailActual(finalSmtpHost, finalSmtpPort, finalSecurity, finalUsername, finalPassword, finalUseAuth, 
+                                                                    finalSenderName, finalSenderEmail, finalRecipientEmail, finalSubject, finalMessage, finalFullCouponCode);
+                                    synchronized (lock) {
+                                        result[0] = success;
+                                        completed[0] = true;
+                                        lock.notify();
+                                    }
+                                } catch (Exception e) {
+                                    synchronized (lock) {
+                                        result[0] = false;
+                                        error[0] = e.getMessage();
+                                        completed[0] = true;
+                                        lock.notify();
+                                    }
+                                }
+                            }
+                        });
+                        
+                        emailThread.start();
+                        
+                        // 결과 대기 (최대 30초)
+                        synchronized (lock) {
+                            if (!completed[0]) {
+                                lock.wait(30000); // 30초 타임아웃
+                            }
+                        }
+                        
+                        if (!completed[0]) {
+                            // 타임아웃 발생
+                            emailThread.interrupt();
+                            emailSentSuccessfully = false;
+                            errorMessage = "이메일 발송이 타임아웃되었습니다 (30초 초과)";
+                            Log.w(TAG, "[EMAIL-SEND] 이메일 발송 타임아웃");
+                        } else if (result[0]) {
+                            emailSentSuccessfully = true;
+                            Log.i(TAG, "[EMAIL-SEND] 실제 이메일 발송 성공");
+                        } else {
+                            emailSentSuccessfully = false;
+                            errorMessage = error[0] != null ? "이메일 발송 실패: " + error[0] : "이메일 발송에 실패했습니다. SMTP 설정을 확인해주세요.";
+                            Log.w(TAG, "[EMAIL-SEND] 실제 이메일 발송 실패: " + errorMessage);
+                        }
+                        
+                    } catch (InterruptedException e) {
+                        Log.e(TAG, "[EMAIL-SEND] 이메일 발송 대기 중 인터럽트", e);
+                        emailSentSuccessfully = false;
+                        errorMessage = "이메일 발송 중 인터럽트가 발생했습니다.";
+                    } catch (Exception e) {
+                        Log.e(TAG, "[EMAIL-SEND] 실제 이메일 발송 중 예외", e);
+                        emailSentSuccessfully = false;
+                        errorMessage = "이메일 발송 중 오류가 발생했습니다: " + e.getMessage();
+                    }
+                }
+                
+                // 발송 상태 업데이트
+                String deliveryStatus = emailSentSuccessfully ? CouponDelivery.STATUS_SENT : CouponDelivery.STATUS_FAILED;
+                boolean updateSuccess = couponDeliveryDAO.updateDeliveryStatus(deliveryId, deliveryStatus, errorMessage);
+                Log.i(TAG, "[EMAIL-SEND] 발송 상태 업데이트 결과: " + updateSuccess + ", 상태: " + deliveryStatus);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", emailSentSuccessfully);
+                result.put("deliveryId", deliveryId);
+                result.put("couponId", couponId);
+                result.put("recipientEmail", recipientEmail);
+                result.put("actualEmailSent", emailSentSuccessfully);
+                
+                if (emailSentSuccessfully) {
+                    result.put("message", "이메일 발송이 완료되었습니다.");
+                } else {
+                    result.put("message", errorMessage != null ? errorMessage : "이메일 발송에 실패했습니다.");
+                }
+                
+                Log.i(TAG, "[EMAIL-SEND] 이메일 발송 완료 - 배송 ID: " + deliveryId + ", 쿠폰 ID: " + couponId + ", 성공: " + emailSentSuccessfully);
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Log.e(TAG, "[EMAIL-SEND] 발송 기록 저장 실패");
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "발송 기록 저장에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[EMAIL-SEND] 예외 발생", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "이메일 발송 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("errorType", e.getClass().getSimpleName());
+            error.put("stackTrace", android.util.Log.getStackTraceString(e));
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 쿠폰 SMS 발송
+     */
+    private Response handleSendCouponSMS(IHTTPSession session) {
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            
+            // 필수 파라미터 검증
+            Object couponIdObj = requestData.get("couponId");
+            String recipientPhone = (String) requestData.get("recipientPhone");
+            String message = (String) requestData.get("message");
+            
+            if (couponIdObj == null || recipientPhone == null || recipientPhone.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "쿠폰 ID와 수신자 전화번호는 필수 입력 항목입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            int couponId;
+            try {
+                if (couponIdObj instanceof Double) {
+                    couponId = ((Double) couponIdObj).intValue();
+                } else {
+                    couponId = Integer.parseInt(couponIdObj.toString());
+                }
+            } catch (NumberFormatException e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "유효하지 않은 쿠폰 ID입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 발송 기록 저장
+            String metadata = gson.toJson(requestData);
+            long deliveryId = couponDeliveryDAO.insertDelivery(
+                couponId, 
+                CouponDelivery.TYPE_SMS, 
+                recipientPhone, 
+                null, // SMS는 제목이 없음
+                message, 
+                metadata
+            );
+            
+            if (deliveryId > 0) {
+                // 실제 SMS 발송은 여기서 구현 (추후)
+                // 현재는 발송 성공으로 처리
+                couponDeliveryDAO.updateDeliveryStatus(deliveryId, CouponDelivery.STATUS_SENT, null);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("deliveryId", deliveryId);
+                result.put("message", "SMS 발송이 완료되었습니다 (실제 발송 기능은 추후 구현됩니다)");
+                
+                Log.i(TAG, "SMS delivery record created with ID: " + deliveryId);
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "발송 기록 저장에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error sending coupon SMS", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "SMS 발송 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 쿠폰 카카오톡 발송
+     */
+    private Response handleSendCouponKakao(IHTTPSession session) {
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            
+            // 필수 파라미터 검증
+            Object couponIdObj = requestData.get("couponId");
+            String recipientPhone = (String) requestData.get("recipientPhone");
+            String message = (String) requestData.get("message");
+            
+            if (couponIdObj == null || recipientPhone == null || recipientPhone.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "쿠폰 ID와 수신자 전화번호는 필수 입력 항목입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            int couponId;
+            try {
+                if (couponIdObj instanceof Double) {
+                    couponId = ((Double) couponIdObj).intValue();
+                } else {
+                    couponId = Integer.parseInt(couponIdObj.toString());
+                }
+            } catch (NumberFormatException e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "유효하지 않은 쿠폰 ID입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 발송 기록 저장
+            String metadata = gson.toJson(requestData);
+            long deliveryId = couponDeliveryDAO.insertDelivery(
+                couponId, 
+                CouponDelivery.TYPE_KAKAO, 
+                recipientPhone, 
+                null, // 카카오톡도 제목이 없음
+                message, 
+                metadata
+            );
+            
+            if (deliveryId > 0) {
+                // 실제 카카오톡 발송은 여기서 구현 (추후)
+                // 현재는 발송 성공으로 처리
+                couponDeliveryDAO.updateDeliveryStatus(deliveryId, CouponDelivery.STATUS_SENT, null);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("deliveryId", deliveryId);
+                result.put("message", "카카오톡 발송이 완료되었습니다 (실제 발송 기능은 추후 구현됩니다)");
+                
+                Log.i(TAG, "Kakao delivery record created with ID: " + deliveryId);
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "발송 기록 저장에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error sending coupon Kakao", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "카카오톡 발송 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 발송 기록 조회
+     */
+    private Response handleGetDeliveryHistory(IHTTPSession session) {
+        Log.i(TAG, "[DELIVERY-HISTORY] 발송 기록 조회 요청 시작");
+        
+        try {
+            Map<String, String> params = session.getParms();
+            String couponId = params.get("couponId");
+            String deliveryType = params.get("type");
+            String status = params.get("status");
+            
+            Log.i(TAG, "[DELIVERY-HISTORY] 조회 파라미터 - 쿠폰ID: " + couponId + ", 유형: " + deliveryType + ", 상태: " + status);
+            
+            List<CouponDelivery> deliveries;
+            
+            if (couponId != null && !couponId.trim().isEmpty()) {
+                try {
+                    int id = Integer.parseInt(couponId);
+                    Log.i(TAG, "[DELIVERY-HISTORY] 쿠폰 ID별 조회: " + id);
+                    deliveries = couponDeliveryDAO.getDeliveriesByCouponId(id);
+                } catch (NumberFormatException e) {
+                    Log.e(TAG, "[DELIVERY-HISTORY] 잘못된 쿠폰 ID 형식: " + couponId);
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("success", false);
+                    error.put("message", "유효하지 않은 쿠폰 ID입니다");
+                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+                }
+            } else if (deliveryType != null && !deliveryType.trim().isEmpty()) {
+                Log.i(TAG, "[DELIVERY-HISTORY] 발송 유형별 조회: " + deliveryType);
+                deliveries = couponDeliveryDAO.getDeliveriesByType(deliveryType);
+            } else if (status != null && !status.trim().isEmpty()) {
+                Log.i(TAG, "[DELIVERY-HISTORY] 상태별 조회: " + status);
+                deliveries = couponDeliveryDAO.getDeliveriesByStatus(status);
+            } else {
+                Log.i(TAG, "[DELIVERY-HISTORY] 모든 발송 기록 조회");
+                deliveries = couponDeliveryDAO.getAllDeliveries();
+            }
+            
+            Log.i(TAG, "[DELIVERY-HISTORY] 조회 결과: " + deliveries.size() + "건");
+            
+            // 각 발송 기록에 쿠폰 코드 정보 추가
+            for (CouponDelivery delivery : deliveries) {
+                try {
+                    Log.d(TAG, "[DELIVERY-HISTORY] 쿠폰 정보 조회 시작 - delivery.getCouponId(): " + delivery.getCouponId());
+                    Coupon coupon = couponDAO.getCouponById(delivery.getCouponId());
+                    if (coupon != null) {
+                        String fullCouponCode = coupon.getFullCouponCode();
+                        
+                        // 쿠폰 코드가 없는 경우 생성
+                        if (fullCouponCode == null || fullCouponCode.trim().isEmpty()) {
+                            Log.d(TAG, "[DELIVERY-HISTORY] 쿠폰 코드가 없음 - 생성 시작");
+                            fullCouponCode = coupon.generateFullCouponCode(context);
+                            coupon.setFullCouponCode(fullCouponCode);
+                            couponDAO.updateCouponCode(delivery.getCouponId(), fullCouponCode);
+                            Log.d(TAG, "[DELIVERY-HISTORY] 쿠폰 코드 생성 완료 - " + fullCouponCode);
+                        }
+                        
+                        Log.d(TAG, "[DELIVERY-HISTORY] 쿠폰 조회 성공 - ID: " + delivery.getCouponId() + ", 코드: " + fullCouponCode);
+                        delivery.setCouponCode(fullCouponCode);
+                        Log.d(TAG, "[DELIVERY-HISTORY] setCouponCode 완료 - getCouponCode(): " + delivery.getCouponCode());
+                    } else {
+                        Log.w(TAG, "[DELIVERY-HISTORY] 쿠폰을 찾을 수 없음 - ID: " + delivery.getCouponId());
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "[DELIVERY-HISTORY] 쿠폰 정보 조회 실패 - ID: " + delivery.getCouponId(), e);
+                }
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", deliveries);
+            result.put("count", deliveries.size());
+            
+            Log.i(TAG, "[DELIVERY-HISTORY] 발송 기록 조회 완료 - " + deliveries.size() + "건 반환");
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[DELIVERY-HISTORY] 발송 기록 조회 중 예외 발생", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "발송 기록 조회 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("errorType", e.getClass().getSimpleName());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 실제 이메일 발송 메서드
+     */
+    private boolean sendEmailActual(String smtpHost, String smtpPort, String security, 
+                                   String username, String password, boolean useAuth,
+                                   String senderName, String senderEmail, 
+                                   String recipientEmail, String subject, String messageText, String couponCode) {
+        
+        Log.i(TAG, "[EMAIL-ACTUAL] 실제 이메일 발송 시작");
+        Log.i(TAG, "[EMAIL-ACTUAL] 설정 - 호스트: " + smtpHost + ", 포트: " + smtpPort + ", 보안: " + security);
+        Log.i(TAG, "[EMAIL-ACTUAL] 발신자: " + senderEmail + " (" + senderName + ")");
+        Log.i(TAG, "[EMAIL-ACTUAL] 수신자: " + recipientEmail);
+        Log.i(TAG, "[EMAIL-ACTUAL] 제목: " + subject);
+        
+        try {
+            // 기본 검증
+            if (smtpHost == null || smtpHost.trim().isEmpty()) {
+                Log.e(TAG, "[EMAIL-ACTUAL] SMTP 호스트가 설정되지 않음");
+                return false;
+            }
+            
+            if (recipientEmail == null || !recipientEmail.contains("@")) {
+                Log.e(TAG, "[EMAIL-ACTUAL] 잘못된 수신자 이메일: " + recipientEmail);
+                return false;
+            }
+            
+            if (username == null || username.trim().isEmpty()) {
+                Log.e(TAG, "[EMAIL-ACTUAL] SMTP 사용자명이 설정되지 않음");
+                return false;
+            }
+            
+            // 포트 번호 검증
+            int port;
+            try {
+                port = Integer.parseInt(smtpPort);
+                if (port <= 0 || port > 65535) {
+                    Log.e(TAG, "[EMAIL-ACTUAL] 잘못된 포트 번호: " + smtpPort);
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "[EMAIL-ACTUAL] 포트 번호 파싱 오류: " + smtpPort);
+                return false;
+            }
+            
+            Log.i(TAG, "[EMAIL-ACTUAL] 순수 Java Socket SMTP 연결 시도 시작");
+            
+            // Socket을 이용한 직접 SMTP 구현
+            return performSmtpEmail(smtpHost, port, security, username, password, useAuth, senderName, senderEmail, recipientEmail, subject, messageText, couponCode);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[EMAIL-ACTUAL] 이메일 발송 중 예외 발생", e);
+            return false;
+        }
+    }
+    
+    /**
+     * SMTP 이메일 발송 실행
+     */
+    private boolean performSmtpEmail(String smtpHost, int port, String security, String username, 
+                                   String password, boolean useAuth, String senderName, String senderEmail, 
+                                   String recipientEmail, String subject, String messageText, String couponCode) {
+        Socket socket = null;
+        BufferedReader reader = null;
+        PrintWriter writer = null;
+        File qrImageFile = null;
+        
+        try {
+            // 발신자 이메일 결정
+            String fromEmail = senderEmail != null && !senderEmail.isEmpty() ? senderEmail : username;
+            
+            // QR 코드 생성 (쿠폰 코드가 있는 경우)
+            if (couponCode != null && !couponCode.trim().isEmpty()) {
+                Log.i(TAG, "[EMAIL-ACTUAL] QR 코드 생성 시작 - 쿠폰코드: " + couponCode);
+                String qrFileName = "coupon_qr_" + System.currentTimeMillis();
+                qrImageFile = QRCodeGenerator.generateQRCodeImage(context, couponCode, qrFileName);
+                
+                if (qrImageFile != null) {
+                    Log.i(TAG, "[EMAIL-ACTUAL] QR 코드 생성 성공 - 파일: " + qrImageFile.getName() + ", 크기: " + qrImageFile.length() + " bytes");
+                } else {
+                    Log.w(TAG, "[EMAIL-ACTUAL] QR 코드 생성 실패 - 첨부 없이 이메일 발송");
+                }
+            } else {
+                Log.w(TAG, "[EMAIL-ACTUAL] 쿠폰 코드가 없어 QR 코드 생성 생략");
+            }
+            
+            Log.i(TAG, "[EMAIL-ACTUAL] 연결 설정 - 호스트: " + smtpHost + ", 포트: " + port + ", 보안: " + security);
+            
+            // SMTP 서버 연결
+            if ("ssl".equals(security)) {
+                // SSL 연결
+                SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                socket = sslFactory.createSocket(smtpHost, port);
+            } else {
+                // 일반 또는 TLS 연결
+                socket = new Socket(smtpHost, port);
+            }
+            
+            socket.setSoTimeout(30000); // 30초 타임아웃
+            
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            writer = new PrintWriter(socket.getOutputStream(), true);
+            
+            Log.i(TAG, "[EMAIL-ACTUAL] SMTP 서버 연결 성공");
+            
+            // SMTP 명령어 처리
+            String response = reader.readLine();
+            Log.i(TAG, "[EMAIL-ACTUAL] 서버 응답: " + response);
+            
+            if (!response.startsWith("220")) {
+                Log.e(TAG, "[EMAIL-ACTUAL] SMTP 서버 연결 실패: " + response);
+                return false;
+            }
+            
+            // EHLO 명령
+            writer.println("EHLO " + smtpHost);
+            response = readMultiLineResponse(reader);
+            Log.i(TAG, "[EMAIL-ACTUAL] EHLO 응답: " + response);
+            
+            // TLS 시작 (필요한 경우)
+            if ("tls".equals(security)) {
+                writer.println("STARTTLS");
+                response = reader.readLine();
+                Log.i(TAG, "[EMAIL-ACTUAL] STARTTLS 응답: " + response);
+                
+                if (response.startsWith("220")) {
+                    // TLS 핸드셰이크
+                    SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                    SSLSocket sslSocket = (SSLSocket) sslFactory.createSocket(socket, smtpHost, port, true);
+                    sslSocket.startHandshake();
+                    
+                    socket = sslSocket;
+                    reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    writer = new PrintWriter(socket.getOutputStream(), true);
+                    
+                    // TLS 후 다시 EHLO
+                    writer.println("EHLO " + smtpHost);
+                    response = readMultiLineResponse(reader);
+                    Log.i(TAG, "[EMAIL-ACTUAL] TLS EHLO 응답: " + response);
+                }
+            }
+            
+            // 인증 (필요한 경우)
+            if (useAuth && password != null && !password.isEmpty()) {
+                writer.println("AUTH LOGIN");
+                response = reader.readLine();
+                Log.i(TAG, "[EMAIL-ACTUAL] AUTH LOGIN 응답: " + response);
+                
+                if (response.startsWith("334")) {
+                    // 사용자명 전송
+                    String encodedUsername = Base64.getEncoder().encodeToString(username.getBytes("UTF-8"));
+                    writer.println(encodedUsername);
+                    response = reader.readLine();
+                    Log.i(TAG, "[EMAIL-ACTUAL] 사용자명 응답: " + response);
+                    
+                    if (response.startsWith("334")) {
+                        // 비밀번호 전송
+                        String encodedPassword = Base64.getEncoder().encodeToString(password.getBytes("UTF-8"));
+                        writer.println(encodedPassword);
+                        response = reader.readLine();
+                        Log.i(TAG, "[EMAIL-ACTUAL] 비밀번호 응답: " + response);
+                        
+                        if (!response.startsWith("235")) {
+                            Log.e(TAG, "[EMAIL-ACTUAL] 인증 실패: " + response);
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            // 발신자 설정
+            writer.println("MAIL FROM:<" + fromEmail + ">");
+            response = reader.readLine();
+            Log.i(TAG, "[EMAIL-ACTUAL] MAIL FROM 응답: " + response);
+            if (!response.startsWith("250")) {
+                Log.e(TAG, "[EMAIL-ACTUAL] MAIL FROM 실패: " + response);
+                return false;
+            }
+            
+            // 수신자 설정
+            writer.println("RCPT TO:<" + recipientEmail + ">");
+            response = reader.readLine();
+            Log.i(TAG, "[EMAIL-ACTUAL] RCPT TO 응답: " + response);
+            if (!response.startsWith("250")) {
+                Log.e(TAG, "[EMAIL-ACTUAL] RCPT TO 실패: " + response);
+                return false;
+            }
+            
+            // 데이터 전송 시작
+            writer.println("DATA");
+            response = reader.readLine();
+            Log.i(TAG, "[EMAIL-ACTUAL] DATA 응답: " + response);
+            if (!response.startsWith("354")) {
+                Log.e(TAG, "[EMAIL-ACTUAL] DATA 명령 실패: " + response);
+                return false;
+            }
+            
+            // 이메일 헤더와 본문 작성
+            String displayName = senderName != null && !senderName.isEmpty() ? senderName : fromEmail;
+            writer.println("From: " + displayName + " <" + fromEmail + ">");
+            writer.println("To: <" + recipientEmail + ">");
+            writer.println("Subject: " + subject);
+            writer.println("MIME-Version: 1.0");
+            
+            // MIME 멀티파트 구성 (첨부파일이 있는 경우)
+            if (qrImageFile != null && qrImageFile.exists()) {
+                String boundary = "----=_Part_" + System.currentTimeMillis();
+                writer.println("Content-Type: multipart/mixed; boundary=\"" + boundary + "\"");
+                writer.println("");
+                
+                // HTML 본문 파트
+                writer.println("--" + boundary);
+                writer.println("Content-Type: text/html; charset=UTF-8");
+                writer.println("Content-Transfer-Encoding: 8bit");
+                writer.println("");
+                String htmlContent = messageText.replace("\n", "<br>");
+                writer.println(htmlContent);
+                writer.println("");
+                
+                // QR 코드 첨부파일 파트
+                writer.println("--" + boundary);
+                writer.println("Content-Type: image/jpeg; name=\"" + qrImageFile.getName() + "\"");
+                writer.println("Content-Transfer-Encoding: base64");
+                writer.println("Content-Disposition: attachment; filename=\"" + qrImageFile.getName() + "\"");
+                writer.println("");
+                
+                // 파일을 Base64로 인코딩해서 전송
+                try {
+                    byte[] fileBytes = readFileToBytes(qrImageFile);
+                    if (fileBytes != null) {
+                        String base64Content = Base64.getEncoder().encodeToString(fileBytes);
+                        // Base64는 76자마다 줄바꿈
+                        for (int i = 0; i < base64Content.length(); i += 76) {
+                            int endIndex = Math.min(i + 76, base64Content.length());
+                            writer.println(base64Content.substring(i, endIndex));
+                        }
+                        Log.i(TAG, "[EMAIL-ACTUAL] QR 코드 첨부파일 Base64 인코딩 완료");
+                    } else {
+                        Log.e(TAG, "[EMAIL-ACTUAL] QR 코드 파일 읽기 실패");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "[EMAIL-ACTUAL] QR 코드 첨부 중 오류", e);
+                }
+                
+                writer.println("");
+                writer.println("--" + boundary + "--");
+                
+            } else {
+                // 첨부파일이 없는 경우 단순 HTML
+                writer.println("Content-Type: text/html; charset=UTF-8");
+                writer.println("");
+                String htmlContent = messageText.replace("\n", "<br>");
+                writer.println(htmlContent);
+            }
+            
+            writer.println(".");
+            
+            response = reader.readLine();
+            Log.i(TAG, "[EMAIL-ACTUAL] 메시지 전송 응답: " + response);
+            if (!response.startsWith("250")) {
+                Log.e(TAG, "[EMAIL-ACTUAL] 메시지 전송 실패: " + response);
+                return false;
+            }
+            
+            // 연결 종료
+            writer.println("QUIT");
+            response = reader.readLine();
+            Log.i(TAG, "[EMAIL-ACTUAL] QUIT 응답: " + response);
+            
+            Log.i(TAG, "[EMAIL-ACTUAL] 이메일 발송 성공!");
+            return true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[EMAIL-ACTUAL] SMTP 통신 중 오류", e);
+            return false;
+        } finally {
+            // 리소스 정리
+            try {
+                if (writer != null) writer.close();
+                if (reader != null) reader.close();
+                if (socket != null && !socket.isClosed()) socket.close();
+            } catch (IOException e) {
+                Log.w(TAG, "[EMAIL-ACTUAL] 리소스 정리 중 오류", e);
+            }
+            
+            // QR 코드 이미지 파일 삭제
+            if (qrImageFile != null) {
+                boolean deleted = QRCodeGenerator.deleteQRCodeImage(qrImageFile);
+                if (deleted) {
+                    Log.i(TAG, "[EMAIL-ACTUAL] QR 코드 임시 파일 삭제 완료");
+                } else {
+                    Log.w(TAG, "[EMAIL-ACTUAL] QR 코드 임시 파일 삭제 실패");
+                }
+            }
+        }
+    }
+    
+    /**
+     * SMTP 서버에서 멀티라인 응답 읽기
+     */
+    private String readMultiLineResponse(BufferedReader reader) throws IOException {
+        StringBuilder response = new StringBuilder();
+        String line;
+        
+        while ((line = reader.readLine()) != null) {
+            response.append(line).append("\n");
+            // SMTP 응답의 마지막 라인은 세 자리 숫자 + 공백으로 시작
+            if (line.length() >= 4 && line.charAt(3) == ' ') {
+                break;
+            }
+        }
+        
+        return response.toString().trim();
+    }
+    
+    /**
+     * 파일을 바이트 배열로 읽기
+     */
+    private byte[] readFileToBytes(File file) {
+        if (file == null || !file.exists()) {
+            Log.e(TAG, "[FILE-READ] 파일이 존재하지 않음");
+            return null;
+        }
+        
+        FileInputStream inputStream = null;
+        ByteArrayOutputStream outputStream = null;
+        
+        try {
+            inputStream = new FileInputStream(file);
+            outputStream = new ByteArrayOutputStream();
+            
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            
+            byte[] fileBytes = outputStream.toByteArray();
+            Log.d(TAG, "[FILE-READ] 파일 읽기 완료 - " + fileBytes.length + " bytes");
+            
+            return fileBytes;
+            
+        } catch (IOException e) {
+            Log.e(TAG, "[FILE-READ] 파일 읽기 중 IOException", e);
+            return null;
+        } catch (Exception e) {
+            Log.e(TAG, "[FILE-READ] 파일 읽기 중 예외", e);
+            return null;
+        } finally {
+            try {
+                if (inputStream != null) inputStream.close();
+                if (outputStream != null) outputStream.close();
+            } catch (IOException e) {
+                Log.w(TAG, "[FILE-READ] 스트림 닫기 실패", e);
+            }
         }
     }
 }

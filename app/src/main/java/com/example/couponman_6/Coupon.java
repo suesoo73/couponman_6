@@ -20,6 +20,11 @@ public class Coupon {
     private String paymentType; // 'prepaid' 또는 다른 값
     private String availableDays; // 사용가능요일 (예: "1111100")
     private String createdAt;
+    
+    // 수신자 정보 (런타임에만 사용, DB에 저장되지 않음)
+    private String recipientName;
+    private String recipientPhone;
+    private String recipientEmail;
 
     // 상태 상수
     public static final String STATUS_ACTIVE = "사용 가능";
@@ -160,7 +165,7 @@ public class Coupon {
      * {발급자_사업자등록번호}-{사용가능요일}-{coupon_id(10자리_제로패딩)}-{결제_유형_코드}-{패리티}
      */
     public String generateFullCouponCode(Context context) {
-        SharedPreferences settings = context.getSharedPreferences("AdminSettings", Context.MODE_PRIVATE);
+        SharedPreferences settings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
         String issuerBusinessNumber = settings.getString("business_number", "0000000000");
         
         // 1. 발급자 사업자등록번호
@@ -309,6 +314,31 @@ public class Coupon {
         }
         
         return sb.length() > 0 ? sb.toString() : "없음";
+    }
+
+    // 수신자 정보 getter/setter
+    public String getRecipientName() {
+        return recipientName;
+    }
+
+    public void setRecipientName(String recipientName) {
+        this.recipientName = recipientName;
+    }
+
+    public String getRecipientPhone() {
+        return recipientPhone;
+    }
+
+    public void setRecipientPhone(String recipientPhone) {
+        this.recipientPhone = recipientPhone;
+    }
+
+    public String getRecipientEmail() {
+        return recipientEmail;
+    }
+
+    public void setRecipientEmail(String recipientEmail) {
+        this.recipientEmail = recipientEmail;
     }
 
     @Override
