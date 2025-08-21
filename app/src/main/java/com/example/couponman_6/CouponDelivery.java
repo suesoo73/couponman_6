@@ -192,19 +192,45 @@ public class CouponDelivery {
         this.updatedAt = updatedAt;
     }
 
+    // JavaScript에서 사용할 추가 필드들 (JSON 직렬화용 - DB 저장 안함)
+    private String status;
+    private String recipient;
+    private String type;
+
     // JavaScript에서 delivery.status로 접근할 수 있도록 하는 getter
     public String getStatus() {
+        if (status != null) {
+            return status;
+        }
         return deliveryStatus != null ? deliveryStatus.toLowerCase() : null;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     // JavaScript에서 delivery.recipient로 접근할 수 있도록 하는 getter
     public String getRecipient() {
+        if (recipient != null) {
+            return recipient;
+        }
         return recipientAddress;
+    }
+
+    public void setRecipient(String recipient) {
+        this.recipient = recipient;
     }
 
     // JavaScript에서 소문자 deliveryType에 접근하기 위한 별도 getter
     public String getType() {
+        if (type != null) {
+            return type;
+        }
         return deliveryType != null ? deliveryType.toLowerCase() : null;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     // 유틸리티 메소드들

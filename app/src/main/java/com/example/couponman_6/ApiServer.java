@@ -1993,11 +1993,21 @@ public class ApiServer extends NanoHTTPD {
                         Log.w(TAG, "[DELIVERY-HISTORY] 쿠폰을 찾을 수 없음 - ID: " + delivery.getCouponId());
                     }
                     
+                    // JavaScript용 필드 설정
+                    String statusValue = delivery.getDeliveryStatus() != null ? delivery.getDeliveryStatus().toLowerCase() : null;
+                    String recipientValue = delivery.getRecipientAddress();
+                    String typeValue = delivery.getDeliveryType() != null ? delivery.getDeliveryType().toLowerCase() : null;
+                    
+                    delivery.setStatus(statusValue);
+                    delivery.setRecipient(recipientValue);
+                    delivery.setType(typeValue);
+                    
                     // status 관련 상세 로그 추가
-                    Log.d(TAG, "[DELIVERY-HISTORY] status 매핑 확인 - " +
+                    Log.d(TAG, "[DELIVERY-HISTORY] 필드 설정 완료 - " +
                         "원본 deliveryStatus: '" + delivery.getDeliveryStatus() + "', " +
-                        "getStatus(): '" + delivery.getStatus() + "', " +
-                        "getRecipient(): '" + delivery.getRecipient() + "'");
+                        "설정한 status: '" + statusValue + "', " +
+                        "설정한 recipient: '" + recipientValue + "', " +
+                        "설정한 type: '" + typeValue + "'");
                         
                 } catch (Exception e) {
                     Log.w(TAG, "[DELIVERY-HISTORY] 쿠폰 정보 조회 실패 - ID: " + delivery.getCouponId(), e);
