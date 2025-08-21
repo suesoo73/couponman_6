@@ -310,6 +310,10 @@ public class CouponDeliveryDAO {
             if (cursor != null && cursor.moveToFirst()) {
                 do {
                     CouponDelivery delivery = cursorToDelivery(cursor);
+                    Log.d(TAG, "[DB-QUERY] 발송 기록 조회 - ID: " + delivery.getDeliveryId() + 
+                        ", deliveryStatus: '" + delivery.getDeliveryStatus() + "'" +
+                        ", deliveryType: '" + delivery.getDeliveryType() + "'" +
+                        ", recipient: '" + delivery.getRecipientAddress() + "'");
                     deliveries.add(delivery);
                 } while (cursor.moveToNext());
             }

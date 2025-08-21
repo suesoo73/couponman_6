@@ -2971,7 +2971,19 @@
                 
                 if (data.success) {
                     console.log(`[EMAIL-SEND] 이메일 발송 성공 - 쿠폰ID: ${couponId}`);
-                    if (showAlert) alert('이메일 발송이 완료되었습니다.');
+                    
+                    // 쿠폰 상태 업데이트 (메모리에서)
+                    if (coupon) {
+                        coupon.emailSent = true;
+                        console.log(`[EMAIL-SEND] 쿠폰 상태 업데이트 완료 - emailSent: true`);
+                    }
+                    
+                    // 개별 발송인 경우에만 테이블 새로고침
+                    if (showAlert) {
+                        loadCouponsForSend(); // 테이블 새로고침
+                        alert('이메일 발송이 완료되었습니다.');
+                    }
+                    
                     return true;
                 } else {
                     console.error(`[EMAIL-SEND] 이메일 발송 실패 - 쿠폰ID: ${couponId}, 메시지: ${data.message}`);
@@ -3022,7 +3034,17 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    if (showAlert) alert('SMS 발송이 완료되었습니다.');
+                    // 쿠폰 상태 업데이트 (메모리에서)
+                    if (coupon) {
+                        coupon.smsSent = true;
+                        console.log(`[SMS-SEND] 쿠폰 상태 업데이트 완료 - smsSent: true`);
+                    }
+                    
+                    // 개별 발송인 경우에만 테이블 새로고침
+                    if (showAlert) {
+                        loadCouponsForSend(); // 테이블 새로고침
+                        alert('SMS 발송이 완료되었습니다.');
+                    }
                     return true;
                 } else {
                     if (showAlert) alert('SMS 발송 실패: ' + data.message);
@@ -3064,7 +3086,17 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    if (showAlert) alert('카카오톡 발송이 완료되었습니다.');
+                    // 쿠폰 상태 업데이트 (메모리에서)
+                    if (coupon) {
+                        coupon.kakaoSent = true;
+                        console.log(`[KAKAO-SEND] 쿠폰 상태 업데이트 완료 - kakaoSent: true`);
+                    }
+                    
+                    // 개별 발송인 경우에만 테이블 새로고침
+                    if (showAlert) {
+                        loadCouponsForSend(); // 테이블 새로고침
+                        alert('카카오톡 발송이 완료되었습니다.');
+                    }
                     return true;
                 } else {
                     if (showAlert) alert('카카오톡 발송 실패: ' + data.message);
@@ -3347,6 +3379,19 @@
                 
                 if (data.success) {
                     deliveryHistoryData = data.data || [];
+                    
+                    // 데이터 구조 상세 로그
+                    console.log('[DELIVERY-HISTORY] 서버 응답 데이터:', data);
+                    console.log('[DELIVERY-HISTORY] 총 데이터 개수:', deliveryHistoryData.length);
+                    
+                    if (deliveryHistoryData.length > 0) {
+                        const firstItem = deliveryHistoryData[0];
+                        console.log('[DELIVERY-HISTORY] 첫 번째 항목 전체 구조:', firstItem);
+                        console.log('[DELIVERY-HISTORY] 첫 번째 항목 status 값:', firstItem.status);
+                        console.log('[DELIVERY-HISTORY] 첫 번째 항목 deliveryStatus 값:', firstItem.deliveryStatus);
+                        console.log('[DELIVERY-HISTORY] 첫 번째 항목 모든 키:', Object.keys(firstItem));
+                    }
+                    
                     updateDeliveryStats();
                     displayDeliveryHistory();
                 } else {
@@ -3361,9 +3406,9 @@
         function updateDeliveryStats() {
             const stats = {
                 total: deliveryHistoryData.length,
-                email: deliveryHistoryData.filter(d => d.deliveryType === 'email').length,
-                sms: deliveryHistoryData.filter(d => d.deliveryType === 'sms').length,
-                kakao: deliveryHistoryData.filter(d => d.deliveryType === 'kakao').length,
+                email: deliveryHistoryData.filter(d => d.type === 'email').length,
+                sms: deliveryHistoryData.filter(d => d.type === 'sms').length,
+                kakao: deliveryHistoryData.filter(d => d.type === 'kakao').length,
                 sent: deliveryHistoryData.filter(d => d.status === 'sent').length,
                 failed: deliveryHistoryData.filter(d => d.status === 'failed').length,
                 pending: deliveryHistoryData.filter(d => d.status === 'pending').length
@@ -3412,18 +3457,23 @@
                 return;
             }
             
-            pageData.forEach(delivery => {
+            pageData.forEach((delivery, index) => {
                 const row = document.createElement('tr');
+                
+                // 각 항목의 status 값 상세 로그
+                console.log(`[DELIVERY-HISTORY] 항목 ${index} - deliveryId: ${delivery.deliveryId}, status: '${delivery.status}', deliveryStatus: '${delivery.deliveryStatus}'`);
                 
                 // 발송 유형 아이콘
                 const typeIcon = {
                     'email': '📧',
                     'sms': '📱',
                     'kakao': '💬'
-                }[delivery.deliveryType] || '📄';
+                }[delivery.type] || '📄';
                 
-                // 상태 표시
+                // 상태 표시 전 로그
+                console.log(`[DELIVERY-HISTORY] getStatusBadge 호출 전 - delivery.status: '${delivery.status}'`);
                 const statusBadge = getStatusBadge(delivery.status);
+                console.log(`[DELIVERY-HISTORY] getStatusBadge 결과: ${statusBadge}`);
                 
                 // 날짜 포맷팅
                 const sentDate = delivery.sentAt ? new Date(delivery.sentAt).toLocaleString('ko-KR') : '-';
@@ -3431,7 +3481,7 @@
                 row.innerHTML = `
                     <td style="border: 1px solid #e0e0e0; padding: 8px;">${delivery.deliveryId}</td>
                     <td style="border: 1px solid #e0e0e0; padding: 8px;">${delivery.couponCode || 'N/A'}</td>
-                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${typeIcon} ${delivery.deliveryType.toUpperCase()}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${typeIcon} ${delivery.type ? delivery.type.toUpperCase() : 'UNKNOWN'}</td>
                     <td style="border: 1px solid #e0e0e0; padding: 8px;">${delivery.recipient}</td>
                     <td style="border: 1px solid #e0e0e0; padding: 8px; max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${delivery.subject || ''}">${delivery.subject || '-'}</td>
                     <td style="border: 1px solid #e0e0e0; padding: 8px;">${statusBadge}</td>
@@ -3511,7 +3561,7 @@
             
             // 발송 유형 필터
             if (searchType) {
-                filteredData = filteredData.filter(d => d.deliveryType === searchType);
+                filteredData = filteredData.filter(d => d.type === searchType);
             }
             
             // 상태 필터
@@ -3544,7 +3594,7 @@
 발송 ID: ${delivery.deliveryId}
 쿠폰 ID: ${delivery.couponId}
 쿠폰 번호: ${delivery.couponCode || 'N/A'}
-발송 유형: ${delivery.deliveryType.toUpperCase()}
+발송 유형: ${delivery.type ? delivery.type.toUpperCase() : 'UNKNOWN'}
 수신자: ${delivery.recipient}
 제목: ${delivery.subject || '-'}
 내용: ${delivery.message || '-'}

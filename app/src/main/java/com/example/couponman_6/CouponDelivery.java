@@ -192,6 +192,21 @@ public class CouponDelivery {
         this.updatedAt = updatedAt;
     }
 
+    // JavaScript에서 delivery.status로 접근할 수 있도록 하는 getter
+    public String getStatus() {
+        return deliveryStatus != null ? deliveryStatus.toLowerCase() : null;
+    }
+
+    // JavaScript에서 delivery.recipient로 접근할 수 있도록 하는 getter
+    public String getRecipient() {
+        return recipientAddress;
+    }
+
+    // JavaScript에서 소문자 deliveryType에 접근하기 위한 별도 getter
+    public String getType() {
+        return deliveryType != null ? deliveryType.toLowerCase() : null;
+    }
+
     // 유틸리티 메소드들
 
     /**

@@ -1965,6 +1965,13 @@ public class ApiServer extends NanoHTTPD {
             // 각 발송 기록에 쿠폰 코드 정보 추가
             for (CouponDelivery delivery : deliveries) {
                 try {
+                    Log.d(TAG, "[DELIVERY-HISTORY] 발송 기록 상세 정보 - deliveryId: " + delivery.getDeliveryId() + 
+                        ", couponId: " + delivery.getCouponId() + 
+                        ", deliveryType: " + delivery.getDeliveryType() + 
+                        ", deliveryStatus: " + delivery.getDeliveryStatus() + 
+                        ", recipient: " + delivery.getRecipientAddress() +
+                        ", createdAt: " + delivery.getCreatedAt());
+                    
                     Log.d(TAG, "[DELIVERY-HISTORY] 쿠폰 정보 조회 시작 - delivery.getCouponId(): " + delivery.getCouponId());
                     Coupon coupon = couponDAO.getCouponById(delivery.getCouponId());
                     if (coupon != null) {
@@ -1985,6 +1992,13 @@ public class ApiServer extends NanoHTTPD {
                     } else {
                         Log.w(TAG, "[DELIVERY-HISTORY] 쿠폰을 찾을 수 없음 - ID: " + delivery.getCouponId());
                     }
+                    
+                    // status 관련 상세 로그 추가
+                    Log.d(TAG, "[DELIVERY-HISTORY] status 매핑 확인 - " +
+                        "원본 deliveryStatus: '" + delivery.getDeliveryStatus() + "', " +
+                        "getStatus(): '" + delivery.getStatus() + "', " +
+                        "getRecipient(): '" + delivery.getRecipient() + "'");
+                        
                 } catch (Exception e) {
                     Log.w(TAG, "[DELIVERY-HISTORY] 쿠폰 정보 조회 실패 - ID: " + delivery.getCouponId(), e);
                 }
@@ -1995,8 +2009,20 @@ public class ApiServer extends NanoHTTPD {
             result.put("data", deliveries);
             result.put("count", deliveries.size());
             
+            // JSON 직렬화 결과 로그
+            String jsonResult = gson.toJson(result);
             Log.i(TAG, "[DELIVERY-HISTORY] 발송 기록 조회 완료 - " + deliveries.size() + "건 반환");
-            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            Log.d(TAG, "[DELIVERY-HISTORY] JSON 응답 샘플 (첫 500자): " + 
+                (jsonResult.length() > 500 ? jsonResult.substring(0, 500) + "..." : jsonResult));
+            
+            // 첫 번째 delivery 객체의 JSON 구조 상세 로그
+            if (!deliveries.isEmpty()) {
+                CouponDelivery firstDelivery = deliveries.get(0);
+                String singleDeliveryJson = gson.toJson(firstDelivery);
+                Log.d(TAG, "[DELIVERY-HISTORY] 첫 번째 delivery 객체 JSON: " + singleDeliveryJson);
+            }
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", jsonResult);
             
         } catch (Exception e) {
             Log.e(TAG, "[DELIVERY-HISTORY] 발송 기록 조회 중 예외 발생", e);
