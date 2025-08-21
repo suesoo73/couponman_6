@@ -7,7 +7,8 @@
       "Bash(./gradlew:*)",
       "Bash(cmd /c:*)",
       "Bash(powershell.exe:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

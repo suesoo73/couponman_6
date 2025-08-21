@@ -2614,7 +2614,7 @@
                 // 각 쿠폰에 대한 발송 기록 조회
                 const couponsWithDeliveryStatus = await Promise.all(coupons.map(async (coupon) => {
                     try {
-                        const deliveryResponse = await fetch(`${serverUrl}/api/coupon-send/history?couponId=${coupon.id}`, {
+                        const deliveryResponse = await fetch(`${serverUrl}/api/coupon-send/history?couponId=${coupon.couponId}`, {
                             method: 'GET',
                             headers: {
                                 'Authorization': `Bearer ${currentToken}`,
@@ -2625,10 +2625,15 @@
                         const deliveryData = await deliveryResponse.json();
                         const deliveries = deliveryData.success ? deliveryData.data : [];
                         
+                        // 디버깅용 로그
+                        console.log(`[COUPON-STATUS] 쿠폰ID ${coupon.couponId} 발송기록:`, deliveries);
+                        
                         // 발송 유형별 성공 여부 확인
-                        const emailSent = deliveries.some(d => d.deliveryType === 'EMAIL' && (d.deliveryStatus === 'SENT' || d.deliveryStatus === 'DELIVERED'));
-                        const smsSent = deliveries.some(d => d.deliveryType === 'SMS' && (d.deliveryStatus === 'SENT' || d.deliveryStatus === 'DELIVERED'));
-                        const kakaoSent = deliveries.some(d => d.deliveryType === 'KAKAO' && (d.deliveryStatus === 'SENT' || d.deliveryStatus === 'DELIVERED'));
+                        const emailSent = deliveries.some(d => d.type === 'email' && (d.status === 'sent' || d.status === 'delivered'));
+                        const smsSent = deliveries.some(d => d.type === 'sms' && (d.status === 'sent' || d.status === 'delivered'));
+                        const kakaoSent = deliveries.some(d => d.type === 'kakao' && (d.status === 'sent' || d.status === 'delivered'));
+                        
+                        console.log(`[COUPON-STATUS] 쿠폰ID ${coupon.couponId} 상태 - 이메일: ${emailSent}, SMS: ${smsSent}, 카카오: ${kakaoSent}`);
                         
                         return {
                             ...coupon,
