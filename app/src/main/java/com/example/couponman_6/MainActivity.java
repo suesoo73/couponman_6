@@ -1,9 +1,11 @@
 package com.example.couponman_6;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        // 화면 잠김 방지 설정 적용
+        applyKeepScreenOnSetting();
         
         // API 서버 자동 시작
         startApiServer();
@@ -51,6 +56,26 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+    
+    /**
+     * 화면 잠김 방지 설정 적용
+     */
+    private void applyKeepScreenOnSetting() {
+        try {
+            SharedPreferences adminSettings = getSharedPreferences("AdminSettings", MODE_PRIVATE);
+            boolean keepScreenOn = adminSettings.getBoolean("keep_screen_on", true);
+            
+            if (keepScreenOn) {
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                Log.i(TAG, "[SCREEN-SETTING] 화면 잠김 방지 활성화");
+            } else {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                Log.i(TAG, "[SCREEN-SETTING] 화면 잠김 방지 비활성화");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "[SCREEN-SETTING] 화면 잠김 방지 설정 중 오류", e);
+        }
     }
     
     /**
@@ -106,6 +131,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        
+        // 화면 잠김 방지 설정 재적용 (설정이 변경될 수 있으므로)
+        applyKeepScreenOnSetting();
         
         // 앱이 다시 활성화될 때 서버 상태 확인
         if (apiServer != null && !apiServer.isAlive()) {

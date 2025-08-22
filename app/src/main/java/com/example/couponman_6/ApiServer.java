@@ -500,8 +500,8 @@ public class ApiServer extends NanoHTTPD {
 
             Log.i(TAG, "Login attempt for user: " + userId);
 
-            String savedUserId = sharedPreferences.getString("api_user_id", "admin");
-            String savedPassword = sharedPreferences.getString("api_password", "admin123");
+            String savedUserId = sharedPreferences.getString("admin_user_id", "admin");
+            String savedPassword = sharedPreferences.getString("admin_password", "admin123");
             
             Log.i(TAG, "Saved credentials - ID: " + savedUserId);
 

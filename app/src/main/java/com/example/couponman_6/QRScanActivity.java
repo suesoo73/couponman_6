@@ -1,9 +1,11 @@
 package com.example.couponman_6;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -69,6 +71,7 @@ public class QRScanActivity extends AppCompatActivity {
         initializeViews();
         setupClickListeners();
         initializeDatabase();
+        applyKeepScreenOnSetting();
         checkCameraPermission();
     }
 
@@ -92,6 +95,26 @@ public class QRScanActivity extends AppCompatActivity {
             Log.i(TAG, "[DB-INIT] 쿠폰 DAO 초기화 완료");
         } catch (Exception e) {
             Log.e(TAG, "[DB-INIT] 쿠폰 DAO 초기화 실패", e);
+        }
+    }
+    
+    /**
+     * 화면 잠김 방지 설정 적용
+     */
+    private void applyKeepScreenOnSetting() {
+        try {
+            SharedPreferences adminSettings = getSharedPreferences("AdminSettings", MODE_PRIVATE);
+            boolean keepScreenOn = adminSettings.getBoolean("keep_screen_on", true);
+            
+            if (keepScreenOn) {
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                Log.i(TAG, "[SCREEN-SETTING] 화면 잠김 방지 활성화");
+            } else {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                Log.i(TAG, "[SCREEN-SETTING] 화면 잠김 방지 비활성화");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "[SCREEN-SETTING] 화면 잠김 방지 설정 중 오류", e);
         }
     }
 
