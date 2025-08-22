@@ -23,7 +23,7 @@ public class QRCodeGenerator {
     private static final String TAG = "QRCodeGenerator";
     
     // QR 코드 설정
-    private static final int QR_SIZE = 512; // 512x512 픽셀
+    private static final int QR_SIZE = 250; // 250x250 픽셀
     private static final int QR_COLOR_BLACK = Color.BLACK;
     private static final int QR_COLOR_WHITE = Color.WHITE;
     private static final Bitmap.CompressFormat IMAGE_FORMAT = Bitmap.CompressFormat.JPEG;

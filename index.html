@@ -271,13 +271,13 @@
             
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('quick')">빠른 테스트</button>
-                <button class="tab" onclick="switchTab('custom')">커스텀 요청</button>
                 <button class="tab" onclick="switchTab('corporate')">거래처 관리</button>
                 <button class="tab" onclick="switchTab('employee')">직원 관리</button>
                 <button class="tab" onclick="switchTab('coupon')">쿠폰 발행</button>
                 <button class="tab" onclick="switchTab('send')">쿠폰 발송</button>
                 <button class="tab" onclick="switchTab('deliveryHistory')">발송 기록</button>
                 <button class="tab" onclick="switchTab('emailConfig')">이메일 설정</button>
+                <button class="tab" onclick="switchTab('smsConfig')">SMS 설정</button>
             </div>
 
             <!-- 빠른 테스트 탭 -->
@@ -315,28 +315,6 @@
                         GET /api/corporates/search<br><small>거래처 검색</small>
                     </button>
                 </div>
-            </div>
-
-            <!-- 커스텀 요청 탭 -->
-            <div id="customTab" class="tab-content">
-                <div class="form-group">
-                    <label for="method">HTTP 메소드</label>
-                    <select id="method">
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                        <option value="PUT">PUT</option>
-                        <option value="DELETE">DELETE</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="endpoint">엔드포인트</label>
-                    <input type="text" id="endpoint" placeholder="/api/coupons" value="/api/coupons">
-                </div>
-                <div class="form-group">
-                    <label for="requestBody">요청 본문 (JSON)</label>
-                    <textarea id="requestBody" style="width: 100%; height: 100px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: 'Courier New', monospace;" placeholder='{"key": "value"}'></textarea>
-                </div>
-                <button onclick="sendCustomRequest()">요청 보내기</button>
             </div>
 
             <!-- 거래처 관리 탭 -->
@@ -912,6 +890,126 @@
                 </div>
             </div>
 
+            <!-- SMS 설정 탭 -->
+            <div id="smsConfigTab" class="tab-content">
+                <div class="sms-config">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📱 SMS/카카오톡 발송 설정</h3>
+                        <button onclick="testSmsConnection()" style="background: #38a169; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">연결 테스트</button>
+                    </div>
+
+                    <!-- nusome.co.kr API 설정 폼 -->
+                    <div class="form-container" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- API 기본 설정 -->
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; color: #667eea;">🔧 API 기본 설정</h4>
+                                
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label>사업자등록번호:</label>
+                                    <div style="padding: 12px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; color: #666;">
+                                        <span id="displayBusinessNumber">관리자 기본설정에서 가져옵니다</span>
+                                    </div>
+                                    <small style="color: #666; font-size: 12px;">💡 '관리자 기본설정' → '사업자 정보설정'에서 설정한 번호를 자동으로 사용합니다</small>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smsApiUrl">API URL:</label>
+                                    <input type="text" id="smsApiUrl" value="https://www.nusome.co.kr/api/request_qr_sms" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;" readonly>
+                                    <small style="color: #666; font-size: 12px;">nusome QR SMS API 엔드포인트</small>
+                                </div>
+                            </div>
+
+                            <!-- 발송자 정보 -->
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; color: #667eea;">👤 발송자 정보</h4>
+                                
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smsSenderNumber">발송자 번호:</label>
+                                    <input type="text" id="smsSenderNumber" placeholder="01012345678 (하이픈 없이)" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smsSenderName">발송자 이름:</label>
+                                    <input type="text" id="smsSenderName" placeholder="쿠폰관리시스템" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label>
+                                        <input type="checkbox" id="smsTestMode" style="margin-right: 8px;">
+                                        테스트 모드 (실제 발송 안함)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 저장 버튼 -->
+                        <div style="margin-top: 25px; text-align: center;">
+                            <button onclick="saveSmsConfig()" style="background: #4299e1; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-right: 10px;">💾 설정 저장</button>
+                            <button onclick="loadSmsConfig()" style="background: #718096; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">🔄 설정 불러오기</button>
+                        </div>
+                    </div>
+
+                    <!-- SMS 템플릿 설정 -->
+                    <div class="template-container" style="background: #e6fffa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 15px 0; color: #2c7a7b;">📝 SMS 템플릿 설정</h4>
+                        
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="smsTemplate">SMS 메시지 템플릿:</label>
+                            <textarea id="smsTemplate" rows="4" placeholder="[{{회사명}}] 쿠폰이 발급되었습니다.
+코드: {{쿠폰코드}}
+금액: {{충전금액}}원
+포인트: {{포인트}}P
+유효기간: {{유효기간}}" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="margin-top: 10px; font-size: 14px; color: #2c7a7b;">
+                            <strong>사용 가능한 변수:</strong> {{이름}}, {{회사명}}, {{쿠폰코드}}, {{충전금액}}, {{포인트}}, {{유효기간}}
+                        </div>
+                    </div>
+
+                    <!-- 카카오톡 템플릿 설정 -->
+                    <div class="template-container" style="background: #fef5e7; padding: 20px; border-radius: 8px;">
+                        <h4 style="margin: 0 0 15px 0; color: #c05621;">💬 카카오톡 템플릿 설정</h4>
+                        
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="kakaoTemplate">카카오톡 메시지 템플릿:</label>
+                            <textarea id="kakaoTemplate" rows="6" placeholder="🎫 쿠폰 발급 알림
+
+안녕하세요 {{이름}}님,
+{{회사명}}에서 쿠폰이 발급되었습니다.
+
+쿠폰 코드: {{쿠폰코드}}
+충전 금액: {{충전금액}}원
+포인트: {{포인트}}P
+유효기간: {{유효기간}}
+
+감사합니다." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="margin-top: 10px; font-size: 14px; color: #c05621;">
+                            <strong>사용 가능한 변수:</strong> {{이름}}, {{회사명}}, {{쿠폰코드}}, {{충전금액}}, {{포인트}}, {{유효기간}}
+                        </div>
+                    </div>
+
+                    <!-- API 사용 안내 -->
+                    <div style="background: #fff8dc; padding: 20px; border-radius: 8px; border-left: 4px solid #f6ad55;">
+                        <h4 style="margin: 0 0 15px 0; color: #c05621;">📋 nusome.co.kr API 사용 안내</h4>
+                        <div style="margin-top: 10px; font-size: 14px; color: #c05621; line-height: 1.6;">
+                            <p><strong>1. 사업자 정보 설정:</strong> '관리자 기본설정' → '사업자 정보설정'에서 사업자등록번호를 먼저 설정하세요</p>
+                            <p><strong>2. 회원가입:</strong> <a href="https://nusome.co.kr" target="_blank" style="color: #2b6cb0;">nusome.co.kr</a>에서 회원가입</p>
+                            <p><strong>3. 사업자등록:</strong> 위에서 설정한 사업자등록번호를 누썸에 등록 (인증키 역할)</p>
+                            <p><strong>4. 발송자 번호 등록:</strong> SMS 발송용 번호를 사전 등록해야 함</p>
+                            <p><strong>5. 잔액 충전:</strong> SMS/카카오톡 발송을 위한 크레딧 충전</p>
+                            <p><strong>6. QR SMS API:</strong> <code>POST https://www.nusome.co.kr/api/request_qr_sms</code></p>
+                            <p><strong>인증 방식:</strong> 사업자등록번호 기반 (API 키 불필요)</p>
+                            <p><strong>💡 자동 연동:</strong> 앱에서 설정한 사업자등록번호를 자동으로 사용합니다</p>
+                            <p><strong>주의:</strong> 테스트 모드가 아닌 경우 실제 SMS가 발송되어 요금이 차감됩니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="apiResponse" style="margin-top: 20px; display: none;">
                 <h3>응답:</h3>
                 <div class="response-display" id="responseContent"></div>
@@ -1147,45 +1245,6 @@
             }
         }
 
-        // 커스텀 요청 보내기
-        async function sendCustomRequest() {
-            const serverUrl = document.getElementById('serverUrl').value;
-            const method = document.getElementById('method').value;
-            const endpoint = document.getElementById('endpoint').value;
-            const requestBody = document.getElementById('requestBody').value;
-            
-            const headers = {
-                'Content-Type': 'application/json; charset=utf-8'
-            };
-            
-            if (currentToken) {
-                headers['Authorization'] = `Bearer ${currentToken}`;
-            }
-            
-            const options = {
-                method: method,
-                headers: headers
-            };
-            
-            if (method !== 'GET' && requestBody) {
-                try {
-                    JSON.parse(requestBody); // 유효성 검사
-                    options.body = requestBody;
-                } catch (e) {
-                    alert('올바른 JSON 형식이 아닙니다.');
-                    return;
-                }
-            }
-            
-            try {
-                const response = await fetch(`${serverUrl}${endpoint}`, options);
-                const data = await response.json();
-                displayResponse(data, response.status);
-            } catch (error) {
-                displayResponse({ error: error.message }, 0);
-            }
-        }
-
         // 응답 표시
         function displayResponse(data, status) {
             document.getElementById('apiResponse').style.display = 'block';
@@ -1215,32 +1274,33 @@
             if (tabName === 'quick') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('quickTab').classList.add('active');
-            } else if (tabName === 'custom') {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('customTab').classList.add('active');
             } else if (tabName === 'corporate') {
-                document.querySelectorAll('.tab')[2].classList.add('active');
+                document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('corporateTab').classList.add('active');
             } else if (tabName === 'employee') {
-                document.querySelectorAll('.tab')[3].classList.add('active');
+                document.querySelectorAll('.tab')[2].classList.add('active');
                 document.getElementById('employeeTab').classList.add('active');
                 loadCorporatesForEmployeeTab();
             } else if (tabName === 'coupon') {
-                document.querySelectorAll('.tab')[4].classList.add('active');
+                document.querySelectorAll('.tab')[3].classList.add('active');
                 document.getElementById('couponTab').classList.add('active');
                 loadCorporatesForCouponTab();
             } else if (tabName === 'send') {
-                document.querySelectorAll('.tab')[5].classList.add('active');
+                document.querySelectorAll('.tab')[4].classList.add('active');
                 document.getElementById('sendTab').classList.add('active');
                 loadCorporatesForSendTab();
             } else if (tabName === 'deliveryHistory') {
-                document.querySelectorAll('.tab')[6].classList.add('active');
+                document.querySelectorAll('.tab')[5].classList.add('active');
                 document.getElementById('deliveryHistoryTab').classList.add('active');
                 loadDeliveryHistory();
             } else if (tabName === 'emailConfig') {
-                document.querySelectorAll('.tab')[7].classList.add('active');
+                document.querySelectorAll('.tab')[6].classList.add('active');
                 document.getElementById('emailConfigTab').classList.add('active');
                 loadEmailConfig();
+            } else if (tabName === 'smsConfig') {
+                document.querySelectorAll('.tab')[7].classList.add('active');
+                document.getElementById('smsConfigTab').classList.add('active');
+                loadSmsConfig();
             }
         }
 
@@ -2732,14 +2792,11 @@
                     <td>
                         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                             <button onclick="sendIndividualEmail(${coupon.couponId})" 
-                                    style="background: #48bb78; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;"
-                                    ${coupon.emailSent ? 'disabled' : ''}>📧</button>
+                                    style="background: #48bb78; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">📧</button>
                             <button onclick="sendIndividualSMS(${coupon.couponId})" 
-                                    style="background: #ed8936; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;"
-                                    ${coupon.smsSent ? 'disabled' : ''}>📱</button>
+                                    style="background: #ed8936; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">📱</button>
                             <button onclick="sendIndividualKakao(${coupon.couponId})" 
-                                    style="background: #9f7aea; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;"
-                                    ${coupon.kakaoSent ? 'disabled' : ''}>💬</button>
+                                    style="background: #9f7aea; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">💬</button>
                         </div>
                     </td>
                 `;
@@ -2854,6 +2911,8 @@
         
         // 전체 SMS 발송
         async function sendAllSMS() {
+            console.log('[SMS-BULK] 전체 SMS 발송 시작');
+            
             if (!window.currentCoupons || window.currentCoupons.length === 0) {
                 alert('발송할 쿠폰이 없습니다.');
                 return;
@@ -2866,10 +2925,21 @@
                 return;
             }
             
+            // SMS 설정 확인
+            console.log('[SMS-BULK] SMS 설정 확인 중...');
+            const smsConfigured = await checkSmsSettings();
+            if (!smsConfigured) {
+                console.warn('[SMS-BULK] SMS 설정이 완료되지 않음');
+                if (!confirm('SMS 설정이 완료되지 않았습니다. 그래도 계속하시겠습니까? (실제 SMS는 발송되지 않습니다)')) {
+                    return;
+                }
+            }
+            
             if (!confirm(`${unsentCoupons.length}개의 쿠폰을 SMS로 발송하시겠습니까?`)) {
                 return;
             }
             
+            console.log('[SMS-BULK] 개별 SMS 발송 시작');
             let successCount = 0;
             for (const coupon of unsentCoupons) {
                 const success = await sendIndividualSMS(coupon.couponId, false); // false = 개별 알림 안함
@@ -2882,6 +2952,8 @@
         
         // 전체 카카오톡 발송
         async function sendAllKakao() {
+            console.log('[KAKAO-BULK] 전체 카카오톡 발송 시작');
+            
             if (!window.currentCoupons || window.currentCoupons.length === 0) {
                 alert('발송할 쿠폰이 없습니다.');
                 return;
@@ -2894,10 +2966,21 @@
                 return;
             }
             
+            // SMS 설정 확인 (카카오톡도 같은 API 사용)
+            console.log('[KAKAO-BULK] SMS 설정 확인 중...');
+            const smsConfigured = await checkSmsSettings();
+            if (!smsConfigured) {
+                console.warn('[KAKAO-BULK] SMS 설정이 완료되지 않음');
+                if (!confirm('SMS 설정이 완료되지 않았습니다. 그래도 계속하시겠습니까? (실제 카카오톡은 발송되지 않습니다)')) {
+                    return;
+                }
+            }
+            
             if (!confirm(`${unsentCoupons.length}개의 쿠폰을 카카오톡으로 발송하시겠습니까?`)) {
                 return;
             }
             
+            console.log('[KAKAO-BULK] 개별 카카오톡 발송 시작');
             let successCount = 0;
             for (const coupon of unsentCoupons) {
                 const success = await sendIndividualKakao(coupon.couponId, false); // false = 개별 알림 안함
@@ -3354,6 +3437,230 @@
             document.querySelector('input[name="security"][value="tls"]').checked = true;
             document.getElementById('useAuth').checked = true;
             alert('Naver 프리셋이 적용되었습니다. 사용자명과 비밀번호를 입력해주세요.');
+        }
+
+        // ========== SMS 설정 함수들 ==========
+        
+        // SMS 설정 저장
+        async function saveSmsConfig() {
+            console.log('[SMS-CONFIG] SMS 설정 저장 시작');
+            
+            if (!currentToken) {
+                console.error('[SMS-CONFIG] 토큰이 없음');
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const smsConfig = {
+                apiUrl: document.getElementById('smsApiUrl').value,
+                senderNumber: document.getElementById('smsSenderNumber').value,
+                senderName: document.getElementById('smsSenderName').value,
+                testMode: document.getElementById('smsTestMode').checked,
+                smsTemplate: document.getElementById('smsTemplate').value,
+                kakaoTemplate: document.getElementById('kakaoTemplate').value
+            };
+
+            console.log('[SMS-CONFIG] 저장할 설정:', smsConfig);
+
+            if (!smsConfig.senderNumber) {
+                alert('발송자 번호를 입력해주세요.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log('[SMS-CONFIG] 서버 URL:', serverUrl);
+
+            try {
+                console.log('[SMS-CONFIG] API 요청 시작');
+                const response = await fetch(`${serverUrl}/api/sms-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(smsConfig)
+                });
+
+                console.log('[SMS-CONFIG] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    console.error('[SMS-CONFIG] HTTP 오류:', response.status);
+                    const errorText = await response.text();
+                    console.error('[SMS-CONFIG] 오류 응답:', errorText);
+                    alert(`SMS 설정 저장 HTTP 오류: ${response.status} - ${errorText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[SMS-CONFIG] API 응답 데이터:', data);
+                
+                if (data.success) {
+                    console.log('[SMS-CONFIG] SMS 설정 저장 성공');
+                    alert('SMS 설정이 저장되었습니다.');
+                    
+                    // 저장 후 즉시 설정을 다시 로드하여 확인
+                    console.log('[SMS-CONFIG] 저장 확인을 위해 설정 다시 로드');
+                    setTimeout(() => {
+                        loadSmsConfig();
+                    }, 500);
+                } else {
+                    console.error('[SMS-CONFIG] SMS 설정 저장 실패:', data.message);
+                    alert('SMS 설정 저장 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('[SMS-CONFIG] SMS 설정 저장 예외:', error);
+                alert('SMS 설정 저장 오류: ' + error.message);
+            }
+        }
+
+        // SMS 설정 불러오기
+        async function loadSmsConfig() {
+            console.log('[SMS-CONFIG] SMS 설정 불러오기 시작');
+            
+            if (!currentToken) {
+                console.warn('[SMS-CONFIG] 토큰이 없어서 설정 불러오기 건너뜀');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log('[SMS-CONFIG] 서버 URL:', serverUrl);
+
+            try {
+                console.log('[SMS-CONFIG] 설정 불러오기 API 요청');
+                const response = await fetch(`${serverUrl}/api/sms-config`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                console.log('[SMS-CONFIG] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    console.error('[SMS-CONFIG] 설정 불러오기 실패:', response.status);
+                    if (response.status === 404) {
+                        console.info('[SMS-CONFIG] 저장된 설정이 없음 (첫 설정)');
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[SMS-CONFIG] 불러온 데이터:', data);
+
+                if (data.success && data.config) {
+                    const config = data.config;
+                    console.log('[SMS-CONFIG] 설정 데이터:', config);
+
+                    // 폼 필드에 설정값 적용
+                    if (config.businessId) {
+                        // 사업자등록번호 표시 (포맷팅)
+                        const formatted = config.businessId.replace(/(\d{3})(\d{2})(\d{5})/, '$1-$2-$3');
+                        document.getElementById('displayBusinessNumber').textContent = formatted + ' (관리자 설정에서 가져옴)';
+                    }
+                    if (config.apiUrl) document.getElementById('smsApiUrl').value = config.apiUrl;
+                    if (config.senderNumber) document.getElementById('smsSenderNumber').value = config.senderNumber;
+                    if (config.senderName) document.getElementById('smsSenderName').value = config.senderName;
+                    if (config.testMode !== undefined) document.getElementById('smsTestMode').checked = config.testMode;
+                    if (config.smsTemplate) document.getElementById('smsTemplate').value = config.smsTemplate;
+                    if (config.kakaoTemplate) document.getElementById('kakaoTemplate').value = config.kakaoTemplate;
+
+                    console.log('[SMS-CONFIG] 폼 필드 업데이트 완료');
+                } else {
+                    console.warn('[SMS-CONFIG] 설정 데이터가 없거나 실패:', data);
+                }
+            } catch (error) {
+                console.error('[SMS-CONFIG] SMS 설정 불러오기 예외:', error);
+            }
+        }
+
+        // SMS 연결 테스트
+        async function testSmsConnection() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const smsConfig = {
+                apiUrl: document.getElementById('smsApiUrl').value,
+                senderNumber: document.getElementById('smsSenderNumber').value,
+                testMode: true // 연결 테스트는 항상 테스트 모드
+            };
+
+            if (!smsConfig.senderNumber) {
+                alert('발송자 번호를 입력해주세요.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+
+            try {
+                console.log('[SMS-TEST] SMS 연결 테스트 시작');
+                const response = await fetch(`${serverUrl}/api/sms-test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(smsConfig)
+                });
+
+                const data = await response.json();
+                console.log('[SMS-TEST] 테스트 응답:', data);
+
+                if (data.success) {
+                    alert('✅ SMS API 연결 성공!\n' + (data.message || '연결이 정상적으로 작동합니다.'));
+                } else {
+                    alert('❌ SMS API 연결 실패!\n' + (data.message || '연결 설정을 확인해주세요.'));
+                }
+            } catch (error) {
+                console.error('[SMS-TEST] 연결 테스트 오류:', error);
+                alert('❌ SMS 연결 테스트 오류: ' + error.message);
+            }
+        }
+
+        // SMS 설정 확인 함수
+        async function checkSmsSettings() {
+            console.log('[SMS-CHECK] SMS 설정 확인 시작');
+            
+            if (!currentToken) {
+                console.error('[SMS-CHECK] 토큰이 없음');
+                return false;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/sms-config`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('[SMS-CHECK] SMS 설정 조회 실패:', response.status);
+                    return false;
+                }
+                
+                const data = await response.json();
+                console.log('[SMS-CHECK] SMS 설정:', data);
+                
+                if (data.success && data.config) {
+                    const config = data.config;
+                    const hasBasicSettings = config.businessId && config.senderNumber;
+                    console.log('[SMS-CHECK] 기본 설정 완료 여부:', hasBasicSettings);
+                    console.log('[SMS-CHECK] 사업자등록번호:', config.businessId ? '설정됨' : '미설정');
+                    console.log('[SMS-CHECK] 발송자 번호:', config.senderNumber ? '설정됨' : '미설정');
+                    return hasBasicSettings;
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('[SMS-CHECK] SMS 설정 확인 오류:', error);
+                return false;
+            }
         }
 
         // ========== 발송 기록 관련 함수들 ==========

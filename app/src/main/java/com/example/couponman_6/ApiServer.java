@@ -255,6 +255,20 @@ public class ApiServer extends NanoHTTPD {
                                 response = handleTestEmailConnection(session);
                             }
                         }
+                    } else if (uri.startsWith("/api/sms-config")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/sms-config")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetSmsConfig();
+                            } else if (Method.POST.equals(method)) {
+                                response = handleSaveSmsConfig(session);
+                            }
+                        } else if (uri.equals("/api/sms-config/test")) {
+                            if (Method.POST.equals(method)) {
+                                response = handleTestSmsConnection(session);
+                            }
+                        }
                     } else if (uri.startsWith("/api/coupon-send")) {
                         if (!isAuthorized(session)) {
                             response = createUnauthorizedResponse();
@@ -1755,171 +1769,6 @@ public class ApiServer extends NanoHTTPD {
         }
     }
     
-    /**
-     * 쿠폰 SMS 발송
-     */
-    private Response handleSendCouponSMS(IHTTPSession session) {
-        try {
-            Map<String, String> body = new HashMap<>();
-            session.parseBody(body);
-            String postData = body.get("postData");
-            
-            if (postData == null || postData.trim().isEmpty()) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "요청 본문이 비어있습니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
-            
-            // 필수 파라미터 검증
-            Object couponIdObj = requestData.get("couponId");
-            String recipientPhone = (String) requestData.get("recipientPhone");
-            String message = (String) requestData.get("message");
-            
-            if (couponIdObj == null || recipientPhone == null || recipientPhone.trim().isEmpty()) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "쿠폰 ID와 수신자 전화번호는 필수 입력 항목입니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-            int couponId;
-            try {
-                if (couponIdObj instanceof Double) {
-                    couponId = ((Double) couponIdObj).intValue();
-                } else {
-                    couponId = Integer.parseInt(couponIdObj.toString());
-                }
-            } catch (NumberFormatException e) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "유효하지 않은 쿠폰 ID입니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-            // 발송 기록 저장
-            String metadata = gson.toJson(requestData);
-            long deliveryId = couponDeliveryDAO.insertDelivery(
-                couponId, 
-                CouponDelivery.TYPE_SMS, 
-                recipientPhone, 
-                null, // SMS는 제목이 없음
-                message, 
-                metadata
-            );
-            
-            if (deliveryId > 0) {
-                // 실제 SMS 발송은 여기서 구현 (추후)
-                // 현재는 발송 성공으로 처리
-                couponDeliveryDAO.updateDeliveryStatus(deliveryId, CouponDelivery.STATUS_SENT, null);
-                
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", true);
-                result.put("deliveryId", deliveryId);
-                result.put("message", "SMS 발송이 완료되었습니다 (실제 발송 기능은 추후 구현됩니다)");
-                
-                Log.i(TAG, "SMS delivery record created with ID: " + deliveryId);
-                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-            } else {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "발송 기록 저장에 실패했습니다");
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-        } catch (Exception e) {
-            Log.e(TAG, "Error sending coupon SMS", e);
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "SMS 발송 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
-        }
-    }
-    
-    /**
-     * 쿠폰 카카오톡 발송
-     */
-    private Response handleSendCouponKakao(IHTTPSession session) {
-        try {
-            Map<String, String> body = new HashMap<>();
-            session.parseBody(body);
-            String postData = body.get("postData");
-            
-            if (postData == null || postData.trim().isEmpty()) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "요청 본문이 비어있습니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
-            
-            // 필수 파라미터 검증
-            Object couponIdObj = requestData.get("couponId");
-            String recipientPhone = (String) requestData.get("recipientPhone");
-            String message = (String) requestData.get("message");
-            
-            if (couponIdObj == null || recipientPhone == null || recipientPhone.trim().isEmpty()) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "쿠폰 ID와 수신자 전화번호는 필수 입력 항목입니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-            int couponId;
-            try {
-                if (couponIdObj instanceof Double) {
-                    couponId = ((Double) couponIdObj).intValue();
-                } else {
-                    couponId = Integer.parseInt(couponIdObj.toString());
-                }
-            } catch (NumberFormatException e) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "유효하지 않은 쿠폰 ID입니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-            // 발송 기록 저장
-            String metadata = gson.toJson(requestData);
-            long deliveryId = couponDeliveryDAO.insertDelivery(
-                couponId, 
-                CouponDelivery.TYPE_KAKAO, 
-                recipientPhone, 
-                null, // 카카오톡도 제목이 없음
-                message, 
-                metadata
-            );
-            
-            if (deliveryId > 0) {
-                // 실제 카카오톡 발송은 여기서 구현 (추후)
-                // 현재는 발송 성공으로 처리
-                couponDeliveryDAO.updateDeliveryStatus(deliveryId, CouponDelivery.STATUS_SENT, null);
-                
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", true);
-                result.put("deliveryId", deliveryId);
-                result.put("message", "카카오톡 발송이 완료되었습니다 (실제 발송 기능은 추후 구현됩니다)");
-                
-                Log.i(TAG, "Kakao delivery record created with ID: " + deliveryId);
-                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-            } else {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "발송 기록 저장에 실패했습니다");
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
-            }
-            
-        } catch (Exception e) {
-            Log.e(TAG, "Error sending coupon Kakao", e);
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", "카카오톡 발송 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
-        }
-    }
     
     /**
      * 발송 기록 조회
@@ -2399,6 +2248,517 @@ public class ApiServer extends NanoHTTPD {
             } catch (IOException e) {
                 Log.w(TAG, "[FILE-READ] 스트림 닫기 실패", e);
             }
+        }
+    }
+
+    // ========== SMS 설정 관련 메서드들 ==========
+    
+    /**
+     * SMS 설정 조회
+     */
+    private Response handleGetSmsConfig() {
+        Log.i(TAG, "[SMS-CONFIG] SMS 설정 조회 요청");
+        
+        try {
+            SharedPreferences smsSettings = context.getSharedPreferences("SmsSettings", Context.MODE_PRIVATE);
+            SharedPreferences businessSettings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
+            
+            // 관리자 기본설정에서 사업자등록번호 가져오기
+            String businessNumber = businessSettings.getString("business_number", "");
+            
+            Map<String, Object> config = new HashMap<>();
+            config.put("businessId", businessNumber);
+            config.put("apiUrl", smsSettings.getString("api_url", "https://www.nusome.co.kr/api/request_qr_sms"));
+            config.put("senderNumber", smsSettings.getString("sender_number", ""));
+            config.put("senderName", smsSettings.getString("sender_name", ""));
+            config.put("testMode", smsSettings.getBoolean("test_mode", false));
+            config.put("smsTemplate", smsSettings.getString("sms_template", 
+                "{company_name}에서 구매하고 결제하신 식권 큐알(QR)코드가 발송되었습니다.\n\n아래 링크를 클릭하시면 식권 큐알(QR)코드를 다운로드 하실 수 있습니다.\n\n큐알(QR)코드 이미지를 다운로드 하셨다가 {company_name}을 이용시에 제시해 주십시오.\n\n{qr_code_url}"));
+            config.put("kakaoTemplate", smsSettings.getString("kakao_template", 
+                "{company_name}에서 구매하고 결제하신 식권 큐알(QR)코드가 발송되었습니다.\n\n아래 링크를 클릭하시면 식권 큐알(QR)코드를 다운로드 하실 수 있습니다.\n\n큐알(QR)코드 이미지를 다운로드 하셨다가 {company_name}을 이용시에 제시해 주십시오.\n\n{qr_code_url}"));
+            
+            Log.i(TAG, "[SMS-CONFIG] 사업자등록번호 (BusinessSettings): " + (businessNumber.isEmpty() ? "미설정" : "설정됨"));
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("config", config);
+            
+            Log.i(TAG, "[SMS-CONFIG] SMS 설정 조회 완료");
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[SMS-CONFIG] SMS 설정 조회 중 오류", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "SMS 설정 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * SMS 설정 저장
+     */
+    private Response handleSaveSmsConfig(IHTTPSession session) {
+        Log.i(TAG, "[SMS-CONFIG] SMS 설정 저장 요청");
+        
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> configData = gson.fromJson(postData, Map.class);
+            
+            SharedPreferences smsSettings = context.getSharedPreferences("SmsSettings", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = smsSettings.edit();
+            
+            // 사업자등록번호는 BusinessSettings에서 관리되므로 별도로 저장하지 않음
+            editor.putString("api_url", (String) configData.get("apiUrl"));
+            editor.putString("sender_number", (String) configData.get("senderNumber"));
+            editor.putString("sender_name", (String) configData.get("senderName"));
+            editor.putBoolean("test_mode", (Boolean) configData.get("testMode"));
+            editor.putString("sms_template", (String) configData.get("smsTemplate"));
+            editor.putString("kakao_template", (String) configData.get("kakaoTemplate"));
+            
+            boolean saved = editor.commit();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", saved);
+            result.put("message", saved ? "SMS 설정이 저장되었습니다" : "SMS 설정 저장에 실패했습니다");
+            
+            Log.i(TAG, "[SMS-CONFIG] SMS 설정 저장 " + (saved ? "성공" : "실패"));
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[SMS-CONFIG] SMS 설정 저장 중 오류", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "SMS 설정 저장 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * SMS 연결 테스트
+     */
+    private Response handleTestSmsConnection(IHTTPSession session) {
+        Log.i(TAG, "[SMS-TEST] SMS 연결 테스트 요청");
+        
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            Map<String, Object> testData = gson.fromJson(postData, Map.class);
+            String testPhone = (String) testData.get("senderNumber");
+            
+            // BusinessSettings에서 사업자등록번호 가져오기
+            SharedPreferences businessSettings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
+            String businessId = businessSettings.getString("business_number", "");
+            
+            if (businessId == null || businessId.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "관리자 기본설정에서 사업자등록번호를 먼저 설정해주세요");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 테스트 SMS 발송
+            boolean testResult = sendTestSms(businessId, testPhone);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", testResult);
+            result.put("message", testResult ? "SMS 연결 테스트 성공" : "SMS 연결 테스트 실패");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[SMS-TEST] SMS 연결 테스트 중 오류", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "SMS 연결 테스트 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    // ========== SMS/카카오톡 발송 관련 메서드들 ==========
+    
+    /**
+     * 실제 SMS/카카오톡 발송을 담당하는 핸들러 (기존 메서드 수정)
+     */
+    private Response handleSendCouponSMS(IHTTPSession session) {
+        Log.i(TAG, "[SMS-SEND] SMS 발송 요청 시작");
+        
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            Object couponIdObj = requestData.get("couponId");
+            
+            if (couponIdObj == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "쿠폰 ID가 필요합니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            int couponId = ((Double) couponIdObj).intValue();
+            
+            // 쿠폰 정보 조회
+            Coupon coupon = couponDAO.getCouponById(couponId);
+            if (coupon == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "존재하지 않는 쿠폰입니다: " + couponId);
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 직원 정보 조회
+            Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
+            if (employee == null || employee.getPhone() == null || employee.getPhone().trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "수신자 전화번호가 없습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 발송 기록 저장
+            String metadata = gson.toJson(requestData);
+            long deliveryId = couponDeliveryDAO.insertDelivery(
+                couponId, 
+                CouponDelivery.TYPE_SMS, 
+                employee.getPhone(), 
+                "SMS 쿠폰 발송", 
+                "SMS로 쿠폰이 발송되었습니다", 
+                metadata
+            );
+            
+            if (deliveryId > 0) {
+                // 실제 SMS 발송
+                boolean smsResult = sendActualSms(coupon, employee, "sms");
+                
+                // 발송 상태 업데이트
+                String deliveryStatus = smsResult ? CouponDelivery.STATUS_SENT : CouponDelivery.STATUS_FAILED;
+                couponDeliveryDAO.updateDeliveryStatus(deliveryId, deliveryStatus, smsResult ? null : "SMS 발송 실패");
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", smsResult);
+                result.put("deliveryId", deliveryId);
+                result.put("couponId", couponId);
+                result.put("message", smsResult ? "SMS 발송이 완료되었습니다" : "SMS 발송에 실패했습니다");
+                
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "발송 기록 저장에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[SMS-SEND] SMS 발송 중 예외 발생", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "SMS 발송 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * 카카오톡 발송 핸들러 (기존 메서드 수정)
+     */
+    private Response handleSendCouponKakao(IHTTPSession session) {
+        Log.i(TAG, "[KAKAO-SEND] 카카오톡 발송 요청 시작");
+        
+        try {
+            Map<String, String> body = new HashMap<>();
+            session.parseBody(body);
+            String postData = body.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 본문이 비어있습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            Object couponIdObj = requestData.get("couponId");
+            
+            if (couponIdObj == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "쿠폰 ID가 필요합니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            int couponId = ((Double) couponIdObj).intValue();
+            
+            // 쿠폰 정보 조회
+            Coupon coupon = couponDAO.getCouponById(couponId);
+            if (coupon == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "존재하지 않는 쿠폰입니다: " + couponId);
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 직원 정보 조회
+            Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
+            if (employee == null || employee.getPhone() == null || employee.getPhone().trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "수신자 전화번호가 없습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 발송 기록 저장
+            String metadata = gson.toJson(requestData);
+            long deliveryId = couponDeliveryDAO.insertDelivery(
+                couponId, 
+                CouponDelivery.TYPE_KAKAO, 
+                employee.getPhone(), 
+                "카카오톡 쿠폰 발송", 
+                "카카오톡으로 쿠폰이 발송되었습니다", 
+                metadata
+            );
+            
+            if (deliveryId > 0) {
+                // 실제 카카오톡 발송
+                boolean kakaoResult = sendActualSms(coupon, employee, "kakao");
+                
+                // 발송 상태 업데이트
+                String deliveryStatus = kakaoResult ? CouponDelivery.STATUS_SENT : CouponDelivery.STATUS_FAILED;
+                couponDeliveryDAO.updateDeliveryStatus(deliveryId, deliveryStatus, kakaoResult ? null : "카카오톡 발송 실패");
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", kakaoResult);
+                result.put("deliveryId", deliveryId);
+                result.put("couponId", couponId);
+                result.put("message", kakaoResult ? "카카오톡 발송이 완료되었습니다" : "카카오톡 발송에 실패했습니다");
+                
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            } else {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "발송 기록 저장에 실패했습니다");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[KAKAO-SEND] 카카오톡 발송 중 예외 발생", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "카카오톡 발송 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    /**
+     * subject에서 문자/숫자와 공백만 남기고 특수문자 제거
+     */
+    private String cleanSubject(String subject) {
+        if (subject == null) return "";
+        // 한글, 영문, 숫자, 공백만 남기고 나머지 제거
+        return subject.replaceAll("[^가-힣a-zA-Z0-9\\s]", "").trim();
+    }
+    
+    /**
+     * 누썸 API를 통한 실제 SMS/카카오톡 발송
+     */
+    private boolean sendActualSms(Coupon coupon, Employee employee, String type) {
+        Log.i(TAG, "[NUSOME-SMS] 누썸 API 발송 시작 - 타입: " + type);
+        
+        try {
+            // SMS 설정 조회
+            SharedPreferences smsSettings = context.getSharedPreferences("SmsSettings", Context.MODE_PRIVATE);
+            SharedPreferences businessSettings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
+            
+            // BusinessSettings에서 사업자등록번호 가져오기
+            String businessId = businessSettings.getString("business_number", "");
+            String senderName = smsSettings.getString("sender_name", "쿠폰맨");
+            String smsTemplate = smsSettings.getString("sms_template", "");
+            String kakaoTemplate = smsSettings.getString("kakao_template", "");
+            
+            if (businessId.isEmpty()) {
+                Log.e(TAG, "[NUSOME-SMS] 관리자 기본설정에서 사업자등록번호가 설정되지 않았습니다");
+                return false;
+            }
+            
+            // QR 코드 생성
+            String qrData = "coupon:" + coupon.getFullCouponCode() + ":" + coupon.getCashBalance();
+            File qrImageFile = QRCodeGenerator.generateQRCodeImage(context, qrData, "qr_" + coupon.getCouponId());
+            
+            if (qrImageFile == null) {
+                Log.e(TAG, "[NUSOME-SMS] QR 코드 생성 실패");
+                return false;
+            }
+            
+            // 거래처 정보 조회
+            Corporate corporate = corporateDAO.getCorporateById(employee.getCorporateId());
+            String companyName = corporate != null ? corporate.getName() : "알 수 없음";
+            
+            // 템플릿 선택 및 처리
+            String template = "sms".equals(type) ? smsTemplate : kakaoTemplate;
+            if (template.isEmpty()) {
+                template = "{company_name}에서 구매하고 결제하신 식권 큐알(QR)코드가 발송되었습니다.\n\n아래 링크를 클릭하시면 식권 큐알(QR)코드를 다운로드 하실 수 있습니다.\n\n큐알(QR)코드 이미지를 다운로드 하셨다가 {company_name}을 이용시에 제시해 주십시오.\n\n{qr_code_url}";
+            }
+            
+            // BusinessSettings에서 회사명 가져오기
+            SharedPreferences businessSettings2 = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
+            String businessCompanyName = businessSettings2.getString("company_name", "쿠폰맨");
+            
+            // 템플릿 변수 치환 - {qr_code_url}은 서버에서 치환하도록 그대로 둠
+            String processedMessage = template
+                // 새로운 형식
+                .replace("{company_name}", businessCompanyName)
+                // {qr_code_url}은 치환하지 않음 - 서버에서 처리
+                // 기존 형식도 지원 (하위 호환성)
+                .replace("{{이름}}", employee.getName())
+                .replace("{{회사명}}", businessCompanyName) 
+                .replace("{{쿠폰코드}}", coupon.getFullCouponCode())
+                .replace("{{충전금액}}", String.valueOf(coupon.getCashBalance()))
+                .replace("{{포인트}}", String.valueOf(coupon.getPointBalance()))
+                .replace("{{유효기간}}", coupon.getExpireDate());
+            
+            // 누썸 API 요청 데이터 구성
+            Map<String, Object> requestData = new HashMap<>();
+            requestData.put("business_id", businessId);
+            requestData.put("recipient_phone", employee.getPhone());
+            requestData.put("recipient_name", employee.getName());
+            requestData.put("qr_data", qrData);
+            requestData.put("sms_kakao", type);
+            
+            // 카카오톡인 경우 특별 설정 추가
+            String subject;
+            if ("kakao".equals(type)) {
+                requestData.put("kakao_template_id", "chargable_coupon");
+                subject = cleanSubject("식권이 도착 했습니다");
+            } else {
+                subject = cleanSubject("식권이 발급 되었습니다");
+            }
+            
+            // subject 로그 출력 (특수문자 제거 확인용)
+            Log.d(TAG, "[NUSOME-SMS] 처리된 subject: " + subject);
+            requestData.put("subject", subject);
+            
+            requestData.put("message_template", processedMessage);
+            
+            // HTTP 요청 실행
+            String jsonRequest = gson.toJson(requestData);
+            Log.d(TAG, "[NUSOME-SMS] 요청 데이터: " + jsonRequest);
+            
+            boolean result = executeNusomeApiRequest(jsonRequest);
+            
+            // QR 이미지 파일 정리
+            QRCodeGenerator.deleteQRCodeImage(qrImageFile);
+            
+            Log.i(TAG, "[NUSOME-SMS] 누썸 API 발송 " + (result ? "성공" : "실패"));
+            return result;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[NUSOME-SMS] 누썸 API 발송 중 예외", e);
+            return false;
+        }
+    }
+    
+    /**
+     * 테스트 SMS 발송
+     */
+    private boolean sendTestSms(String businessId, String testPhone) {
+        Log.i(TAG, "[NUSOME-TEST] 테스트 SMS 발송 시작");
+        
+        try {
+            // 테스트 요청 데이터 구성
+            Map<String, Object> requestData = new HashMap<>();
+            requestData.put("business_id", businessId);
+            requestData.put("recipient_phone", testPhone != null ? testPhone : "01012345678");
+            requestData.put("recipient_name", "테스트");
+            requestData.put("qr_data", "test:coupon:1000");
+            requestData.put("sms_kakao", "sms");
+            requestData.put("subject", cleanSubject("[테스트] SMS 연결 확인"));
+            requestData.put("message_template", "SMS 연결 테스트 메시지입니다.");
+            
+            String jsonRequest = gson.toJson(requestData);
+            Log.d(TAG, "[NUSOME-TEST] 테스트 요청 데이터: " + jsonRequest);
+            
+            return executeNusomeApiRequest(jsonRequest);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[NUSOME-TEST] 테스트 SMS 발송 중 예외", e);
+            return false;
+        }
+    }
+    
+    /**
+     * 누썸 API HTTP 요청 실행
+     */
+    private boolean executeNusomeApiRequest(String jsonRequest) {
+        Log.i(TAG, "[NUSOME-HTTP] HTTP 요청 시작");
+        
+        try {
+            // OkHttp 클라이언트 생성
+            okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+            
+            // 요청 생성
+            okhttp3.RequestBody body = okhttp3.RequestBody.create(
+                jsonRequest, 
+                okhttp3.MediaType.parse("application/json; charset=utf-8")
+            );
+            
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                .url("https://www.nusome.co.kr/api/request_qr_sms")
+                .post(body)
+                .addHeader("Content-Type", "application/json; charset=utf-8")
+                .addHeader("User-Agent", "CouponMan/1.0")
+                .build();
+            
+            Log.d(TAG, "[NUSOME-HTTP] 요청 URL: https://www.nusome.co.kr/api/request_qr_sms");
+            
+            // 요청 실행
+            okhttp3.Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
+            
+            Log.d(TAG, "[NUSOME-HTTP] 응답 코드: " + response.code());
+            Log.d(TAG, "[NUSOME-HTTP] 응답 내용: " + responseBody);
+            
+            if (response.isSuccessful()) {
+                // 응답 파싱
+                Map<String, Object> responseData = gson.fromJson(responseBody, Map.class);
+                Boolean success = (Boolean) responseData.get("success");
+                String message = (String) responseData.get("message");
+                String requestId = (String) responseData.get("request_id");
+                
+                Log.i(TAG, "[NUSOME-HTTP] 누썸 API 응답 - 성공: " + success + ", 메시지: " + message + ", 요청ID: " + requestId);
+                
+                return success != null && success;
+            } else {
+                Log.e(TAG, "[NUSOME-HTTP] HTTP 요청 실패 - 코드: " + response.code() + ", 응답: " + responseBody);
+                return false;
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[NUSOME-HTTP] HTTP 요청 중 예외", e);
+            return false;
         }
     }
 }
