@@ -256,3 +256,175 @@ transaction_date: 거래가 발생한 날짜와 시간.
   7. 설정 관리: 각 발송 채널별 설정 저장
 
 
+
+아래 api를 활용해 sms/카카오톡을 보내는 기능을 구현해라
+
+외부 SMS API 서비스 (nusome.co.kr) 상세 분석
+
+  1. API 서비스 제공자
+
+  - 회사명: 주식회사 누썸 (Nusome)
+  - 사업자등록번호: 548-87-01064
+  - API 도메인: https://www.nusome.co.kr      
+
+  2. API 엔드포인트
+
+  2.1 SMS/카카오톡 발송 API
+
+  POST https://www.nusome.co.kr/api/request_qr_sms
+
+  요청 파라미터 (JSON):
+  {
+      "business_id": "사업자등록번호",
+      "recipient_phone": "수신자 전화번호",
+      "recipient_name": "수신자명",
+      "qr_data": "QR코드 데이터",
+      "sms_kakao": "sms" 또는 "kakao",
+      "subject": "메시지 제목 (최대 40자)",
+      "message_template": "메시지 템플릿",
+      "kakao_template_id": "카카오톡 템플릿 ID"
+  }
+
+  2.2 발송 상태 확인 API
+
+  GET https://www.nusome.co.kr/api/check_sms_status?request_id={request_id}
+
+  2.3 사업자 등록 API
+
+  POST https://www.nusome.co.kr/api/register_business
+
+  요청 파라미터:
+  {
+      "name": "사업자명",
+      "business_registration": "사업자등록번호",
+      "callback_phone": "발신번호",
+      "contact_name": "담당자명",
+      "contact_phone": "담당자 연락처"
+  }
+
+  3. API 통합 구조
+
+  [CouponMan 앱]
+        ↓
+  [ApiWebServer] - 내장 웹서버 (포트 8080)
+        ↓
+  [SmsService] - SMS 발송 처리 서비스
+        ↓
+  [OkHttp Client] - HTTP 클라이언트
+        ↓
+  [누썸 API 서버] - 외부 SMS/카카오톡 발송 서비스
+
+  4. 주요 특징
+
+  4.1 QR 코드 통합
+
+  - SMS/카카오톡 메시지에 QR 코드 URL 자동 포함
+  - {qr_code_url} 플레이스홀더가 실제 QR 이미지 URL로 치환됨
+  - QR 데이터 형식: "coupon:{쿠폰코드}:{금액}"
+
+  4.2 듀얼 발송 방식
+
+  - SMS 발송: sms_kakao = "sms"
+  - 카카오톡 발송: sms_kakao = "kakao"
+  - 동일한 API 엔드포인트로 두 가지 발송 방식 지원
+
+  4.3 메시지 템플릿
+
+  기본 템플릿:
+  {company_name}에서 구매하고 결제하신 식권 큐알(QR)코드가 발송되었습니다.
+
+  아래 링크를 클릭하시면 식권 큐알(QR)코드를 다운로드 하실 수 있습니다.
+
+  큐알(QR)코드 이미지를 다운로드 하셨다가 {company_name}을 이용시에 제시해 주십시오.
+
+  {qr_code_url}
+
+  5. 보안 및 인증
+
+  5.1 사업자 인증
+
+  - 모든 발송 요청에 business_id (사업자등록번호) 필수
+  - 사전에 사업자 등록 API를 통해 등록 필요
+
+  5.2 응답 처리
+
+  // 성공 응답
+  {
+      "success": true,
+      "request_id": "요청ID",
+      "message": "발송 성공"
+  }
+
+  // 실패 응답
+  {
+      "success": false,
+      "message": "오류 메시지",
+      "error_code": "오류 코드"
+  }
+
+  6. 타임아웃 설정
+
+  - 연결 타임아웃: 30초
+  - 읽기 타임아웃: 30초
+  - 쓰기 타임아웃: 30초
+
+  7. 배치 발송 지원
+
+  - 개별 발송 API를 순차적으로 호출
+  - 발송 간 1초 딜레이로 API 제한 방지
+  - 성공/실패 건수 별도 집계
+
+  8. UTF-8 인코딩
+
+  - 모든 요청/응답은 UTF-8 인코딩 사용
+  - Content-Type: application/json; charset=utf-8
+
+  
+
+
+기본 메시지 템플릿 
+
+  {company_name}에서 구매하고 결제하신 식권 큐알(QR)코드가 발송되었습니다.      
+
+  아래 링크를 클릭하시면 식권 큐알(QR)코드를 다운로드 하실 수 있습니다.
+
+  큐알(QR)코드 이미지를 다운로드 하셨다가 {company_name}을 이용시에 제시해 주십시오.
+
+  {qr_code_url}
+
+참고
+  - {company_name}: 실제 회사명으로 치환 //사업자 정보 설정에 들어 있는 회사이름
+  - {qr_code_url}: 외부 API에서 생성되는 QR 코드 URL로 치환
+  - 모든 메시지는 UTF-8 인코딩으로 전송
+
+
+카카오톡 메시지 템플릿이다.
+
+  {company_name}에서 구매하고 결제하신 식권 큐알(QR)코드가 발송되었습니다.
+
+  아래 링크를 클릭하시면 식권 큐알(QR)코드를 다운로드 하실 수 있습니다.
+
+  큐알(QR)코드 이미지를 다운로드 하셨다가 {company_name}을 이용시에 제시해 주십시오.
+
+  {qr_code_url}
+
+  참고
+  - {company_name}: 실제 회사명으로 치환 //사업자 정보 설정에 들어 있는 회사이름
+  - {qr_code_url}: 외부 API에서 생성되는 QR 코드 URL로 치환
+  - 모든 메시지는 UTF-8 인코딩으로 전송
+
+
+
+POST https://www.nusome.co.kr/api/request_qr_sms
+
+  요청 파라미터 (JSON):
+  {
+      "business_id": "사업자등록번호",
+      "recipient_phone": "수신자 전화번호",
+      "recipient_name": "수신자명",
+      "qr_data": "QR코드 데이터",
+      "sms_kakao": "sms" 또는 "kakao",
+      "subject": "메시지 제목 (최대 40자)",
+      "message_template": "메시지 템플릿",
+      "kakao_template_id": "카카오톡 템플릿 ID"
+  }

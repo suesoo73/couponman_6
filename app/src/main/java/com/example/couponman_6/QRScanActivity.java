@@ -315,36 +315,35 @@ public class QRScanActivity extends AppCompatActivity {
      */
     private void checkCouponBalance(String qrData) {
         try {
-            // QR 데이터 파싱: "coupon:쿠폰코드:금액" 형식인지 확인
-            if (qrData.startsWith("coupon:")) {
-                String[] parts = qrData.split(":");
+            String couponCode = qrData.trim();
+            
+            // 기존 형식 호환성을 위해 "coupon:" 접두사가 있으면 제거
+            if (couponCode.startsWith("coupon:")) {
+                String[] parts = couponCode.split(":");
                 if (parts.length >= 2) {
-                    String couponCode = parts[1];
-                    Log.i(TAG, "[COUPON-CHECK] 쿠폰 코드 추출: " + couponCode);
-                    
-                    // 데이터베이스에서 쿠폰 조회
-                    if (couponDAO != null) {
-                        Coupon coupon = couponDAO.getCouponByCode(couponCode);
-                        if (coupon != null) {
-                            Log.i(TAG, "[COUPON-BALANCE] ==========================================");
-                            Log.i(TAG, "[COUPON-BALANCE] 쿠폰 ID: " + coupon.getCouponId());
-                            Log.i(TAG, "[COUPON-BALANCE] 쿠폰 코드: " + coupon.getFullCouponCode());
-                            Log.i(TAG, "[COUPON-BALANCE] 현금 잔고: " + coupon.getCashBalance() + "원");
-                            Log.i(TAG, "[COUPON-BALANCE] 포인트 잔고: " + coupon.getPointBalance() + "P");
-                            Log.i(TAG, "[COUPON-BALANCE] 상태: " + coupon.getStatus());
-                            Log.i(TAG, "[COUPON-BALANCE] 유효기간: " + coupon.getExpireDate());
-                            Log.i(TAG, "[COUPON-BALANCE] ==========================================");
-                        } else {
-                            Log.w(TAG, "[COUPON-BALANCE] 쿠폰을 찾을 수 없습니다: " + couponCode);
-                        }
-                    } else {
-                        Log.e(TAG, "[COUPON-BALANCE] CouponDAO가 초기화되지 않았습니다");
-                    }
+                    couponCode = parts[1];
+                }
+            }
+            
+            Log.i(TAG, "[COUPON-CHECK] 쿠폰 코드: " + couponCode);
+            
+            // 데이터베이스에서 쿠폰 조회
+            if (couponDAO != null) {
+                Coupon coupon = couponDAO.getCouponByCode(couponCode);
+                if (coupon != null) {
+                    Log.i(TAG, "[COUPON-BALANCE] ==========================================");
+                    Log.i(TAG, "[COUPON-BALANCE] 쿠폰 ID: " + coupon.getCouponId());
+                    Log.i(TAG, "[COUPON-BALANCE] 쿠폰 코드: " + coupon.getFullCouponCode());
+                    Log.i(TAG, "[COUPON-BALANCE] 현금 잔고: " + coupon.getCashBalance() + "원");
+                    Log.i(TAG, "[COUPON-BALANCE] 포인트 잔고: " + coupon.getPointBalance() + "P");
+                    Log.i(TAG, "[COUPON-BALANCE] 상태: " + coupon.getStatus());
+                    Log.i(TAG, "[COUPON-BALANCE] 유효기간: " + coupon.getExpireDate());
+                    Log.i(TAG, "[COUPON-BALANCE] ==========================================");
                 } else {
-                    Log.w(TAG, "[COUPON-CHECK] QR 데이터 형식이 올바르지 않습니다: " + qrData);
+                    Log.w(TAG, "[COUPON-BALANCE] 쿠폰을 찾을 수 없습니다: " + couponCode);
                 }
             } else {
-                Log.i(TAG, "[COUPON-CHECK] 쿠폰 QR 코드가 아닙니다: " + qrData);
+                Log.e(TAG, "[COUPON-BALANCE] CouponDAO가 초기화되지 않았습니다");
             }
         } catch (Exception e) {
             Log.e(TAG, "[COUPON-CHECK] 쿠폰 잔고 확인 중 오류", e);

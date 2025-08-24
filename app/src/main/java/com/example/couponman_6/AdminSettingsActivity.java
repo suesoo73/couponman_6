@@ -95,6 +95,14 @@ public class AdminSettingsActivity extends AppCompatActivity {
                 finish();
             }
         });
+
+        // 상단 화살표 뒤로가기 버튼 설정
+        findViewById(R.id.btnBackArrow).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
     }
 
     private void saveSettings() {

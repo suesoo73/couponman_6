@@ -2,6 +2,7 @@ package com.example.couponman_6;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -10,6 +11,7 @@ import java.util.Locale;
 import java.util.Random;
 
 public class Coupon {
+    private static final String TAG = "Coupon";
     private int couponId;
     private String fullCouponCode;
     private int employeeId;
@@ -168,6 +170,11 @@ public class Coupon {
         SharedPreferences settings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
         String issuerBusinessNumber = settings.getString("business_number", "0000000000");
         
+        Log.i(TAG, "[COUPON-CODE] 사업자등록번호 조회: " + issuerBusinessNumber);
+        if ("0000000000".equals(issuerBusinessNumber)) {
+            Log.w(TAG, "[COUPON-CODE] 경고: 사업자등록번호가 기본값(0000000000)입니다. BusinessSettings에서 설정을 확인하세요.");
+        }
+        
         // 1. 발급자 사업자등록번호
         String issuerCode = issuerBusinessNumber;
         
@@ -184,7 +191,10 @@ public class Coupon {
         Random random = new Random();
         String parity = String.format("%03d", random.nextInt(1000));
         
-        return issuerCode + "-" + availableDaysCode + "-" + couponIdPadded + "-" + paymentTypeCode + "-" + parity;
+        String fullCode = issuerCode + "-" + availableDaysCode + "-" + couponIdPadded + "-" + paymentTypeCode + "-" + parity;
+        Log.i(TAG, "[COUPON-CODE] 생성된 전체 쿠폰 코드: " + fullCode);
+        
+        return fullCode;
     }
 
     /**

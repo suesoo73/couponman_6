@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>쿠폰 매니저 API 테스트</title>
+    <title>쿠폰 매니저 시스템 관리</title>
     <style>
         * {
             margin: 0;
@@ -231,7 +231,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎫 쿠폰 매니저 API 테스트</h1>
+        <h1>🎫 쿠폰 매니저 시스템 관리</h1>
 
         <!-- 서버 설정 섹션 -->
         <div class="section">
@@ -265,9 +265,9 @@
             </div>
         </div>
 
-        <!-- API 테스트 섹션 -->
+        <!-- 시스템 관리 섹션 -->
         <div class="section">
-            <h2>🚀 API 테스트</h2>
+            <h2>🚀 시스템 관리</h2>
             
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('quick')">빠른 테스트</button>
@@ -854,6 +854,7 @@
                             <button onclick="applyOutlookPreset()" style="background: #0078d4; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📮 Outlook</button>
                             <button onclick="applyYahooPreset()" style="background: #720e9e; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📪 Yahoo</button>
                             <button onclick="applyNaverPreset()" style="background: #03c75a; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">📫 Naver</button>
+                            <button onclick="applyEcountPreset()" style="background: #ff6b35; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">🏢 Ecount</button>
                         </div>
                         <div style="margin-top: 10px; font-size: 14px; color: #2c7a7b;">
                             <strong>주의:</strong> Gmail의 경우 앱 비밀번호를 생성해서 사용해야 합니다.
@@ -1100,7 +1101,7 @@
             document.getElementById('loginResult').innerHTML = '<span class="status warning">토큰이 삭제되었습니다</span>';
         }
 
-        // API 테스트
+        // 시스템 관리
         async function testApi(method, endpoint) {
             const serverUrl = document.getElementById('serverUrl').value;
             const headers = {
@@ -1836,7 +1837,12 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(isUpdate ? '직원 정보가 성공적으로 수정되었습니다.' : '직원이 성공적으로 추가되었습니다.');
+                    // 경고 메시지가 있는 경우 먼저 표시
+                    if (data.warning) {
+                        alert('경고: ' + data.warning + '\n\n' + data.message);
+                    } else {
+                        alert(isUpdate ? '직원 정보가 성공적으로 수정되었습니다.' : '직원이 성공적으로 추가되었습니다.');
+                    }
                     closeEmployeeModal();
                     loadEmployeesByCorporate(employeeData.corporateId);
                 } else {
@@ -3437,6 +3443,17 @@
             document.querySelector('input[name="security"][value="tls"]').checked = true;
             document.getElementById('useAuth').checked = true;
             alert('Naver 프리셋이 적용되었습니다. 사용자명과 비밀번호를 입력해주세요.');
+        }
+
+        // Ecount 프리셋 적용
+        function applyEcountPreset() {
+            document.getElementById('smtpHost').value = 'wsmtp.ecount.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            document.getElementById('smtpUsername').value = 'coupon@nusome.co.kr';
+            document.getElementById('senderEmail').value = 'coupon@nusome.co.kr';
+            alert('Ecount 프리셋이 적용되었습니다. 비밀번호를 입력해주세요.');
         }
 
         // ========== SMS 설정 함수들 ==========

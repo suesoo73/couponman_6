@@ -1252,13 +1252,12 @@ public class ApiServer extends NanoHTTPD {
                 return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
             
-            // 핸드폰 번호 변경 시 중복 확인
+            // 핸드폰 번호 변경 시 중복 확인 (경고만 표시)
+            boolean hasDuplicatePhone = false;
             if (!existing.getPhone().equals(updatedEmployee.getPhone())) {
                 if (employeeDAO.isPhoneExists(updatedEmployee.getPhone())) {
-                    Map<String, Object> error = new HashMap<>();
-                    error.put("success", false);
-                    error.put("message", "이미 등록된 핸드폰 번호입니다: " + updatedEmployee.getPhone());
-                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+                    hasDuplicatePhone = true;
+                    Log.w(TAG, "Duplicate phone number detected but allowing update: " + updatedEmployee.getPhone());
                 }
             }
             
@@ -1267,7 +1266,12 @@ public class ApiServer extends NanoHTTPD {
             if (rowsAffected > 0) {
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
-                result.put("message", "직원 정보가 성공적으로 업데이트되었습니다");
+                if (hasDuplicatePhone) {
+                    result.put("message", "직원 정보가 업데이트되었습니다. 경고: 이미 등록된 핸드폰 번호입니다.");
+                    result.put("warning", "이미 등록된 핸드폰 번호입니다: " + updatedEmployee.getPhone());
+                } else {
+                    result.put("message", "직원 정보가 성공적으로 업데이트되었습니다");
+                }
                 result.put("data", updatedEmployee);
                 
                 Log.i(TAG, "Employee updated: " + updatedEmployee.getName() + " (ID: " + id + ")");
@@ -2601,7 +2605,7 @@ public class ApiServer extends NanoHTTPD {
             }
             
             // QR 코드 생성
-            String qrData = "coupon:" + coupon.getFullCouponCode() + ":" + coupon.getCashBalance();
+            String qrData = coupon.getFullCouponCode();
             File qrImageFile = QRCodeGenerator.generateQRCodeImage(context, qrData, "qr_" + coupon.getCouponId());
             
             if (qrImageFile == null) {

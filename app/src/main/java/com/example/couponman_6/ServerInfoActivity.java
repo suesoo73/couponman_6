@@ -38,11 +38,7 @@ public class ServerInfoActivity extends AppCompatActivity {
     private TextView tvServerAddress;
     private TextView tvServerPort;
     private TextView tvStartTime;
-    private TextView tvApiEndpoints;
-    private TextView tvEmulatorInfo;
-    private TextView tvPortForwardInfo;
     private Button btnStartServer;
-    private Button btnPortForwardHelp;
     private Button btnStopServer;
     private Button btnRefresh;
     private Button btnBack;
@@ -59,6 +55,7 @@ public class ServerInfoActivity extends AppCompatActivity {
             ApiServerService.LocalBinder binder = (ApiServerService.LocalBinder) service;
             apiServerService = binder.getService();
             isServiceBound = true;
+            checkServerStatus();
             updateServerInfo();
         }
 
@@ -101,9 +98,6 @@ public class ServerInfoActivity extends AppCompatActivity {
         // 브로드캐스트 리시버 등록
         IntentFilter filter = new IntentFilter("com.example.couponman_6.SERVER_STATUS");
         registerReceiver(serverStatusReceiver, filter);
-        
-        // 서비스가 이미 실행 중인지 확인
-        checkServerStatus();
     }
 
     private void initializeViews() {
@@ -111,13 +105,9 @@ public class ServerInfoActivity extends AppCompatActivity {
         tvServerAddress = findViewById(R.id.tvServerAddress);
         tvServerPort = findViewById(R.id.tvServerPort);
         tvStartTime = findViewById(R.id.tvStartTime);
-        tvApiEndpoints = findViewById(R.id.tvApiEndpoints);
-        tvEmulatorInfo = findViewById(R.id.tvEmulatorInfo);
-        tvPortForwardInfo = findViewById(R.id.tvPortForwardInfo);
         btnStartServer = findViewById(R.id.btnStartServer);
         btnStopServer = findViewById(R.id.btnStopServer);
         btnRefresh = findViewById(R.id.btnRefresh);
-        btnPortForwardHelp = findViewById(R.id.btnPortForwardHelp);
         btnBack = findViewById(R.id.btnBack);
         
         ImageButton btnBackArrow = findViewById(R.id.btnBackArrow);
@@ -129,8 +119,6 @@ public class ServerInfoActivity extends AppCompatActivity {
                 }
             });
         }
-        
-        checkIfEmulator();
     }
 
     private void setupClickListeners() {
@@ -151,7 +139,8 @@ public class ServerInfoActivity extends AppCompatActivity {
         btnRefresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateServerInfo();
+                checkServerStatus();
+                Toast.makeText(ServerInfoActivity.this, "서버 상태를 새로 고침했습니다.", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -161,15 +150,6 @@ public class ServerInfoActivity extends AppCompatActivity {
                 finish();
             }
         });
-        
-        if (btnPortForwardHelp != null) {
-            btnPortForwardHelp.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    showPortForwardingHelp();
-                }
-            });
-        }
     }
 
     private void startServer() {
@@ -192,11 +172,22 @@ public class ServerInfoActivity extends AppCompatActivity {
     
     private void checkServerStatus() {
         if (isServiceBound && apiServerService != null) {
-            isServerRunning = apiServerService.isServerRunning();
-            if (isServerRunning) {
-                serverStartTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                        .format(new Date());
+            boolean currentServerStatus = apiServerService.isServerRunning();
+            if (currentServerStatus != isServerRunning) {
+                // 상태가 변경되었으면 업데이트
+                isServerRunning = currentServerStatus;
+                if (isServerRunning && serverStartTime.isEmpty()) {
+                    serverStartTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                            .format(new Date());
+                } else if (!isServerRunning) {
+                    serverStartTime = "";
+                }
             }
+            updateServerInfo();
+        } else {
+            // 서비스가 바인딩되지 않았으면 기본 상태로 설정
+            isServerRunning = false;
+            serverStartTime = "";
             updateServerInfo();
         }
     }
@@ -232,32 +223,8 @@ public class ServerInfoActivity extends AppCompatActivity {
         tvServerAddress.setText(ipAddress != null ? ipAddress : "IP 주소를 가져올 수 없습니다");
         tvServerPort.setText(String.valueOf(SERVER_PORT));
         tvStartTime.setText(serverStartTime.isEmpty() ? "서버가 실행되지 않음" : serverStartTime);
-        
-        updateApiEndpoints(ipAddress);
     }
 
-    private void updateApiEndpoints(String ipAddress) {
-        if (ipAddress == null || !isServerRunning) {
-            tvApiEndpoints.setText("서버가 실행되지 않음");
-            return;
-        }
-
-        String baseUrl = "http://" + ipAddress + ":" + SERVER_PORT;
-        StringBuilder endpoints = new StringBuilder();
-        endpoints.append("기본 정보:\n");
-        endpoints.append("• ").append(baseUrl).append("/api\n\n");
-        endpoints.append("쿠폰 관리:\n");
-        endpoints.append("• GET ").append(baseUrl).append("/api/coupons\n");
-        endpoints.append("• POST ").append(baseUrl).append("/api/coupons\n");
-        endpoints.append("• GET ").append(baseUrl).append("/api/coupons/{id}\n");
-        endpoints.append("• PUT ").append(baseUrl).append("/api/coupons/{id}\n\n");
-        endpoints.append("쿠폰 검증:\n");
-        endpoints.append("• POST ").append(baseUrl).append("/api/coupons/validate\n\n");
-        endpoints.append("서버 상태:\n");
-        endpoints.append("• GET ").append(baseUrl).append("/api/server/status");
-
-        tvApiEndpoints.setText(endpoints.toString());
-    }
 
     private String getIPAddress() {
         try {
@@ -292,86 +259,17 @@ public class ServerInfoActivity extends AppCompatActivity {
         return null;
     }
 
-    private boolean isEmulator() {
-        return Build.FINGERPRINT.startsWith("generic")
-                || Build.FINGERPRINT.startsWith("unknown")
-                || Build.MODEL.contains("google_sdk")
-                || Build.MODEL.contains("Emulator")
-                || Build.MODEL.contains("Android SDK built for x86")
-                || Build.MANUFACTURER.contains("Genymotion")
-                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
-                || "google_sdk".equals(Build.PRODUCT)
-                || Build.HARDWARE.contains("goldfish")
-                || Build.HARDWARE.contains("ranchu");
-    }
 
-    private void checkIfEmulator() {
-        if (isEmulator()) {
-            tvEmulatorInfo.setVisibility(View.VISIBLE);
-            tvPortForwardInfo.setVisibility(View.VISIBLE);
-            if (btnPortForwardHelp != null) {
-                btnPortForwardHelp.setVisibility(View.VISIBLE);
-            }
-            
-            String emulatorInfo = "에뮬레이터에서 실행 중";
-            tvEmulatorInfo.setText(emulatorInfo);
-            
-            String portForwardInfo = "PC에서 접속:\n" +
-                    "http://localhost:" + SERVER_PORT + "/api\n" +
-                    "또는\n" +
-                    "http://127.0.0.1:" + SERVER_PORT + "/api";
-            tvPortForwardInfo.setText(portForwardInfo);
-        } else {
-            tvEmulatorInfo.setVisibility(View.GONE);
-            tvPortForwardInfo.setVisibility(View.GONE);
-            if (btnPortForwardHelp != null) {
-                btnPortForwardHelp.setVisibility(View.GONE);
-            }
-        }
-    }
-
-    private void showPortForwardingHelp() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("포트포워딩 설정 방법");
-        
-        String message = "AVD 에뮬레이터에서 실행 중인 서버에 PC에서 접속하려면:\n\n" +
-                "1. 자동 포트포워딩 (권장):\n" +
-                "   서버가 실행되면 자동으로 설정됩니다.\n" +
-                "   PC 브라우저에서 http://localhost:" + SERVER_PORT + " 접속\n\n" +
-                "2. 수동 포트포워딩 (필요시):\n" +
-                "   명령 프롬프트(CMD)에서 실행:\n" +
-                "   adb forward tcp:" + SERVER_PORT + " tcp:" + SERVER_PORT + "\n\n" +
-                "3. 포트포워딩 확인:\n" +
-                "   adb forward --list\n\n" +
-                "4. 포트포워딩 제거:\n" +
-                "   adb forward --remove tcp:" + SERVER_PORT + "\n\n" +
-                "참고:\n" +
-                "• 에뮬레이터 IP: 10.0.2.2 (호스트 PC)\n" +
-                "• localhost = 127.0.0.1 = PC 자신\n" +
-                "• 서버 포트: " + SERVER_PORT;
-        
-        builder.setMessage(message);
-        builder.setPositiveButton("확인", new DialogInterface.OnClickListener() {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Activity가 다시 활성화될 때 서버 상태 재확인
+        uiHandler.postDelayed(new Runnable() {
             @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
+            public void run() {
+                checkServerStatus();
             }
-        });
-        
-        builder.setNeutralButton("ADB 명령 복사", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String adbCommand = "adb forward tcp:" + SERVER_PORT + " tcp:" + SERVER_PORT;
-                android.content.ClipboardManager clipboard = 
-                        (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("ADB Command", adbCommand);
-                clipboard.setPrimaryClip(clip);
-                Toast.makeText(ServerInfoActivity.this, "ADB 명령이 클립보드에 복사되었습니다.", Toast.LENGTH_SHORT).show();
-            }
-        });
-        
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        }, 500); // 0.5초 후에 상태 확인
     }
 
     @Override

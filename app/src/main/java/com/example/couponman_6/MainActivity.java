@@ -15,7 +15,6 @@ import java.io.IOException;
 public class MainActivity extends AppCompatActivity {
     
     private static final String TAG = "MainActivity";
-    private ApiServer apiServer;
     private static final int SERVER_PORT = 8080;
 
     @Override
@@ -79,52 +78,24 @@ public class MainActivity extends AppCompatActivity {
     }
     
     /**
-     * API 서버를 자동으로 시작하는 메서드
+     * API 서버를 자동으로 시작하는 메서드 (ApiServerService 사용)
      */
     private void startApiServer() {
         try {
             Log.i(TAG, "[SERVER-AUTO] API 서버 자동 시작 시도 - 포트: " + SERVER_PORT);
             
-            // API 서버 인스턴스 생성
-            apiServer = new ApiServer(SERVER_PORT, this);
+            // ApiServerService를 통해 서버 시작
+            Intent serviceIntent = new Intent(this, ApiServerService.class);
+            serviceIntent.setAction("START_SERVER");
+            startService(serviceIntent);
             
-            // 서버 시작 (별도 스레드에서 실행)
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        apiServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-                        
-                        // UI 스레드에서 성공 메시지 표시
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.i(TAG, "[SERVER-AUTO] API 서버 자동 시작 성공 - http://localhost:" + SERVER_PORT);
-                                Toast.makeText(MainActivity.this, 
-                                    "API 서버가 자동으로 시작되었습니다\nhttp://localhost:" + SERVER_PORT, 
-                                    Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        
-                    } catch (IOException e) {
-                        Log.e(TAG, "[SERVER-AUTO] API 서버 자동 시작 실패", e);
-                        
-                        // UI 스레드에서 실패 메시지 표시
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(MainActivity.this, 
-                                    "API 서버 시작 실패: " + e.getMessage(), 
-                                    Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    }
-                }
-            }).start();
+            Toast.makeText(this, 
+                "API 서버가 자동으로 시작됩니다\nhttp://localhost:" + SERVER_PORT, 
+                Toast.LENGTH_LONG).show();
             
         } catch (Exception e) {
-            Log.e(TAG, "[SERVER-AUTO] API 서버 인스턴스 생성 실패", e);
-            Toast.makeText(this, "API 서버 초기화 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Log.e(TAG, "[SERVER-AUTO] API 서버 서비스 시작 실패", e);
+            Toast.makeText(this, "API 서버 시작 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
     
@@ -134,27 +105,11 @@ public class MainActivity extends AppCompatActivity {
         
         // 화면 잠김 방지 설정 재적용 (설정이 변경될 수 있으므로)
         applyKeepScreenOnSetting();
-        
-        // 앱이 다시 활성화될 때 서버 상태 확인
-        if (apiServer != null && !apiServer.isAlive()) {
-            Log.w(TAG, "[SERVER-AUTO] 서버가 중지되어 있음 - 재시작 시도");
-            startApiServer();
-        }
     }
     
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        
-        // 앱 종료 시 API 서버 정리
-        if (apiServer != null) {
-            try {
-                Log.i(TAG, "[SERVER-AUTO] API 서버 종료 중...");
-                apiServer.stop();
-                Log.i(TAG, "[SERVER-AUTO] API 서버 정상 종료");
-            } catch (Exception e) {
-                Log.e(TAG, "[SERVER-AUTO] API 서버 종료 중 오류", e);
-            }
-        }
+        Log.i(TAG, "[SERVER-AUTO] MainActivity 종료 - 서버는 백그라운드에서 계속 실행");
     }
 }
