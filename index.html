@@ -1821,6 +1821,42 @@
                 return;
             }
             
+            // 전화번호 중복 검사 (새 직원 등록 시 또는 전화번호 변경 시)
+            try {
+                const checkResponse = await fetch(`${serverUrl}/api/employees/check-phone`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({ 
+                        phone: employeeData.phone,
+                        excludeEmployeeId: isUpdate ? employeeId : null
+                    })
+                });
+                
+                const checkData = await checkResponse.json();
+                
+                if (checkData.phoneExists) {
+                    const existingEmployee = checkData.existingEmployee;
+                    const corporateName = checkData.corporateName;
+                    
+                    const confirmMessage = `이미 등록된 전화번호입니다.\n\n` +
+                        `등록된 직원 정보:\n` +
+                        `• 이름: ${existingEmployee.name}\n` +
+                        `• 소속 거래처: ${corporateName}\n` +
+                        `• 부서: ${existingEmployee.department || '미지정'}\n\n` +
+                        `그래도 이 전화번호로 직원을 등록하시겠습니까?`;
+                    
+                    if (!confirm(confirmMessage)) {
+                        return; // 사용자가 취소를 선택한 경우
+                    }
+                }
+            } catch (error) {
+                console.log('전화번호 중복 검사 실패:', error);
+                // 중복 검사 실패 시에도 계속 진행 (서버에서 처리)
+            }
+            
             try {
                 const url = isUpdate ? `${serverUrl}/api/employees/${employeeId}` : `${serverUrl}/api/employees`;
                 const method = isUpdate ? 'PUT' : 'POST';

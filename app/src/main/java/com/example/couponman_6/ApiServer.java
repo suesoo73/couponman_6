@@ -231,6 +231,10 @@ public class ApiServer extends NanoHTTPD {
                             } else if (Method.POST.equals(method)) {
                                 response = handleCreateEmployee(session);
                             }
+                        } else if (uri.equals("/api/employees/check-phone")) {
+                            if (Method.POST.equals(method)) {
+                                response = handleCheckEmployeePhone(session);
+                            }
                         } else if (uri.startsWith("/api/employees/")) {
                             String employeeId = uri.substring("/api/employees/".length());
                             if (Method.GET.equals(method)) {
@@ -1293,6 +1297,80 @@ public class ApiServer extends NanoHTTPD {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "직원 정보 업데이트 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleCheckEmployeePhone(IHTTPSession session) {
+        Log.i(TAG, "=== CHECK EMPLOYEE PHONE REQUEST ===");
+        
+        String postData = extractRequestBody(session);
+        Log.i(TAG, "Raw postData content: [" + postData + "]");
+        
+        if (postData == null || postData.trim().isEmpty()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "요청 본문이 비어있습니다");
+            Log.w(TAG, "Check phone failed: empty body");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        }
+
+        try {
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            String phone = (String) requestData.get("phone");
+            String excludeEmployeeIdStr = (String) requestData.get("excludeEmployeeId");
+            
+            if (phone == null || phone.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "전화번호는 필수입니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            phone = phone.trim();
+            Log.i(TAG, "Checking phone number: " + phone);
+            
+            // 전화번호 중복 확인
+            Employee existingEmployee = employeeDAO.getEmployeeByPhone(phone);
+            
+            // 업데이트 시 자신은 제외
+            if (existingEmployee != null && excludeEmployeeIdStr != null) {
+                try {
+                    int excludeEmployeeId = Integer.parseInt(excludeEmployeeIdStr);
+                    if (existingEmployee.getEmployeeId() == excludeEmployeeId) {
+                        existingEmployee = null; // 자신의 전화번호는 중복이 아님
+                    }
+                } catch (NumberFormatException e) {
+                    Log.w(TAG, "Invalid excludeEmployeeId format: " + excludeEmployeeIdStr);
+                }
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            
+            if (existingEmployee != null) {
+                // 중복된 전화번호가 있는 경우
+                result.put("phoneExists", true);
+                result.put("existingEmployee", existingEmployee);
+                
+                // 해당 직원의 거래처 정보 조회
+                Corporate corporate = corporateDAO.getCorporateById(existingEmployee.getCorporateId());
+                result.put("corporateName", corporate != null ? corporate.getCustomerName() : "알 수 없는 거래처");
+                
+                Log.i(TAG, "Phone number already exists for employee: " + existingEmployee.getName());
+            } else {
+                // 중복되지 않은 경우
+                result.put("phoneExists", false);
+                Log.i(TAG, "Phone number is available: " + phone);
+            }
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking employee phone", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "전화번호 확인 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
