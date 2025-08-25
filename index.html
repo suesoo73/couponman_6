@@ -278,6 +278,7 @@
                 <button class="tab" onclick="switchTab('deliveryHistory')">발송 기록</button>
                 <button class="tab" onclick="switchTab('emailConfig')">이메일 설정</button>
                 <button class="tab" onclick="switchTab('smsConfig')">SMS 설정</button>
+                <button class="tab" onclick="switchTab('managementInfo')">경영정보</button>
             </div>
 
             <!-- 빠른 테스트 탭 -->
@@ -950,6 +951,91 @@
                             <button onclick="loadSmsConfig()" style="background: #718096; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">🔄 설정 불러오기</button>
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- 경영정보 탭 -->
+            <div id="managementInfoTab" class="tab-content">
+                <h3 style="margin-bottom: 20px;">📊 거래처별 쿠폰 발행 및 사용 통계</h3>
+                
+                <!-- 기간 선택 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">📅 조회 기간 설정</h4>
+                    <div class="form-group">
+                        <label>시작일:</label>
+                        <input type="date" id="statsStartDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>종료일:</label>
+                        <input type="date" id="statsEndDate" class="form-control">
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button onclick="loadManagementStats()" class="btn btn-primary">🔍 통계 조회</button>
+                        <button onclick="exportStatsToExcel()" class="btn btn-secondary">📥 엑셀 다운로드</button>
+                    </div>
+                </div>
+                
+                <!-- 전체 요약 통계 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">📈 전체 요약</h4>
+                    <div id="summaryStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="stat-item" style="background: #e6f7ff; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 14px; color: #666;">총 거래처 수</div>
+                            <div id="totalCorporates" style="font-size: 24px; font-weight: bold; color: #1890ff;">-</div>
+                        </div>
+                        <div class="stat-item" style="background: #f6ffed; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 14px; color: #666;">발행된 쿠폰 수</div>
+                            <div id="totalIssuedCoupons" style="font-size: 24px; font-weight: bold; color: #52c41a;">-</div>
+                        </div>
+                        <div class="stat-item" style="background: #fff7e6; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 14px; color: #666;">사용된 쿠폰 수</div>
+                            <div id="totalUsedCoupons" style="font-size: 24px; font-weight: bold; color: #fa8c16;">-</div>
+                        </div>
+                        <div class="stat-item" style="background: #fff1f0; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 14px; color: #666;">전체 사용률</div>
+                            <div id="totalUsageRate" style="font-size: 24px; font-weight: bold; color: #f5222d;">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 거래처별 상세 통계 테이블 -->
+                <div class="card">
+                    <h4 style="margin-bottom: 15px;">📋 거래처별 상세 통계</h4>
+                    <div class="table-container">
+                        <table id="corporateStatsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>거래처명</th>
+                                    <th>직원 수</th>
+                                    <th>발행 쿠폰</th>
+                                    <th>사용 쿠폰</th>
+                                    <th>미사용 쿠폰</th>
+                                    <th>사용률</th>
+                                    <th>총 현금 가치</th>
+                                    <th>총 포인트 가치</th>
+                                    <th>상세보기</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corporateStatsBody">
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 20px;">
+                                        조회 버튼을 클릭하여 통계를 확인하세요.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 상세 통계 모달 -->
+                <div id="corporateDetailModal" class="modal" style="display: none;">
+                    <div class="modal-content" style="width: 80%; max-width: 800px;">
+                        <span class="close" onclick="closeCorporateDetailModal()">&times;</span>
+                        <h3 id="detailModalTitle">거래처 상세 통계</h3>
+                        <div id="detailModalContent">
+                            <!-- 동적으로 내용이 추가됨 -->
+                        </div>
+                    </div>
 
                     <!-- SMS 템플릿 설정 -->
                     <div class="template-container" style="background: #e6fffa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
@@ -1302,6 +1388,14 @@
                 document.querySelectorAll('.tab')[7].classList.add('active');
                 document.getElementById('smsConfigTab').classList.add('active');
                 loadSmsConfig();
+            } else if (tabName === 'managementInfo') {
+                document.querySelectorAll('.tab')[8].classList.add('active');
+                document.getElementById('managementInfoTab').classList.add('active');
+                // 오늘 날짜 기준으로 기본 날짜 설정
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                document.getElementById('statsStartDate').value = firstDay.toISOString().split('T')[0];
+                document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
             }
         }
 
@@ -3970,6 +4064,228 @@
             `;
             
             alert(details);
+        }
+
+        // ========== 경영정보/통계 관련 함수들 ==========
+
+        // 경영정보 통계 데이터 로드
+        async function loadManagementStats() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const startDate = document.getElementById('statsStartDate').value;
+            const endDate = document.getElementById('statsEndDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('시작일과 종료일을 모두 선택해주세요.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                // 거래처별 통계 조회
+                const response = await fetch(`${serverUrl}/api/statistics/corporate?startDate=${startDate}&endDate=${endDate}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                // 먼저 응답 텍스트를 확인
+                const responseText = await response.text();
+                console.log('Statistics API Response:', responseText);
+                console.log('Response status:', response.status);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    console.error('Response was:', responseText);
+                    alert('서버 응답을 파싱할 수 없습니다: ' + responseText.substring(0, 200));
+                    return;
+                }
+
+                if (data.success) {
+                    displayManagementStats(data.data);
+                } else {
+                    alert('통계 조회 실패: ' + data.message);
+                }
+            } catch (error) {
+                alert('통계 조회 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 통계 데이터를 화면에 표시
+        function displayManagementStats(statsData) {
+            // 전체 요약 통계 업데이트
+            document.getElementById('totalCorporates').textContent = statsData.summary.totalCorporates || 0;
+            document.getElementById('totalIssuedCoupons').textContent = statsData.summary.totalIssuedCoupons || 0;
+            document.getElementById('totalUsedCoupons').textContent = statsData.summary.totalUsedCoupons || 0;
+            
+            const usageRate = statsData.summary.totalIssuedCoupons > 0 
+                ? ((statsData.summary.totalUsedCoupons / statsData.summary.totalIssuedCoupons) * 100).toFixed(1) + '%'
+                : '0%';
+            document.getElementById('totalUsageRate').textContent = usageRate;
+
+            // 거래처별 상세 통계 테이블 업데이트
+            const tableBody = document.getElementById('corporateStatsBody');
+            tableBody.innerHTML = '';
+
+            if (statsData.corporateStats && statsData.corporateStats.length > 0) {
+                statsData.corporateStats.forEach(stat => {
+                    const row = document.createElement('tr');
+                    const corporateUsageRate = stat.issuedCoupons > 0 
+                        ? ((stat.usedCoupons / stat.issuedCoupons) * 100).toFixed(1) + '%'
+                        : '0%';
+
+                    row.innerHTML = `
+                        <td>${stat.corporateName}</td>
+                        <td>${stat.employeeCount}</td>
+                        <td>${stat.issuedCoupons}</td>
+                        <td>${stat.usedCoupons}</td>
+                        <td>${stat.issuedCoupons - stat.usedCoupons}</td>
+                        <td>${corporateUsageRate}</td>
+                        <td>${stat.totalCashValue.toLocaleString()}원</td>
+                        <td>${stat.totalPointValue.toLocaleString()}P</td>
+                        <td>
+                            <button class="btn btn-small" onclick="showCorporateDetail(${stat.corporateId}, '${stat.corporateName}')">
+                                상세보기
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="9" style="text-align: center; padding: 20px;">조회된 데이터가 없습니다.</td>';
+                tableBody.appendChild(row);
+            }
+        }
+
+        // 거래처 상세 통계 모달 표시
+        async function showCorporateDetail(corporateId, corporateName) {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const startDate = document.getElementById('statsStartDate').value;
+            const endDate = document.getElementById('statsEndDate').value;
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/statistics/corporate/${corporateId}?startDate=${startDate}&endDate=${endDate}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                // 먼저 응답 텍스트를 확인
+                const responseText = await response.text();
+                console.log('API Response:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    console.error('Response was:', responseText);
+                    alert('서버 응답을 파싱할 수 없습니다. 콘솔을 확인하세요.');
+                    return;
+                }
+
+                if (data.success) {
+                    document.getElementById('detailModalTitle').textContent = `${corporateName} 상세 통계`;
+                    
+                    const modalContent = document.getElementById('detailModalContent');
+                    modalContent.innerHTML = `
+                        <div class="detail-stats">
+                            <h4>📊 쿠폰 사용 현황</h4>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>직원명</th>
+                                        <th>발행 쿠폰</th>
+                                        <th>사용 쿠폰</th>
+                                        <th>미사용 쿠폰</th>
+                                        <th>사용률</th>
+                                        <th>현금 잔고</th>
+                                        <th>포인트 잔고</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.data.employees.map(emp => {
+                                        const empUsageRate = emp.issuedCoupons > 0 
+                                            ? ((emp.usedCoupons / emp.issuedCoupons) * 100).toFixed(1) + '%'
+                                            : '0%';
+                                        return `
+                                            <tr>
+                                                <td>${emp.employeeName}</td>
+                                                <td>${emp.issuedCoupons}</td>
+                                                <td>${emp.usedCoupons}</td>
+                                                <td>${emp.issuedCoupons - emp.usedCoupons}</td>
+                                                <td>${empUsageRate}</td>
+                                                <td>${emp.totalCashBalance.toLocaleString()}원</td>
+                                                <td>${emp.totalPointBalance.toLocaleString()}P</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    document.getElementById('corporateDetailModal').style.display = 'block';
+                } else {
+                    alert('상세 통계 조회 실패: ' + data.message);
+                }
+            } catch (error) {
+                alert('상세 통계 조회 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 거래처 상세 모달 닫기
+        function closeCorporateDetailModal() {
+            document.getElementById('corporateDetailModal').style.display = 'none';
+        }
+
+        // 통계 데이터를 엑셀로 내보내기
+        function exportStatsToExcel() {
+            const table = document.getElementById('corporateStatsTable');
+            const rows = Array.from(table.querySelectorAll('tr'));
+            
+            let csvContent = '';
+            rows.forEach(row => {
+                const cols = Array.from(row.querySelectorAll('th, td'));
+                const rowData = cols.slice(0, -1).map(col => col.textContent.trim()); // 상세보기 버튼 열 제외
+                csvContent += rowData.join(',') + '\n';
+            });
+
+            // BOM 추가하여 한글 깨짐 방지
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            const startDate = document.getElementById('statsStartDate').value;
+            const endDate = document.getElementById('statsEndDate').value;
+            const fileName = `쿠폰통계_${startDate}_${endDate}.csv`;
+            
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('corporateDetailModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
         }
     </script>
 </body>

@@ -296,6 +296,19 @@ public class ApiServer extends NanoHTTPD {
                                 }
                             }
                         }
+                    } else if (uri.startsWith("/api/statistics/")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/statistics/corporate")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetCorporateStatistics(session);
+                            }
+                        } else if (uri.startsWith("/api/statistics/corporate/")) {
+                            String corporateId = uri.substring("/api/statistics/corporate/".length());
+                            if (Method.GET.equals(method)) {
+                                response = handleGetCorporateDetailStatistics(corporateId, session);
+                            }
+                        }
                     }
                     break;
             }
@@ -1355,7 +1368,7 @@ public class ApiServer extends NanoHTTPD {
                 
                 // 해당 직원의 거래처 정보 조회
                 Corporate corporate = corporateDAO.getCorporateById(existingEmployee.getCorporateId());
-                result.put("corporateName", corporate != null ? corporate.getCustomerName() : "알 수 없는 거래처");
+                result.put("corporateName", corporate != null ? corporate.getName() : "알 수 없는 거래처");
                 
                 Log.i(TAG, "Phone number already exists for employee: " + existingEmployee.getName());
             } else {
@@ -2841,6 +2854,206 @@ public class ApiServer extends NanoHTTPD {
         } catch (Exception e) {
             Log.e(TAG, "[NUSOME-HTTP] HTTP 요청 중 예외", e);
             return false;
+        }
+    }
+
+    // ========== 통계 관련 핸들러 ==========
+
+    /**
+     * 거래처별 통계 조회
+     */
+    private Response handleGetCorporateStatistics(IHTTPSession session) {
+        Log.i(TAG, "=== GET CORPORATE STATISTICS REQUEST ===");
+        
+        try {
+            // 쿼리 매개변수 가져오기
+            Map<String, String> params = session.getParms();
+            String startDate = params.get("startDate");
+            String endDate = params.get("endDate");
+            
+            if (startDate == null || endDate == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "시작일(startDate)과 종료일(endDate)이 필요합니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            // 모든 거래처 조회
+            List<Corporate> corporates = corporateDAO.getAllCorporates();
+            
+            // 전체 요약 통계
+            int totalCorporates = corporates.size();
+            int totalIssuedCoupons = 0;
+            int totalUsedCoupons = 0;
+            
+            // 거래처별 상세 통계 리스트
+            List<Map<String, Object>> corporateStats = new ArrayList<>();
+            
+            for (Corporate corporate : corporates) {
+                // 거래처별 직원 수 조회
+                List<Employee> employees = employeeDAO.getEmployeesByCorporateId(corporate.getCustomerId());
+                int employeeCount = employees.size();
+                
+                // 거래처별 쿠폰 통계 계산
+                int issuedCoupons = 0;
+                int usedCoupons = 0;
+                double totalCashValue = 0;
+                double totalPointValue = 0;
+                
+                for (Employee employee : employees) {
+                    List<Coupon> empCoupons = couponDAO.getCouponsByEmployeeId(employee.getEmployeeId());
+                    for (Coupon coupon : empCoupons) {
+                        // 기간 필터링
+                        if (coupon.getCreatedAt() != null) {
+                            String couponDate = coupon.getCreatedAt().split(" ")[0]; // "YYYY-MM-DD HH:MM:SS"에서 날짜 부분만
+                            if (couponDate.compareTo(startDate) >= 0 && couponDate.compareTo(endDate) <= 0) {
+                                issuedCoupons++;
+                                totalCashValue += coupon.getCashBalance();
+                                totalPointValue += coupon.getPointBalance();
+                                
+                                if ("USED".equals(coupon.getStatus())) {
+                                    usedCoupons++;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 거래처별 통계 데이터 생성
+                Map<String, Object> corporateStat = new HashMap<>();
+                corporateStat.put("corporateId", corporate.getCustomerId());
+                corporateStat.put("corporateName", corporate.getName());
+                corporateStat.put("employeeCount", employeeCount);
+                corporateStat.put("issuedCoupons", issuedCoupons);
+                corporateStat.put("usedCoupons", usedCoupons);
+                corporateStat.put("totalCashValue", totalCashValue);
+                corporateStat.put("totalPointValue", totalPointValue);
+                
+                corporateStats.add(corporateStat);
+                
+                // 전체 통계에 합계 반영
+                totalIssuedCoupons += issuedCoupons;
+                totalUsedCoupons += usedCoupons;
+            }
+            
+            // 요약 통계 생성
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("totalCorporates", totalCorporates);
+            summary.put("totalIssuedCoupons", totalIssuedCoupons);
+            summary.put("totalUsedCoupons", totalUsedCoupons);
+            
+            // 응답 데이터 구성
+            Map<String, Object> data = new HashMap<>();
+            data.put("summary", summary);
+            data.put("corporateStats", corporateStats);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", data);
+            
+            Log.i(TAG, "Corporate statistics retrieved: " + totalCorporates + " corporates, " + totalIssuedCoupons + " coupons");
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting corporate statistics", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "통계 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    /**
+     * 거래처별 상세 통계 조회
+     */
+    private Response handleGetCorporateDetailStatistics(String corporateId, IHTTPSession session) {
+        Log.i(TAG, "=== GET CORPORATE DETAIL STATISTICS REQUEST ===");
+        
+        try {
+            int id = Integer.parseInt(corporateId);
+            
+            // 쿼리 매개변수 가져오기
+            Map<String, String> params = session.getParms();
+            String startDate = params.get("startDate");
+            String endDate = params.get("endDate");
+            
+            if (startDate == null || endDate == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "시작일(startDate)과 종료일(endDate)이 필요합니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            // 거래처 정보 조회
+            Corporate corporate = corporateDAO.getCorporateById(id);
+            if (corporate == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "거래처를 찾을 수 없습니다: " + corporateId);
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // 거래처의 직원 목록 조회
+            List<Employee> employees = employeeDAO.getEmployeesByCorporateId(id);
+            List<Map<String, Object>> employeeStats = new ArrayList<>();
+            
+            for (Employee employee : employees) {
+                int issuedCoupons = 0;
+                int usedCoupons = 0;
+                double totalCashBalance = 0;
+                double totalPointBalance = 0;
+                
+                List<Coupon> empCoupons = couponDAO.getCouponsByEmployeeId(employee.getEmployeeId());
+                for (Coupon coupon : empCoupons) {
+                    // 기간 필터링
+                    if (coupon.getCreatedAt() != null) {
+                        String couponDate = coupon.getCreatedAt().split(" ")[0];
+                        if (couponDate.compareTo(startDate) >= 0 && couponDate.compareTo(endDate) <= 0) {
+                            issuedCoupons++;
+                            totalCashBalance += coupon.getCashBalance();
+                            totalPointBalance += coupon.getPointBalance();
+                            
+                            if ("USED".equals(coupon.getStatus())) {
+                                usedCoupons++;
+                            }
+                        }
+                    }
+                }
+                
+                Map<String, Object> employeeStat = new HashMap<>();
+                employeeStat.put("employeeId", employee.getEmployeeId());
+                employeeStat.put("employeeName", employee.getName());
+                employeeStat.put("issuedCoupons", issuedCoupons);
+                employeeStat.put("usedCoupons", usedCoupons);
+                employeeStat.put("totalCashBalance", totalCashBalance);
+                employeeStat.put("totalPointBalance", totalPointBalance);
+                
+                employeeStats.add(employeeStat);
+            }
+            
+            // 응답 데이터 구성
+            Map<String, Object> data = new HashMap<>();
+            data.put("corporate", corporate);
+            data.put("employees", employeeStats);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", data);
+            
+            Log.i(TAG, "Corporate detail statistics retrieved for: " + corporate.getName());
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 거래처 ID 형식입니다");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting corporate detail statistics", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "상세 통계 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 }

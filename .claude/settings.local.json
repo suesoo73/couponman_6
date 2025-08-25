@@ -23,7 +23,11 @@
       "Bash(grep:*)",
       "Bash(git commit:*)",
       "Bash(rg:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(gradlew:*)",
+      "Bash(.gradlew assembleDebug)"
     ],
     "deny": [],
     "ask": []
