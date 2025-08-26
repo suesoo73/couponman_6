@@ -227,6 +227,45 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -1036,73 +1075,8 @@
                             <!-- 동적으로 내용이 추가됨 -->
                         </div>
                     </div>
-
-                    <!-- SMS 템플릿 설정 -->
-                    <div class="template-container" style="background: #e6fffa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; color: #2c7a7b;">📝 SMS 템플릿 설정</h4>
-                        
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label for="smsTemplate">SMS 메시지 템플릿:</label>
-                            <textarea id="smsTemplate" rows="4" placeholder="[{{회사명}}] 쿠폰이 발급되었습니다.
-코드: {{쿠폰코드}}
-금액: {{충전금액}}원
-포인트: {{포인트}}P
-유효기간: {{유효기간}}" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
-                        </div>
-
-                        <div style="margin-top: 10px; font-size: 14px; color: #2c7a7b;">
-                            <strong>사용 가능한 변수:</strong> {{이름}}, {{회사명}}, {{쿠폰코드}}, {{충전금액}}, {{포인트}}, {{유효기간}}
-                        </div>
-                    </div>
-
-                    <!-- 카카오톡 템플릿 설정 -->
-                    <div class="template-container" style="background: #fef5e7; padding: 20px; border-radius: 8px;">
-                        <h4 style="margin: 0 0 15px 0; color: #c05621;">💬 카카오톡 템플릿 설정</h4>
-                        
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label for="kakaoTemplate">카카오톡 메시지 템플릿:</label>
-                            <textarea id="kakaoTemplate" rows="6" placeholder="🎫 쿠폰 발급 알림
-
-안녕하세요 {{이름}}님,
-{{회사명}}에서 쿠폰이 발급되었습니다.
-
-쿠폰 코드: {{쿠폰코드}}
-충전 금액: {{충전금액}}원
-포인트: {{포인트}}P
-유효기간: {{유효기간}}
-
-감사합니다." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
-                        </div>
-
-                        <div style="margin-top: 10px; font-size: 14px; color: #c05621;">
-                            <strong>사용 가능한 변수:</strong> {{이름}}, {{회사명}}, {{쿠폰코드}}, {{충전금액}}, {{포인트}}, {{유효기간}}
-                        </div>
-                    </div>
-
-                    <!-- API 사용 안내 -->
-                    <div style="background: #fff8dc; padding: 20px; border-radius: 8px; border-left: 4px solid #f6ad55;">
-                        <h4 style="margin: 0 0 15px 0; color: #c05621;">📋 nusome.co.kr API 사용 안내</h4>
-                        <div style="margin-top: 10px; font-size: 14px; color: #c05621; line-height: 1.6;">
-                            <p><strong>1. 사업자 정보 설정:</strong> '관리자 기본설정' → '사업자 정보설정'에서 사업자등록번호를 먼저 설정하세요</p>
-                            <p><strong>2. 회원가입:</strong> <a href="https://nusome.co.kr" target="_blank" style="color: #2b6cb0;">nusome.co.kr</a>에서 회원가입</p>
-                            <p><strong>3. 사업자등록:</strong> 위에서 설정한 사업자등록번호를 누썸에 등록 (인증키 역할)</p>
-                            <p><strong>4. 발송자 번호 등록:</strong> SMS 발송용 번호를 사전 등록해야 함</p>
-                            <p><strong>5. 잔액 충전:</strong> SMS/카카오톡 발송을 위한 크레딧 충전</p>
-                            <p><strong>6. QR SMS API:</strong> <code>POST https://www.nusome.co.kr/api/request_qr_sms</code></p>
-                            <p><strong>인증 방식:</strong> 사업자등록번호 기반 (API 키 불필요)</p>
-                            <p><strong>💡 자동 연동:</strong> 앱에서 설정한 사업자등록번호를 자동으로 사용합니다</p>
-                            <p><strong>주의:</strong> 테스트 모드가 아닌 경우 실제 SMS가 발송되어 요금이 차감됩니다.</p>
-                        </div>
-                    </div>
                 </div>
             </div>
-
-            <div id="apiResponse" style="margin-top: 20px; display: none;">
-                <h3>응답:</h3>
-                <div class="response-display" id="responseContent"></div>
-            </div>
-        </div>
-    </div>
 
     <script>
         let currentToken = localStorage.getItem('apiToken') || '';
