@@ -10,7 +10,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     // 데이터베이스 정보
     private static final String DATABASE_NAME = "couponman.db";
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 6;
     
     // Corporate 테이블 정보
     public static final String TABLE_CORPORATE = "corporate";
@@ -76,6 +76,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_DELIVERY_METADATA = "metadata";
     public static final String COLUMN_DELIVERY_CREATED_AT = "created_at";
     public static final String COLUMN_DELIVERY_UPDATED_AT = "updated_at";
+    
+    // System Settings 테이블 정보
+    public static final String TABLE_SYSTEM_SETTINGS = "system_settings";
+    public static final String COLUMN_SETTING_ID = "setting_id";
+    public static final String COLUMN_SETTING_KEY = "setting_key";
+    public static final String COLUMN_SETTING_VALUE = "setting_value";
+    public static final String COLUMN_SETTING_DESCRIPTION = "description";
+    public static final String COLUMN_SETTING_CREATED_AT = "created_at";
+    public static final String COLUMN_SETTING_UPDATED_AT = "updated_at";
     
     // Corporate 테이블 생성 SQL
     private static final String CREATE_TABLE_CORPORATE = 
@@ -160,6 +169,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             TABLE_COUPON + "(" + COLUMN_COUPON_ID + ") ON DELETE CASCADE" +
             ");";
     
+    // System Settings 테이블 생성 SQL
+    private static final String CREATE_TABLE_SYSTEM_SETTINGS = 
+            "CREATE TABLE " + TABLE_SYSTEM_SETTINGS + " (" +
+            COLUMN_SETTING_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            COLUMN_SETTING_KEY + " TEXT UNIQUE NOT NULL, " +
+            COLUMN_SETTING_VALUE + " TEXT NOT NULL, " +
+            COLUMN_SETTING_DESCRIPTION + " TEXT, " +
+            COLUMN_SETTING_CREATED_AT + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+            COLUMN_SETTING_UPDATED_AT + " DATETIME DEFAULT CURRENT_TIMESTAMP" +
+            ");";
+    
     // 인덱스 생성 SQL (검색 성능 향상을 위해)
     private static final String CREATE_INDEX_BUSINESS_NUMBER = 
             "CREATE INDEX idx_business_number ON " + TABLE_CORPORATE + "(" + COLUMN_BUSINESS_NUMBER + ");";
@@ -190,6 +210,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     private static final String CREATE_INDEX_TRANSACTION_DATE = 
             "CREATE INDEX idx_transaction_date ON " + TABLE_TRANSACTION + "(" + COLUMN_TRANSACTION_DATE + ");";
+    
+    // System Settings 인덱스 생성 SQL
+    private static final String CREATE_INDEX_SETTING_KEY = 
+            "CREATE INDEX idx_setting_key ON " + TABLE_SYSTEM_SETTINGS + "(" + COLUMN_SETTING_KEY + ");";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -220,6 +244,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL(CREATE_TABLE_COUPON_DELIVERY);
             Log.i(TAG, "Coupon Delivery table created successfully");
             
+            // System Settings 테이블 생성
+            db.execSQL(CREATE_TABLE_SYSTEM_SETTINGS);
+            Log.i(TAG, "System Settings table created successfully");
+            
             // 인덱스 생성
             db.execSQL(CREATE_INDEX_BUSINESS_NUMBER);
             db.execSQL(CREATE_INDEX_NAME);
@@ -230,6 +258,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL(CREATE_INDEX_COUPON_STATUS);
             db.execSQL(CREATE_INDEX_TRANSACTION_COUPON_ID);
             db.execSQL(CREATE_INDEX_TRANSACTION_DATE);
+            db.execSQL(CREATE_INDEX_SETTING_KEY);
             Log.i(TAG, "Indexes created successfully");
             
             // 초기 샘플 데이터 삽입
@@ -246,6 +275,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         
         // 간단한 업그레이드: 기존 테이블 삭제 후 재생성
         // 실제 운영 환경에서는 데이터 마이그레이션을 고려해야 함
+        try {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_SYSTEM_SETTINGS);
+        } catch (Exception e) {
+            Log.w(TAG, "Error dropping system settings table: " + e.getMessage());
+        }
         try {
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_COUPON_DELIVERY);
         } catch (Exception e) {
@@ -394,8 +428,59 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             
             Log.i(TAG, "Sample transaction data inserted successfully: " + sampleTransactionData.length + " records");
             
+            // 시스템 설정 기본값 삽입
+            insertDefaultSystemSettings(db);
+            
         } catch (Exception e) {
             Log.e(TAG, "Error inserting sample data", e);
+        }
+    }
+    
+    /**
+     * 시스템 설정 기본값 삽입
+     */
+    private void insertDefaultSystemSettings(SQLiteDatabase db) {
+        Log.i(TAG, "Inserting default system settings");
+        
+        try {
+            String[][] defaultSettings = {
+                // 아침 시간대 설정 (06:00 - 10:59)
+                {"breakfast_start_time", "06:00", "아침 식사 시간 시작"},
+                {"breakfast_end_time", "10:59", "아침 식사 시간 종료"},
+                {"breakfast_cash_deduction", "3000", "아침 식사 현금 차감액"},
+                {"breakfast_point_deduction", "0", "아침 식사 포인트 차감액"},
+                
+                // 점심 시간대 설정 (11:00 - 14:59)
+                {"lunch_start_time", "11:00", "점심 식사 시간 시작"},
+                {"lunch_end_time", "14:59", "점심 식사 시간 종료"},
+                {"lunch_cash_deduction", "5000", "점심 식사 현금 차감액"},
+                {"lunch_point_deduction", "0", "점심 식사 포인트 차감액"},
+                
+                // 저녁 시간대 설정 (15:00 - 21:59)
+                {"dinner_start_time", "15:00", "저녁 식사 시간 시작"},
+                {"dinner_end_time", "21:59", "저녁 식사 시간 종료"},
+                {"dinner_cash_deduction", "7000", "저녁 식사 현금 차감액"},
+                {"dinner_point_deduction", "0", "저녁 식사 포인트 차감액"},
+                
+                // 기본 차감 설정 (시간대 외)
+                {"default_cash_deduction", "1000", "기본 현금 차감액 (시간대 외)"},
+                {"default_point_deduction", "0", "기본 포인트 차감액 (시간대 외)"},
+                
+                // 시스템 설정
+                {"enable_time_based_deduction", "true", "시간대별 차감 활성화"},
+                {"allow_negative_balance", "false", "마이너스 잔고 허용"}
+            };
+            
+            for (String[] setting : defaultSettings) {
+                String sql = "INSERT INTO " + TABLE_SYSTEM_SETTINGS + 
+                           " (setting_key, setting_value, description) VALUES (?, ?, ?)";
+                db.execSQL(sql, setting);
+            }
+            
+            Log.i(TAG, "Default system settings inserted successfully: " + defaultSettings.length + " records");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error inserting default system settings", e);
         }
     }
     

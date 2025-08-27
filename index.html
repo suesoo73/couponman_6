@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>쿠폰 매니저 시스템 관리</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
     <style>
         * {
             margin: 0;
@@ -270,7 +271,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎫 쿠폰 매니저 시스템 관리</h1>
+        <h1>🎟️ 쿠폰 매니저 시스템 관리</h1>
 
         <!-- 서버 설정 섹션 -->
         <div class="section">
@@ -309,56 +310,20 @@
             <h2>🚀 시스템 관리</h2>
             
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('quick')">빠른 테스트</button>
-                <button class="tab" onclick="switchTab('corporate')">거래처 관리</button>
-                <button class="tab" onclick="switchTab('employee')">직원 관리</button>
-                <button class="tab" onclick="switchTab('coupon')">쿠폰 발행</button>
-                <button class="tab" onclick="switchTab('send')">쿠폰 발송</button>
-                <button class="tab" onclick="switchTab('deliveryHistory')">발송 기록</button>
-                <button class="tab" onclick="switchTab('emailConfig')">이메일 설정</button>
-                <button class="tab" onclick="switchTab('smsConfig')">SMS 설정</button>
-                <button class="tab" onclick="switchTab('managementInfo')">경영정보</button>
+                <button class="tab active" onclick="switchTab('corporate', event)">거래처 관리</button>
+                <button class="tab" onclick="switchTab('employee', event)">직원 관리</button>
+                <button class="tab" onclick="switchTab('coupon', event)">쿠폰 발행</button>
+                <button class="tab" onclick="switchTab('send', event)">쿠폰 발송</button>
+                <button class="tab" onclick="switchTab('deliveryHistory', event)">발송 기록</button>
+                <button class="tab" onclick="switchTab('emailConfig', event)">이메일 설정</button>
+                <button class="tab" onclick="switchTab('smsConfig', event)">SMS 설정</button>
+                <button class="tab" onclick="switchTab('systemSettings', event)">시스템 설정</button>
+                <button class="tab" onclick="switchTab('managementInfo', event)">경영정보</button>
             </div>
 
-            <!-- 빠른 테스트 탭 -->
-            <div id="quickTab" class="tab-content active">
-                <h3 style="margin-bottom: 15px;">자주 사용하는 엔드포인트</h3>
-                <div class="api-endpoints">
-                    <button class="endpoint-button" onclick="testApi('GET', '/api')">
-                        GET /api<br><small>서버 정보</small>
-                    </button>
-                    <button class="endpoint-button" onclick="testApi('GET', '/api/server/status')">
-                        GET /api/server/status<br><small>서버 상태</small>
-                    </button>
-                    <button class="endpoint-button" onclick="testApi('GET', '/api/coupons')">
-                        GET /api/coupons<br><small>모든 쿠폰 조회</small>
-                    </button>
-                    <button class="endpoint-button" onclick="testApi('GET', '/api/coupons/COUPON001')">
-                        GET /api/coupons/COUPON001<br><small>특정 쿠폰 조회</small>
-                    </button>
-                    <button class="endpoint-button" onclick="createSampleCoupon()">
-                        POST /api/coupons<br><small>샘플 쿠폰 생성</small>
-                    </button>
-                    <button class="endpoint-button" onclick="validateCoupon()">
-                        POST /api/coupons/validate<br><small>쿠폰 검증</small>
-                    </button>
-                    <button class="endpoint-button" onclick="testApi('GET', '/api/corporates')">
-                        GET /api/corporates<br><small>모든 거래처 조회</small>
-                    </button>
-                    <button class="endpoint-button" onclick="testApi('GET', '/api/corporates/1')">
-                        GET /api/corporates/1<br><small>특정 거래처 조회</small>
-                    </button>
-                    <button class="endpoint-button" onclick="createSampleCorporate()">
-                        POST /api/corporates<br><small>샘플 거래처 생성</small>
-                    </button>
-                    <button class="endpoint-button" onclick="searchCorporate()">
-                        GET /api/corporates/search<br><small>거래처 검색</small>
-                    </button>
-                </div>
-            </div>
 
             <!-- 거래처 관리 탭 -->
-            <div id="corporateTab" class="tab-content">
+            <div id="corporateTab" class="tab-content active">
                 <div class="corporate-management">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h3>거래처 관리</h3>
@@ -993,6 +958,137 @@
                 </div>
             </div>
             
+            <!-- 시스템 설정 탭 -->
+            <div id="systemSettingsTab" class="tab-content">
+                <div style="max-width: 800px;">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">⚙️ 시스템 설정</h3>
+                    
+                    <!-- 시간대별 차감 설정 -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 20px 0; color: #333;">⏰ 시간대별 차감 설정</h4>
+                        
+                        <!-- 활성화 설정 -->
+                        <div style="margin-bottom: 25px; padding: 15px; background: white; border-radius: 6px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="enableTimeBasedDeduction" style="margin-right: 10px; transform: scale(1.2);">
+                                <span style="font-weight: bold;">시간대별 차감 기능 활성화</span>
+                            </label>
+                            <small style="color: #666; margin-left: 22px;">체크하면 시간대에 따라 다른 금액이 차감됩니다</small>
+                        </div>
+
+                        <!-- 아침 설정 -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🌅 아침 설정</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>시작 시간:</label>
+                                    <input type="time" id="breakfastStartTime" value="06:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>종료 시간:</label>
+                                    <input type="time" id="breakfastEndTime" value="10:59" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>현금 차감:</label>
+                                    <input type="number" id="breakfastCashDeduction" value="3000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>포인트 차감:</label>
+                                    <input type="number" id="breakfastPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 점심 설정 -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🌞 점심 설정</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>시작 시간:</label>
+                                    <input type="time" id="lunchStartTime" value="11:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>종료 시간:</label>
+                                    <input type="time" id="lunchEndTime" value="14:59" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>현금 차감:</label>
+                                    <input type="number" id="lunchCashDeduction" value="5000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>포인트 차감:</label>
+                                    <input type="number" id="lunchPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 저녁 설정 -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🌙 저녁 설정</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>시작 시간:</label>
+                                    <input type="time" id="dinnerStartTime" value="15:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>종료 시간:</label>
+                                    <input type="time" id="dinnerEndTime" value="21:59" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>현금 차감:</label>
+                                    <input type="number" id="dinnerCashDeduction" value="7000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>포인트 차감:</label>
+                                    <input type="number" id="dinnerPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 기본 설정 (시간대 외) -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🕒 기본 설정 (시간대 외)</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>기본 현금 차감:</label>
+                                    <input type="number" id="defaultCashDeduction" value="1000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>기본 포인트 차감:</label>
+                                    <input type="number" id="defaultPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                            <small style="color: #666;">설정된 시간대에 해당하지 않는 경우 사용되는 차감액</small>
+                        </div>
+                    </div>
+
+                    <!-- 기타 설정 -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 20px 0; color: #333;">🔧 기타 설정</h4>
+                        
+                        <div style="background: white; padding: 15px; border-radius: 6px;">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="allowNegativeBalance" style="margin-right: 10px; transform: scale(1.2);">
+                                <span style="font-weight: bold;">마이너스 잔고 허용</span>
+                            </label>
+                            <small style="color: #666; margin-left: 22px;">체크하면 잔고가 부족해도 QR 스캔을 허용합니다</small>
+                        </div>
+                    </div>
+
+                    <!-- 저장 버튼 -->
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button onclick="loadSystemSettings()" style="background: #718096; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-right: 10px;">🔄 설정 불러오기</button>
+                        <button onclick="saveSystemSettings()" style="background: #4299e1; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">💾 설정 저장</button>
+                    </div>
+
+                    <!-- 설정 미리보기 -->
+                    <div id="settingsPreview" style="background: #e6f3ff; padding: 15px; border-radius: 6px; margin-top: 20px; display: none;">
+                        <h5 style="margin: 0 0 10px 0; color: #1976d2;">📋 현재 설정 미리보기</h5>
+                        <div id="previewContent"></div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- 경영정보 탭 -->
             <div id="managementInfoTab" class="tab-content">
                 <h3 style="margin-bottom: 20px;">📊 거래처별 쿠폰 발행 및 사용 통계</h3>
@@ -1077,16 +1173,250 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- 시스템 설정 탭 -->
+            <div id="systemSettingsTab" class="tab-content">
+                <div style="max-width: 800px;">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">⚙️ 시스템 설정</h3>
+                    
+                    <!-- 시간대별 차감 설정 -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 20px 0; color: #333;">⏰ 시간대별 차감 설정</h4>
+                        
+                        <!-- 활성화 설정 -->
+                        <div style="margin-bottom: 25px; padding: 15px; background: white; border-radius: 6px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="enableTimeBasedDeduction" style="margin-right: 10px; transform: scale(1.2);">
+                                <span style="font-weight: bold;">시간대별 차감 기능 활성화</span>
+                            </label>
+                            <small style="color: #666; margin-left: 22px;">체크하면 시간대에 따라 다른 금액이 차감됩니다</small>
+                        </div>
+
+                        <!-- 아침 설정 -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🌅 아침 설정</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>시작 시간:</label>
+                                    <input type="time" id="breakfastStartTime" value="06:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>종료 시간:</label>
+                                    <input type="time" id="breakfastEndTime" value="10:59" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>현금 차감:</label>
+                                    <input type="number" id="breakfastCashDeduction" value="3000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>포인트 차감:</label>
+                                    <input type="number" id="breakfastPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 점심 설정 -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🌞 점심 설정</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>시작 시간:</label>
+                                    <input type="time" id="lunchStartTime" value="11:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>종료 시간:</label>
+                                    <input type="time" id="lunchEndTime" value="14:59" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>현금 차감:</label>
+                                    <input type="number" id="lunchCashDeduction" value="5000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>포인트 차감:</label>
+                                    <input type="number" id="lunchPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 저녁 설정 -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🌙 저녁 설정</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>시작 시간:</label>
+                                    <input type="time" id="dinnerStartTime" value="15:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>종료 시간:</label>
+                                    <input type="time" id="dinnerEndTime" value="21:59" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>현금 차감:</label>
+                                    <input type="number" id="dinnerCashDeduction" value="7000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>포인트 차감:</label>
+                                    <input type="number" id="dinnerPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 기본 설정 (시간대 외) -->
+                        <div style="background: white; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                            <h5 style="margin: 0 0 15px 0; color: #667eea;">🕒 기본 설정 (시간대 외)</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label>기본 현금 차감:</label>
+                                    <input type="number" id="defaultCashDeduction" value="1000" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                                <div>
+                                    <label>기본 포인트 차감:</label>
+                                    <input type="number" id="defaultPointDeduction" value="0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+                            </div>
+                            <small style="color: #666;">설정된 시간대에 해당하지 않는 경우 사용되는 차감액</small>
+                        </div>
+                    </div>
+
+                    <!-- 기타 설정 -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 20px 0; color: #333;">🔧 기타 설정</h4>
+                        
+                        <div style="background: white; padding: 15px; border-radius: 6px;">
+                            <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" id="allowNegativeBalance" style="margin-right: 10px; transform: scale(1.2);">
+                                <span style="font-weight: bold;">마이너스 잔고 허용</span>
+                            </label>
+                            <small style="color: #666; margin-left: 22px;">체크하면 잔고가 부족해도 QR 스캔을 허용합니다</small>
+                        </div>
+                    </div>
+
+                    <!-- 저장 버튼 -->
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button onclick="loadSystemSettings()" style="background: #718096; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-right: 10px;">🔄 설정 불러오기</button>
+                        <button onclick="saveSystemSettings()" style="background: #4299e1; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">💾 설정 저장</button>
+                    </div>
+
+                    <!-- 설정 미리보기 -->
+                    <div id="settingsPreview" style="background: #e6f3ff; padding: 15px; border-radius: 6px; margin-top: 20px; display: none;">
+                        <h5 style="margin: 0 0 10px 0; color: #1976d2;">📋 현재 설정 미리보기</h5>
+                        <div id="previewContent"></div>
+                    </div>
+                </div>
+            </div>
 
     <script>
         let currentToken = localStorage.getItem('apiToken') || '';
 
-        // 페이지 로드 시 토큰 확인
+        // 탭 전환 함수
+        function switchTab(tabName, event) {
+            // 모든 탭 숨기기
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // 모든 탭 버튼 비활성화
+            const tabButtons = document.querySelectorAll('.tab');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // 선택된 탭 표시와 초기화 작업
+            if (tabName === 'corporate') {
+                document.getElementById('corporateTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+            } else if (tabName === 'employee') {
+                document.getElementById('employeeTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadCorporatesForEmployeeTab();
+            } else if (tabName === 'coupon') {
+                document.getElementById('couponTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadCorporatesForCouponTab();
+            } else if (tabName === 'send') {
+                document.getElementById('sendTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadCorporatesForSendTab();
+            } else if (tabName === 'deliveryHistory') {
+                document.getElementById('deliveryHistoryTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadDeliveryHistory();
+            } else if (tabName === 'emailConfig') {
+                document.getElementById('emailConfigTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadEmailConfig();
+            } else if (tabName === 'smsConfig') {
+                document.getElementById('smsConfigTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadSmsConfig();
+            } else if (tabName === 'systemSettings') {
+                document.getElementById('systemSettingsTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                loadSystemSettings();
+            } else if (tabName === 'managementInfo') {
+                document.getElementById('managementInfoTab').classList.add('active');
+                if (event && event.target) event.target.classList.add('active');
+                // 오늘 날짜 기준으로 기본 날짜 설정
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                document.getElementById('statsStartDate').value = firstDay.toISOString().split('T')[0];
+                document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
+            }
+
+            // event 없이 호출된 경우 탭 버튼을 수동으로 찾아서 활성화
+            if (!event || !event.target) {
+                const tabButton = document.querySelector(`button[onclick*="switchTab('${tabName}')"]`);
+                if (tabButton) {
+                    tabButton.classList.add('active');
+                }
+            }
+
+            console.log('Tab switched to:', tabName);
+        }
+
+        // 페이지 로드 시 토큰 확인 및 초기화
         window.onload = function() {
             if (currentToken) {
                 displayToken(currentToken);
             }
+            
+            // 기본 탭 활성화 (거래처 관리 탭)
+            switchTabWithoutEvent('corporate');
         };
+        
+        // 이벤트 없이 탭 전환하는 함수 (초기화용)
+        function switchTabWithoutEvent(tabName) {
+            // 모든 탭 숨기기
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // 모든 탭 버튼 비활성화
+            const tabButtons = document.querySelectorAll('.tab');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // 선택된 탭 표시
+            const targetTab = document.getElementById(tabName + 'Tab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+            } else {
+                console.error('Tab not found:', tabName + 'Tab');
+            }
+
+            // 해당 탭 버튼 활성화
+            const tabButtons2 = document.querySelectorAll('.tab');
+            tabButtons2.forEach(button => {
+                if (button.onclick && button.onclick.toString().includes(tabName)) {
+                    button.classList.add('active');
+                }
+            });
+
+            console.log('Tab initialized to:', tabName);
+        }
 
         // 서버 상태 확인
         async function checkServerStatus() {
@@ -1325,53 +1655,7 @@
             responseContent.textContent = `${statusText}(${status})\n\n${JSON.stringify(data, null, 2)}`;
         }
 
-        // 탭 전환
-        function switchTab(tabName) {
-            // 모든 탭과 컨텐츠 비활성화
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // 선택된 탭 활성화
-            if (tabName === 'quick') {
-                document.querySelectorAll('.tab')[0].classList.add('active');
-                document.getElementById('quickTab').classList.add('active');
-            } else if (tabName === 'corporate') {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('corporateTab').classList.add('active');
-            } else if (tabName === 'employee') {
-                document.querySelectorAll('.tab')[2].classList.add('active');
-                document.getElementById('employeeTab').classList.add('active');
-                loadCorporatesForEmployeeTab();
-            } else if (tabName === 'coupon') {
-                document.querySelectorAll('.tab')[3].classList.add('active');
-                document.getElementById('couponTab').classList.add('active');
-                loadCorporatesForCouponTab();
-            } else if (tabName === 'send') {
-                document.querySelectorAll('.tab')[4].classList.add('active');
-                document.getElementById('sendTab').classList.add('active');
-                loadCorporatesForSendTab();
-            } else if (tabName === 'deliveryHistory') {
-                document.querySelectorAll('.tab')[5].classList.add('active');
-                document.getElementById('deliveryHistoryTab').classList.add('active');
-                loadDeliveryHistory();
-            } else if (tabName === 'emailConfig') {
-                document.querySelectorAll('.tab')[6].classList.add('active');
-                document.getElementById('emailConfigTab').classList.add('active');
-                loadEmailConfig();
-            } else if (tabName === 'smsConfig') {
-                document.querySelectorAll('.tab')[7].classList.add('active');
-                document.getElementById('smsConfigTab').classList.add('active');
-                loadSmsConfig();
-            } else if (tabName === 'managementInfo') {
-                document.querySelectorAll('.tab')[8].classList.add('active');
-                document.getElementById('managementInfoTab').classList.add('active');
-                // 오늘 날짜 기준으로 기본 날짜 설정
-                const today = new Date();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                document.getElementById('statsStartDate').value = firstDay.toISOString().split('T')[0];
-                document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
-            }
-        }
+        // 중복 함수 제거됨 - 위의 첫 번째 switchTab 함수를 사용
 
         // ========== 거래처 관리 함수들 ==========
 
@@ -4252,6 +4536,170 @@
             link.href = URL.createObjectURL(blob);
             link.download = fileName;
             link.click();
+        }
+
+        // 시스템 설정 불러오기
+        async function loadSystemSettings() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/system/settings`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const settings = await response.json();
+                    console.log('시스템 설정 불러오기 성공:', settings);
+                    
+                    // 설정 값들을 화면에 반영
+                    applySettingsToUI(settings);
+                    
+                    displayResult('시스템 설정을 성공적으로 불러왔습니다.');
+                } else {
+                    const error = await response.json();
+                    console.error('설정 불러오기 실패:', error);
+                    displayResult(`설정 불러오기 실패: ${error.message || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                console.error('설정 불러오기 중 오류:', error);
+                displayResult(`설정 불러오기 중 오류: ${error.message}`, 'error');
+            }
+        }
+        
+        // 시스템 설정 저장
+        async function saveSystemSettings() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const settings = collectSettingsFromUI();
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/system/settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('시스템 설정 저장 성공:', result);
+                    displayResult('시스템 설정이 성공적으로 저장되었습니다.');
+                    showSettingsPreview(settings);
+                } else {
+                    const error = await response.json();
+                    console.error('설정 저장 실패:', error);
+                    displayResult(`설정 저장 실패: ${error.message || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                console.error('설정 저장 중 오류:', error);
+                displayResult(`설정 저장 중 오류: ${error.message}`, 'error');
+            }
+        }
+        
+        // UI에서 설정 값들 수집
+        function collectSettingsFromUI() {
+            return {
+                // 시간대별 차감 활성화
+                enable_time_based_deduction: document.getElementById('enableTimeBasedDeduction').checked.toString(),
+                
+                // 아침 설정
+                breakfast_start_time: document.getElementById('breakfastStartTime').value,
+                breakfast_end_time: document.getElementById('breakfastEndTime').value,
+                breakfast_cash_deduction: document.getElementById('breakfastCashDeduction').value,
+                breakfast_point_deduction: document.getElementById('breakfastPointDeduction').value,
+                
+                // 점심 설정
+                lunch_start_time: document.getElementById('lunchStartTime').value,
+                lunch_end_time: document.getElementById('lunchEndTime').value,
+                lunch_cash_deduction: document.getElementById('lunchCashDeduction').value,
+                lunch_point_deduction: document.getElementById('lunchPointDeduction').value,
+                
+                // 저녁 설정
+                dinner_start_time: document.getElementById('dinnerStartTime').value,
+                dinner_end_time: document.getElementById('dinnerEndTime').value,
+                dinner_cash_deduction: document.getElementById('dinnerCashDeduction').value,
+                dinner_point_deduction: document.getElementById('dinnerPointDeduction').value,
+                
+                // 기본 설정
+                default_cash_deduction: document.getElementById('defaultCashDeduction').value,
+                default_point_deduction: document.getElementById('defaultPointDeduction').value,
+                
+                // 기타 설정
+                allow_negative_balance: document.getElementById('allowNegativeBalance').checked.toString()
+            };
+        }
+        
+        // 설정 값들을 UI에 적용
+        function applySettingsToUI(settings) {
+            // 시간대별 차감 활성화
+            document.getElementById('enableTimeBasedDeduction').checked = settings.enable_time_based_deduction === 'true';
+            
+            // 아침 설정
+            document.getElementById('breakfastStartTime').value = settings.breakfast_start_time || '06:00';
+            document.getElementById('breakfastEndTime').value = settings.breakfast_end_time || '10:59';
+            document.getElementById('breakfastCashDeduction').value = settings.breakfast_cash_deduction || '3000';
+            document.getElementById('breakfastPointDeduction').value = settings.breakfast_point_deduction || '0';
+            
+            // 점심 설정
+            document.getElementById('lunchStartTime').value = settings.lunch_start_time || '11:00';
+            document.getElementById('lunchEndTime').value = settings.lunch_end_time || '14:59';
+            document.getElementById('lunchCashDeduction').value = settings.lunch_cash_deduction || '5000';
+            document.getElementById('lunchPointDeduction').value = settings.lunch_point_deduction || '0';
+            
+            // 저녁 설정
+            document.getElementById('dinnerStartTime').value = settings.dinner_start_time || '15:00';
+            document.getElementById('dinnerEndTime').value = settings.dinner_end_time || '21:59';
+            document.getElementById('dinnerCashDeduction').value = settings.dinner_cash_deduction || '7000';
+            document.getElementById('dinnerPointDeduction').value = settings.dinner_point_deduction || '0';
+            
+            // 기본 설정
+            document.getElementById('defaultCashDeduction').value = settings.default_cash_deduction || '1000';
+            document.getElementById('defaultPointDeduction').value = settings.default_point_deduction || '0';
+            
+            // 기타 설정
+            document.getElementById('allowNegativeBalance').checked = settings.allow_negative_balance === 'true';
+        }
+        
+        // 설정 미리보기 표시
+        function showSettingsPreview(settings) {
+            const preview = document.getElementById('settingsPreview');
+            const content = document.getElementById('previewContent');
+            
+            const isTimeBasedEnabled = settings.enable_time_based_deduction === 'true';
+            const allowNegative = settings.allow_negative_balance === 'true';
+            
+            content.innerHTML = `
+                <div style="font-family: monospace; font-size: 12px; line-height: 1.6;">
+                    <div><strong>시간대별 차감:</strong> ${isTimeBasedEnabled ? '✅ 활성화' : '❌ 비활성화'}</div>
+                    <div><strong>마이너스 잔고:</strong> ${allowNegative ? '✅ 허용' : '❌ 금지'}</div>
+                    <hr style="margin: 10px 0;">
+                    <div><strong>🌅 아침 (${settings.breakfast_start_time} - ${settings.breakfast_end_time}):</strong> 현금 ${parseInt(settings.breakfast_cash_deduction).toLocaleString()}원, 포인트 ${parseInt(settings.breakfast_point_deduction).toLocaleString()}P</div>
+                    <div><strong>🌞 점심 (${settings.lunch_start_time} - ${settings.lunch_end_time}):</strong> 현금 ${parseInt(settings.lunch_cash_deduction).toLocaleString()}원, 포인트 ${parseInt(settings.lunch_point_deduction).toLocaleString()}P</div>
+                    <div><strong>🌙 저녁 (${settings.dinner_start_time} - ${settings.dinner_end_time}):</strong> 현금 ${parseInt(settings.dinner_cash_deduction).toLocaleString()}원, 포인트 ${parseInt(settings.dinner_point_deduction).toLocaleString()}P</div>
+                    <div><strong>🕒 기본 (시간대 외):</strong> 현금 ${parseInt(settings.default_cash_deduction).toLocaleString()}원, 포인트 ${parseInt(settings.default_point_deduction).toLocaleString()}P</div>
+                </div>
+            `;
+            
+            preview.style.display = 'block';
+            
+            // 3초 후 자동 숨김
+            setTimeout(() => {
+                preview.style.display = 'none';
+            }, 5000);
         }
 
         // 모달 외부 클릭 시 닫기

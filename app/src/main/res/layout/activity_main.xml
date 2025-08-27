@@ -7,14 +7,51 @@
     android:padding="16dp"
     android:background="#f5f5f5">
 
-    <TextView
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="쿠폰 매니저"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#333"
-        android:layout_marginBottom="40dp" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="40dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="쿠폰 매니저"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#333" />
+
+        <LinearLayout
+            android:id="@+id/serverStatusIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginLeft="12dp"
+            android:background="@drawable/info_background"
+            android:padding="6dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/serverStatusDot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/button_circle"
+                android:backgroundTint="#4CAF50"
+                android:layout_marginRight="4dp" />
+
+            <TextView
+                android:id="@+id/serverStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="API 서버"
+                android:textSize="10sp"
+                android:textColor="#666" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnAdminSettings"

@@ -170,6 +170,103 @@
 
         </LinearLayout>
 
+        <!-- 쿠폰 잔고 표시 영역 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/info_background"
+            android:padding="12dp"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💳 쿠폰 잔고 정보"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💰 현금 잔고"
+                        android:textSize="12sp"
+                        android:textColor="#666"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvCashBalance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0원"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#2E7D32" />
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="50dp"
+                    android:background="#ddd"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎯 포인트 잔고"
+                        android:textSize="12sp"
+                        android:textColor="#666"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvPointBalance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0P"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#1976D2" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvCouponStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="QR 코드를 스캔하면 잔고 정보가 표시됩니다"
+                android:textSize="12sp"
+                android:textColor="#999"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:layout_gravity="center" />
+
+        </LinearLayout>
+
         <!-- 카메라 전환 버튼 -->
         <LinearLayout
             android:layout_width="match_parent"

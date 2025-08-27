@@ -71,7 +71,8 @@ public class ApiServerService extends Service {
     }
 
     private Notification createNotification(String text) {
-        Intent notificationIntent = new Intent(this, ServerInfoActivity.class);
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
                 0,

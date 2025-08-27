@@ -35,6 +35,9 @@ public class QRScanActivity extends AppCompatActivity {
     private TextView tvScanResult;
     private TextView tvLastScanTime;
     private TextView tvScanCount;
+    private TextView tvCashBalance;
+    private TextView tvPointBalance;
+    private TextView tvCouponStatus;
     private Button btnToggleScan;
     private Button btnClearResults;
     private Button btnSwitchCamera;
@@ -46,6 +49,8 @@ public class QRScanActivity extends AppCompatActivity {
     
     // 데이터베이스 DAO
     private CouponDAO couponDAO;
+    private EmployeeDAO employeeDAO;
+    private CorporateDAO corporateDAO;
     
     // 카메라 설정
     private boolean isUsingFrontCamera = false;
@@ -80,6 +85,9 @@ public class QRScanActivity extends AppCompatActivity {
         tvScanResult = findViewById(R.id.tvScanResult);
         tvLastScanTime = findViewById(R.id.tvLastScanTime);
         tvScanCount = findViewById(R.id.tvScanCount);
+        tvCashBalance = findViewById(R.id.tvCashBalance);
+        tvPointBalance = findViewById(R.id.tvPointBalance);
+        tvCouponStatus = findViewById(R.id.tvCouponStatus);
         btnToggleScan = findViewById(R.id.btnToggleScan);
         btnClearResults = findViewById(R.id.btnClearResults);
         btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
@@ -87,14 +95,17 @@ public class QRScanActivity extends AppCompatActivity {
         
         updateScanCount();
         updateCameraSwitchButtonText();
+        resetBalanceDisplay();
     }
     
     private void initializeDatabase() {
         try {
             couponDAO = new CouponDAO(this);
-            Log.i(TAG, "[DB-INIT] 쿠폰 DAO 초기화 완료");
+            employeeDAO = new EmployeeDAO(this);
+            corporateDAO = new CorporateDAO(this);
+            Log.i(TAG, "[DB-INIT] DAO 초기화 완료");
         } catch (Exception e) {
-            Log.e(TAG, "[DB-INIT] 쿠폰 DAO 초기화 실패", e);
+            Log.e(TAG, "[DB-INIT] DAO 초기화 실패", e);
         }
     }
     
@@ -222,24 +233,14 @@ public class QRScanActivity extends AppCompatActivity {
     private void handleScanResult(String result) {
         scanCount++;
         
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                .format(new Date());
-        
         Log.i(TAG, "[SCAN-RESULT] QR 스캔 결과: " + result);
         
-        // 쿠폰 잔고 확인
+        // 쿠폰 및 연관 정보 확인 (UI 업데이트 포함)
         checkCouponBalance(result);
-        
-        String scanEntry = "[" + scanCount + "] " + timestamp + "\n" + 
-                          "결과: " + result + "\n\n";
-        
-        scanResults.insert(0, scanEntry);
         
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                tvScanResult.setText(scanResults.toString());
-                tvLastScanTime.setText("마지막 스캔: " + timestamp);
                 updateScanCount();
                 
                 barcodeView.pause();
@@ -319,7 +320,7 @@ public class QRScanActivity extends AppCompatActivity {
     }
     
     /**
-     * 스캔된 QR 코드로 쿠폰 잔고 확인
+     * 스캔된 QR 코드로 쿠폰 및 연관 정보 확인
      */
     private void checkCouponBalance(String qrData) {
         try {
@@ -336,26 +337,164 @@ public class QRScanActivity extends AppCompatActivity {
             Log.i(TAG, "[COUPON-CHECK] 쿠폰 코드: " + couponCode);
             
             // 데이터베이스에서 쿠폰 조회
-            if (couponDAO != null) {
-                Coupon coupon = couponDAO.getCouponByCode(couponCode);
-                if (coupon != null) {
-                    Log.i(TAG, "[COUPON-BALANCE] ==========================================");
-                    Log.i(TAG, "[COUPON-BALANCE] 쿠폰 ID: " + coupon.getCouponId());
-                    Log.i(TAG, "[COUPON-BALANCE] 쿠폰 코드: " + coupon.getFullCouponCode());
-                    Log.i(TAG, "[COUPON-BALANCE] 현금 잔고: " + coupon.getCashBalance() + "원");
-                    Log.i(TAG, "[COUPON-BALANCE] 포인트 잔고: " + coupon.getPointBalance() + "P");
-                    Log.i(TAG, "[COUPON-BALANCE] 상태: " + coupon.getStatus());
-                    Log.i(TAG, "[COUPON-BALANCE] 유효기간: " + coupon.getExpireDate());
-                    Log.i(TAG, "[COUPON-BALANCE] ==========================================");
-                } else {
-                    Log.w(TAG, "[COUPON-BALANCE] 쿠폰을 찾을 수 없습니다: " + couponCode);
+            if (couponDAO != null && employeeDAO != null && corporateDAO != null) {
+                try {
+                    // DAO 데이터베이스 연결 열기
+                    couponDAO.open();
+                    employeeDAO.open();
+                    corporateDAO.open();
+                    
+                    Coupon coupon = couponDAO.getCouponByCode(couponCode);
+                    if (coupon != null) {
+                        // 직원 정보 조회
+                        Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
+                        
+                        // 회사 정보 조회
+                        Corporate corporate = null;
+                        if (employee != null) {
+                            corporate = corporateDAO.getCorporateById(employee.getCorporateId());
+                        }
+                        
+                        // 상세 정보 로그 출력
+                        logCouponDetails(coupon, employee, corporate);
+                        
+                        // UI에 결과 표시
+                        displayCouponInfo(couponCode, coupon, employee, corporate);
+                        
+                        // 하단 잔고 표시 업데이트
+                        updateBalanceDisplay(coupon, employee, corporate);
+                        
+                    } else {
+                        Log.w(TAG, "[COUPON-BALANCE] 쿠폰을 찾을 수 없습니다: " + couponCode);
+                        displayCouponNotFound(couponCode);
+                        
+                        // 하단 잔고 표시 - 찾을 수 없음
+                        updateBalanceDisplayNotFound();
+                    }
+                } finally {
+                    // DAO 데이터베이스 연결 닫기
+                    try { couponDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing couponDAO", e); }
+                    try { employeeDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing employeeDAO", e); }
+                    try { corporateDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing corporateDAO", e); }
                 }
             } else {
-                Log.e(TAG, "[COUPON-BALANCE] CouponDAO가 초기화되지 않았습니다");
+                Log.e(TAG, "[COUPON-BALANCE] DAO가 초기화되지 않았습니다");
+                updateBalanceDisplayError("시스템 오류");
             }
         } catch (Exception e) {
-            Log.e(TAG, "[COUPON-CHECK] 쿠폰 잔고 확인 중 오류", e);
+            Log.e(TAG, "[COUPON-CHECK] 쿠폰 확인 중 오류", e);
+            updateBalanceDisplayError("오류 발생");
         }
+    }
+    
+    /**
+     * 쿠폰 상세 정보 로그 출력
+     */
+    private void logCouponDetails(Coupon coupon, Employee employee, Corporate corporate) {
+        Log.i(TAG, "[COUPON-DETAILS] ==========================================");
+        Log.i(TAG, "[COUPON-DETAILS] === 쿠폰 정보 ===");
+        Log.i(TAG, "[COUPON-DETAILS] 쿠폰 ID: " + coupon.getCouponId());
+        Log.i(TAG, "[COUPON-DETAILS] 쿠폰 코드: " + coupon.getFullCouponCode());
+        Log.i(TAG, "[COUPON-DETAILS] 현금 잔고: " + coupon.getCashBalance() + "원");
+        Log.i(TAG, "[COUPON-DETAILS] 포인트 잔고: " + coupon.getPointBalance() + "P");
+        Log.i(TAG, "[COUPON-DETAILS] 상태: " + coupon.getStatus());
+        Log.i(TAG, "[COUPON-DETAILS] 유효기간: " + coupon.getExpireDate());
+        
+        if (employee != null) {
+            Log.i(TAG, "[COUPON-DETAILS] === 직원 정보 ===");
+            Log.i(TAG, "[COUPON-DETAILS] 직원 ID: " + employee.getEmployeeId());
+            Log.i(TAG, "[COUPON-DETAILS] 이름: " + employee.getName());
+            Log.i(TAG, "[COUPON-DETAILS] 전화번호: " + employee.getPhone());
+            Log.i(TAG, "[COUPON-DETAILS] 이메일: " + employee.getEmail());
+            Log.i(TAG, "[COUPON-DETAILS] 부서: " + employee.getDepartment());
+        }
+        
+        if (corporate != null) {
+            Log.i(TAG, "[COUPON-DETAILS] === 회사 정보 ===");
+            Log.i(TAG, "[COUPON-DETAILS] 회사 ID: " + corporate.getCustomerId());
+            Log.i(TAG, "[COUPON-DETAILS] 회사명: " + corporate.getName());
+            Log.i(TAG, "[COUPON-DETAILS] 사업자등록번호: " + corporate.getBusinessNumber());
+            Log.i(TAG, "[COUPON-DETAILS] 대표자: " + corporate.getRepresentative());
+        }
+        Log.i(TAG, "[COUPON-DETAILS] ==========================================");
+    }
+    
+    /**
+     * UI에 쿠폰 정보 표시
+     */
+    private void displayCouponInfo(String scannedCode, Coupon coupon, Employee employee, Corporate corporate) {
+        StringBuilder displayText = new StringBuilder();
+        displayText.append("✅ 쿠폰 발견!\n\n");
+        
+        // 쿠폰 정보
+        displayText.append("📋 쿠폰 정보\n");
+        displayText.append("코드: ").append(coupon.getFullCouponCode()).append("\n");
+        displayText.append("💰 현금: ").append(String.format("%,d", (int)coupon.getCashBalance())).append("원\n");
+        displayText.append("🎯 포인트: ").append(String.format("%,d", (int)coupon.getPointBalance())).append("P\n");
+        displayText.append("📅 유효기간: ").append(coupon.getExpireDate()).append("\n");
+        displayText.append("📊 상태: ").append(coupon.getStatus()).append("\n\n");
+        
+        // 직원 정보
+        if (employee != null) {
+            displayText.append("👤 직원 정보\n");
+            displayText.append("이름: ").append(employee.getName()).append("\n");
+            displayText.append("📱 전화: ").append(employee.getPhone()).append("\n");
+            if (employee.getEmail() != null && !employee.getEmail().isEmpty()) {
+                displayText.append("📧 이메일: ").append(employee.getEmail()).append("\n");
+            }
+            if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+                displayText.append("🏢 부서: ").append(employee.getDepartment()).append("\n");
+            }
+            displayText.append("\n");
+        }
+        
+        // 회사 정보
+        if (corporate != null) {
+            displayText.append("🏭 회사 정보\n");
+            displayText.append("회사명: ").append(corporate.getName()).append("\n");
+            if (corporate.getBusinessNumber() != null && !corporate.getBusinessNumber().isEmpty()) {
+                displayText.append("사업자번호: ").append(corporate.getBusinessNumber()).append("\n");
+            }
+            if (corporate.getRepresentative() != null && !corporate.getRepresentative().isEmpty()) {
+                displayText.append("대표자: ").append(corporate.getRepresentative()).append("\n");
+            }
+        }
+        
+        updateScanResultDisplay(displayText.toString());
+    }
+    
+    /**
+     * 쿠폰을 찾을 수 없을 때 UI 표시
+     */
+    private void displayCouponNotFound(String scannedCode) {
+        StringBuilder displayText = new StringBuilder();
+        displayText.append("❌ 쿠폰을 찾을 수 없습니다\n\n");
+        displayText.append("스캔된 코드: ").append(scannedCode).append("\n\n");
+        displayText.append("• 쿠폰 코드가 올바른지 확인해주세요\n");
+        displayText.append("• 쿠폰이 등록되어 있는지 확인해주세요\n");
+        displayText.append("• 관리자에게 문의하세요");
+        
+        updateScanResultDisplay(displayText.toString());
+    }
+    
+    /**
+     * 스캔 결과 UI 업데이트
+     */
+    private void updateScanResultDisplay(String content) {
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                .format(new Date());
+        
+        String scanEntry = "[" + scanCount + "] " + timestamp + "\n" + content + "\n\n";
+        
+        scanResults.insert(0, scanEntry);
+        
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tvScanResult.setText(scanResults.toString());
+                tvLastScanTime.setText("마지막 스캔: " + timestamp);
+            }
+        });
     }
 
     private void clearResults() {
@@ -364,6 +503,74 @@ public class QRScanActivity extends AppCompatActivity {
         tvScanResult.setText("QR 코드를 스캔하면 여기에 결과가 표시됩니다.");
         tvLastScanTime.setText("마지막 스캔: 없음");
         updateScanCount();
+        resetBalanceDisplay();
+    }
+    
+    /**
+     * 잔고 표시 초기화
+     */
+    private void resetBalanceDisplay() {
+        tvCashBalance.setText("0원");
+        tvPointBalance.setText("0P");
+        tvCouponStatus.setText("QR 코드를 스캔하면 잔고 정보가 표시됩니다");
+    }
+    
+    /**
+     * 쿠폰 잔고 정보 업데이트
+     */
+    private void updateBalanceDisplay(Coupon coupon, Employee employee, Corporate corporate) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // 현금 잔고 표시
+                tvCashBalance.setText(String.format("%,d원", (int)coupon.getCashBalance()));
+                
+                // 포인트 잔고 표시  
+                tvPointBalance.setText(String.format("%,dP", (int)coupon.getPointBalance()));
+                
+                // 상태 메시지 구성
+                StringBuilder statusText = new StringBuilder();
+                if (employee != null) {
+                    statusText.append("👤 ").append(employee.getName());
+                    if (corporate != null) {
+                        statusText.append(" (").append(corporate.getName()).append(")");
+                    }
+                    statusText.append(" | ");
+                }
+                statusText.append("📊 ").append(coupon.getStatus());
+                statusText.append(" | 📅 ").append(coupon.getExpireDate());
+                
+                tvCouponStatus.setText(statusText.toString());
+            }
+        });
+    }
+    
+    /**
+     * 쿠폰을 찾을 수 없을 때 잔고 표시 업데이트
+     */
+    private void updateBalanceDisplayNotFound() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tvCashBalance.setText("---");
+                tvPointBalance.setText("---");
+                tvCouponStatus.setText("❌ 쿠폰을 찾을 수 없습니다");
+            }
+        });
+    }
+    
+    /**
+     * 에러 발생 시 잔고 표시 업데이트
+     */
+    private void updateBalanceDisplayError(String errorMessage) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tvCashBalance.setText("오류");
+                tvPointBalance.setText("오류");
+                tvCouponStatus.setText("⚠️ " + errorMessage);
+            }
+        });
     }
 
     private void updateScanCount() {

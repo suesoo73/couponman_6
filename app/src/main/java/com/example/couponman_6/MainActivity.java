@@ -1,12 +1,17 @@
 package com.example.couponman_6;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import fi.iki.elonen.NanoHTTPD;
@@ -16,6 +21,11 @@ public class MainActivity extends AppCompatActivity {
     
     private static final String TAG = "MainActivity";
     private static final int SERVER_PORT = 8080;
+    
+    private LinearLayout serverStatusIndicator;
+    private View serverStatusDot;
+    private TextView serverStatusText;
+    private BroadcastReceiver serverStatusReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +37,12 @@ public class MainActivity extends AppCompatActivity {
         
         // API 서버 자동 시작
         startApiServer();
+
+        // UI 요소 초기화
+        initializeViews();
+        
+        // 서버 상태 브로드캐스트 리시버 등록
+        registerServerStatusReceiver();
 
         Button btnAdminSettings = findViewById(R.id.btnAdminSettings);
         Button btnQRScan = findViewById(R.id.btnQRScan);
@@ -107,9 +123,57 @@ public class MainActivity extends AppCompatActivity {
         applyKeepScreenOnSetting();
     }
     
+    /**
+     * UI 요소들을 초기화하는 메서드
+     */
+    private void initializeViews() {
+        serverStatusIndicator = findViewById(R.id.serverStatusIndicator);
+        serverStatusDot = findViewById(R.id.serverStatusDot);
+        serverStatusText = findViewById(R.id.serverStatusText);
+    }
+    
+    /**
+     * 서버 상태 브로드캐스트 리시버를 등록하는 메서드
+     */
+    private void registerServerStatusReceiver() {
+        serverStatusReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String status = intent.getStringExtra("status");
+                if ("started".equals(status)) {
+                    updateServerStatusUI(true);
+                } else if ("stopped".equals(status)) {
+                    updateServerStatusUI(false);
+                }
+            }
+        };
+        
+        IntentFilter filter = new IntentFilter("com.example.couponman_6.SERVER_STATUS");
+        registerReceiver(serverStatusReceiver, filter);
+    }
+    
+    /**
+     * 서버 상태에 따라 UI를 업데이트하는 메서드
+     */
+    private void updateServerStatusUI(boolean isRunning) {
+        if (isRunning) {
+            serverStatusIndicator.setVisibility(View.VISIBLE);
+            serverStatusDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF4CAF50)); // 초록색
+            serverStatusText.setText("API 서버");
+        } else {
+            serverStatusIndicator.setVisibility(View.GONE);
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        
+        // 브로드캐스트 리시버 해제
+        if (serverStatusReceiver != null) {
+            unregisterReceiver(serverStatusReceiver);
+        }
+        
         Log.i(TAG, "[SERVER-AUTO] MainActivity 종료 - 서버는 백그라운드에서 계속 실행");
     }
 }

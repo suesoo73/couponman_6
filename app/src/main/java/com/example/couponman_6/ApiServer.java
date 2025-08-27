@@ -309,6 +309,16 @@ public class ApiServer extends NanoHTTPD {
                                 response = handleGetCorporateDetailStatistics(corporateId, session);
                             }
                         }
+                    } else if (uri.startsWith("/api/system/settings")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/system/settings")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetSystemSettings();
+                            } else if (Method.POST.equals(method)) {
+                                response = handleSaveSystemSettings(session);
+                            }
+                        }
                     }
                     break;
             }
@@ -3053,6 +3063,111 @@ public class ApiServer extends NanoHTTPD {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "상세 통계 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    /**
+     * 시스템 설정 조회
+     */
+    private Response handleGetSystemSettings() {
+        try {
+            Log.i(TAG, "Getting system settings");
+            
+            // SharedPreferences에서 시스템 설정 읽기
+            SharedPreferences systemSettings = context.getSharedPreferences("SystemSettings", Context.MODE_PRIVATE);
+            
+            Map<String, Object> settings = new HashMap<>();
+            
+            // 시간대별 차감 설정
+            settings.put("enable_time_based_deduction", systemSettings.getString("enable_time_based_deduction", "true"));
+            
+            // 아침 설정
+            settings.put("breakfast_start_time", systemSettings.getString("breakfast_start_time", "06:00"));
+            settings.put("breakfast_end_time", systemSettings.getString("breakfast_end_time", "10:59"));
+            settings.put("breakfast_cash_deduction", systemSettings.getString("breakfast_cash_deduction", "3000"));
+            settings.put("breakfast_point_deduction", systemSettings.getString("breakfast_point_deduction", "0"));
+            
+            // 점심 설정
+            settings.put("lunch_start_time", systemSettings.getString("lunch_start_time", "11:00"));
+            settings.put("lunch_end_time", systemSettings.getString("lunch_end_time", "14:59"));
+            settings.put("lunch_cash_deduction", systemSettings.getString("lunch_cash_deduction", "5000"));
+            settings.put("lunch_point_deduction", systemSettings.getString("lunch_point_deduction", "0"));
+            
+            // 저녁 설정
+            settings.put("dinner_start_time", systemSettings.getString("dinner_start_time", "15:00"));
+            settings.put("dinner_end_time", systemSettings.getString("dinner_end_time", "21:59"));
+            settings.put("dinner_cash_deduction", systemSettings.getString("dinner_cash_deduction", "7000"));
+            settings.put("dinner_point_deduction", systemSettings.getString("dinner_point_deduction", "0"));
+            
+            // 기본 설정
+            settings.put("default_cash_deduction", systemSettings.getString("default_cash_deduction", "1000"));
+            settings.put("default_point_deduction", systemSettings.getString("default_point_deduction", "0"));
+            
+            // 기타 설정
+            settings.put("allow_negative_balance", systemSettings.getString("allow_negative_balance", "false"));
+            
+            Log.i(TAG, "System settings retrieved successfully");
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(settings));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting system settings", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "시스템 설정 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    /**
+     * 시스템 설정 저장
+     */
+    private Response handleSaveSystemSettings(IHTTPSession session) {
+        try {
+            Log.i(TAG, "Saving system settings");
+            
+            // 요청 본문 파싱
+            Map<String, String> files = new HashMap<>();
+            session.parseBody(files);
+            String body = files.get("postData");
+            
+            if (body == null || body.trim().isEmpty()) {
+                Log.w(TAG, "Empty request body for system settings");
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "요청 데이터가 없습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // JSON 파싱
+            @SuppressWarnings("unchecked")
+            Map<String, String> settingsData = gson.fromJson(body, Map.class);
+            
+            // SharedPreferences에 저장
+            SharedPreferences systemSettings = context.getSharedPreferences("SystemSettings", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = systemSettings.edit();
+            
+            for (Map.Entry<String, String> entry : settingsData.entrySet()) {
+                editor.putString(entry.getKey(), entry.getValue());
+                Log.d(TAG, "Setting saved: " + entry.getKey() + " = " + entry.getValue());
+            }
+            
+            editor.apply();
+            
+            // 성공 응답
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "시스템 설정이 성공적으로 저장되었습니다");
+            result.put("settingsCount", settingsData.size());
+            
+            Log.i(TAG, "System settings saved successfully: " + settingsData.size() + " settings");
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving system settings", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "시스템 설정 저장 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
