@@ -31,7 +31,10 @@
       "Bash(adb:*)",
       "Bash(java:*)",
       "Bash(where java)",
-      "Bash(dir)"
+      "Bash(dir)",
+      "Bash(cp:*)",
+      "Bash(copy index.html index_v2.html)",
+      "Bash(file:*)"
     ],
     "deny": [],
     "ask": []
