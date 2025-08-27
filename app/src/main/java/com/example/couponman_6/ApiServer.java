@@ -3124,15 +3124,21 @@ public class ApiServer extends NanoHTTPD {
      */
     private Response handleSaveSystemSettings(IHTTPSession session) {
         try {
-            Log.i(TAG, "Saving system settings");
+            Log.i(TAG, "=== SYSTEM SETTINGS SAVE START ===");
+            Log.i(TAG, "Client IP: " + session.getRemoteIpAddress());
+            Log.i(TAG, "Request URI: " + session.getUri());
+            Log.i(TAG, "Request Method: " + session.getMethod());
             
             // 요청 본문 파싱
             Map<String, String> files = new HashMap<>();
             session.parseBody(files);
             String body = files.get("postData");
             
+            Log.i(TAG, "Request body length: " + (body != null ? body.length() : 0));
+            Log.d(TAG, "Raw request body: " + body);
+            
             if (body == null || body.trim().isEmpty()) {
-                Log.w(TAG, "Empty request body for system settings");
+                Log.w(TAG, "❌ Empty request body for system settings");
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "요청 데이터가 없습니다");
@@ -3140,35 +3146,105 @@ public class ApiServer extends NanoHTTPD {
             }
             
             // JSON 파싱
+            Log.i(TAG, "Parsing JSON settings data...");
             @SuppressWarnings("unchecked")
             Map<String, String> settingsData = gson.fromJson(body, Map.class);
             
+            Log.i(TAG, "Parsed settings count: " + settingsData.size());
+            
+            // 설정 데이터 상세 로그
+            Log.i(TAG, "--- Settings Details ---");
+            for (Map.Entry<String, String> entry : settingsData.entrySet()) {
+                Log.i(TAG, "  " + entry.getKey() + " = " + entry.getValue());
+            }
+            
             // SharedPreferences에 저장
+            Log.i(TAG, "Saving to SharedPreferences...");
             SharedPreferences systemSettings = context.getSharedPreferences("SystemSettings", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = systemSettings.edit();
             
+            int savedCount = 0;
             for (Map.Entry<String, String> entry : settingsData.entrySet()) {
-                editor.putString(entry.getKey(), entry.getValue());
-                Log.d(TAG, "Setting saved: " + entry.getKey() + " = " + entry.getValue());
+                String key = entry.getKey();
+                String value = entry.getValue();
+                
+                // 기존 값 확인
+                String oldValue = systemSettings.getString(key, null);
+                
+                editor.putString(key, value);
+                savedCount++;
+                
+                if (oldValue != null && !oldValue.equals(value)) {
+                    Log.i(TAG, "✏️ Updated: " + key + " [" + oldValue + " → " + value + "]");
+                } else if (oldValue == null) {
+                    Log.i(TAG, "➕ Added: " + key + " = " + value);
+                } else {
+                    Log.d(TAG, "🔄 Unchanged: " + key + " = " + value);
+                }
             }
             
-            editor.apply();
+            Log.i(TAG, "Applying SharedPreferences changes...");
+            boolean applied = editor.commit(); // commit()을 사용하여 동기적으로 저장
+            
+            if (applied) {
+                Log.i(TAG, "✅ SharedPreferences commit successful");
+            } else {
+                Log.w(TAG, "⚠️ SharedPreferences commit returned false");
+            }
+            
+            // 저장 후 검증
+            Log.i(TAG, "Verifying saved settings...");
+            SharedPreferences verifySettings = context.getSharedPreferences("SystemSettings", Context.MODE_PRIVATE);
+            int verifiedCount = 0;
+            for (Map.Entry<String, String> entry : settingsData.entrySet()) {
+                String savedValue = verifySettings.getString(entry.getKey(), null);
+                if (entry.getValue().equals(savedValue)) {
+                    verifiedCount++;
+                    Log.d(TAG, "✓ Verified: " + entry.getKey());
+                } else {
+                    Log.e(TAG, "❌ Verification failed: " + entry.getKey() + 
+                          " [expected: " + entry.getValue() + ", actual: " + savedValue + "]");
+                }
+            }
             
             // 성공 응답
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("message", "시스템 설정이 성공적으로 저장되었습니다");
             result.put("settingsCount", settingsData.size());
+            result.put("savedCount", savedCount);
+            result.put("verifiedCount", verifiedCount);
+            result.put("timestamp", new java.util.Date().toString());
             
-            Log.i(TAG, "System settings saved successfully: " + settingsData.size() + " settings");
-            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            String responseJson = gson.toJson(result);
+            Log.i(TAG, "✅ SUCCESS: System settings saved successfully");
+            Log.i(TAG, "   - Total settings: " + settingsData.size());
+            Log.i(TAG, "   - Saved: " + savedCount);
+            Log.i(TAG, "   - Verified: " + verifiedCount);
+            Log.i(TAG, "Response: " + responseJson);
+            Log.i(TAG, "=== SYSTEM SETTINGS SAVE END ===");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", responseJson);
             
         } catch (Exception e) {
-            Log.e(TAG, "Error saving system settings", e);
+            Log.e(TAG, "❌ ERROR: System settings save failed", e);
+            Log.e(TAG, "Exception type: " + e.getClass().getSimpleName());
+            Log.e(TAG, "Exception message: " + e.getMessage());
+            if (e.getCause() != null) {
+                Log.e(TAG, "Cause: " + e.getCause().getMessage());
+            }
+            
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "시스템 설정 저장 중 오류가 발생했습니다: " + e.getMessage());
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+            error.put("errorType", e.getClass().getSimpleName());
+            error.put("timestamp", new java.util.Date().toString());
+            
+            String errorJson = gson.toJson(error);
+            Log.e(TAG, "Error response: " + errorJson);
+            Log.i(TAG, "=== SYSTEM SETTINGS SAVE END (ERROR) ===");
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", errorJson);
         }
     }
 }

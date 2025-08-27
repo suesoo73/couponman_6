@@ -4701,6 +4701,58 @@
                 preview.style.display = 'none';
             }, 5000);
         }
+        
+        // 결과 메시지 표시 함수
+        function displayResult(message, type = 'success') {
+            console.log('displayResult:', type, message);
+            
+            // 기존 결과 메시지 제거
+            const existingResult = document.getElementById('systemSettingsResult');
+            if (existingResult) {
+                existingResult.remove();
+            }
+            
+            // 새 결과 메시지 생성
+            const resultDiv = document.createElement('div');
+            resultDiv.id = 'systemSettingsResult';
+            resultDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 9999;
+                max-width: 400px;
+                word-wrap: break-word;
+                transition: all 0.3s ease;
+                ${type === 'error' 
+                    ? 'background: #fee; border: 2px solid #f66; color: #c33;' 
+                    : 'background: #efe; border: 2px solid #6c6; color: #363;'}
+            `;
+            
+            resultDiv.textContent = message;
+            document.body.appendChild(resultDiv);
+            
+            // 5초 후 자동 제거
+            setTimeout(() => {
+                if (resultDiv && resultDiv.parentNode) {
+                    resultDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        if (resultDiv.parentNode) {
+                            resultDiv.parentNode.removeChild(resultDiv);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            // 성공 시 추가 로그
+            if (type === 'success') {
+                console.log('✅ 시스템 설정 작업 완료:', message);
+            } else {
+                console.error('❌ 시스템 설정 오류:', message);
+            }
+        }
 
         // 모달 외부 클릭 시 닫기
         window.onclick = function(event) {
