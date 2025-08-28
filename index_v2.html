@@ -460,6 +460,67 @@
                 font-size: 1.4em;
             }
         }
+
+        /* Developer Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 25px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 20px 25px 25px;
+        }
     </style>
 </head>
 <body>
@@ -502,6 +563,10 @@
                     </a>
                     <a class="dropdown-item" onclick="showSection('managementInfo')">
                         <span class="icon">📊</span>경영정보
+                    </a>
+                    <div class="dropdown-divider" style="border-top: 1px solid #e0e0e0; margin: 10px 0;"></div>
+                    <a class="dropdown-item" onclick="showDeveloperLogin()" id="developerMenuButton" style="color: #dc3545;">
+                        <span class="icon">👨‍💻</span>개발자 메뉴
                     </a>
                 </div>
             </div>
@@ -1301,6 +1366,94 @@
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- Developer Section -->
+            <div id="developerSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">👨‍💻</span>
+                    <h2>개발자 정보</h2>
+                </div>
+                
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #dc3545;">🔒 개발자 전용 메뉴</h3>
+                    <p style="margin-bottom: 20px; color: #666;">이 섹션은 시스템 개발자만 접근할 수 있습니다.</p>
+                    
+                    <!-- 시스템 정보 -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px; color: #495057;">📋 시스템 정보</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <strong>시스템 버전:</strong> v2.0.0<br>
+                                <strong>빌드 날짜:</strong> <span id="buildDate">2025-01-27</span><br>
+                                <strong>개발자:</strong> nusome<br>
+                            </div>
+                            <div>
+                                <strong>브라우저:</strong> <span id="browserInfo">로딩 중...</span><br>
+                                <strong>화면 해상도:</strong> <span id="screenRes">로딩 중...</span><br>
+                                <strong>사용자 에이전트:</strong> <span id="userAgent" style="font-size: 12px;">로딩 중...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 개발자 도구 -->
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                        <h4 style="margin-bottom: 15px; color: #856404;">🛠️ 개발자 도구</h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="clearAllLocalStorage()" class="btn" style="background: #ffc107; color: #212529;">🗑️ 로컬스토리지 클리어</button>
+                            <button onclick="exportSystemLogs()" class="btn" style="background: #17a2b8; color: white;">📄 시스템 로그 내보내기</button>
+                            <button onclick="showDebugInfo()" class="btn" style="background: #6c757d; color: white;">🐛 디버그 정보</button>
+                            <button onclick="testAllAPIs()" class="btn" style="background: #28a745; color: white;">🔍 전체 API 테스트</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 데이터베이스 정보 -->
+                    <div style="background: #f8d7da; padding: 20px; border-radius: 8px; border-left: 4px solid #dc3545;">
+                        <h4 style="margin-bottom: 15px; color: #721c24;">💾 데이터베이스 정보</h4>
+                        <div id="dbInfo" style="font-family: monospace; background: #000; color: #00ff00; padding: 15px; border-radius: 4px;">
+                            연결 상태를 확인 중...
+                        </div>
+                        <button onclick="checkDatabaseStatus()" class="btn" style="background: #dc3545; color: white; margin-top: 10px;">🔄 DB 상태 새로고침</button>
+                    </div>
+                </div>
+                
+                <!-- 로그아웃 -->
+                <div class="card" style="text-align: center;">
+                    <button onclick="developerLogout()" class="btn btn-danger">🚪 개발자 모드 종료</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Developer Login Modal -->
+    <div id="developerLoginModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>👨‍💻 개발자 인증</h3>
+                <button onclick="closeDeveloperLoginModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p style="color: #dc3545; font-weight: bold;">⚠️ 개발자 전용 영역입니다</p>
+                    <p style="color: #666; font-size: 14px;">이 메뉴는 시스템 개발자만 접근할 수 있습니다.</p>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="devUserId">개발자 ID:</label>
+                    <input type="text" id="devUserId" placeholder="개발자 ID를 입력하세요" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="devPassword">비밀번호:</label>
+                    <input type="password" id="devPassword" placeholder="비밀번호를 입력하세요" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="text-align: center;">
+                    <button onclick="authenticateDeveloper()" class="btn" style="background: #dc3545; color: white; padding: 12px 30px;">🔐 인증</button>
+                    <button onclick="closeDeveloperLoginModal()" class="btn" style="background: #6c757d; color: white; padding: 12px 30px; margin-left: 10px;">취소</button>
+                </div>
+                
+                <div id="devAuthResult" style="margin-top: 15px; text-align: center;"></div>
             </div>
         </div>
     </div>
@@ -4695,6 +4848,289 @@
             
             console.log('[EXCEL-EXPORT] 엑셀 파일 다운로드:', fileName);
         }
+
+        // === 개발자 인증 시스템 ===
+        
+        // 암호화된 개발자 자격증명 (Base64로만 간단 인코딩)
+        const DEV_CREDENTIALS = {
+            // "nusome" -> Base64: bnVzb21l
+            id: "bnVzb21l",
+            // "research88!!" -> Base64: cmVzZWFyY2g4OCEh
+            pass: "cmVzZWFyY2g4OCEh"
+        };
+        
+        // 개발자 인증 상태
+        let isDeveloperAuthenticated = false;
+        
+        // Base64 디코딩
+        function simpleDecrypt(encoded) {
+            try {
+                return atob(encoded);
+            } catch (e) {
+                console.error('[DEV-AUTH] Base64 디코딩 실패:', e);
+                return '';
+            }
+        }
+        
+        // 개발자 로그인 모달 표시
+        function showDeveloperLogin() {
+            if (isDeveloperAuthenticated) {
+                showSection('developer');
+                return;
+            }
+            
+            document.getElementById('developerLoginModal').style.display = 'block';
+            document.getElementById('devUserId').focus();
+            
+            // Enter 키 이벤트 리스너 추가
+            document.getElementById('devUserId').onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('devPassword').focus();
+                }
+            };
+            document.getElementById('devPassword').onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    authenticateDeveloper();
+                }
+            };
+        }
+        
+        // 개발자 로그인 모달 닫기
+        function closeDeveloperLoginModal() {
+            document.getElementById('developerLoginModal').style.display = 'none';
+            document.getElementById('devUserId').value = '';
+            document.getElementById('devPassword').value = '';
+            document.getElementById('devAuthResult').innerHTML = '';
+        }
+        
+        // 개발자 인증
+        function authenticateDeveloper() {
+            const inputId = document.getElementById('devUserId').value;
+            const inputPass = document.getElementById('devPassword').value;
+            const resultDiv = document.getElementById('devAuthResult');
+            
+            if (!inputId || !inputPass) {
+                resultDiv.innerHTML = '<div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">ID와 비밀번호를 입력하세요.</div>';
+                return;
+            }
+            
+            // 디버깅용 로그
+            console.log('[DEV-AUTH] 입력된 값:', { inputId, inputPass });
+            console.log('[DEV-AUTH] 암호화된 자격증명:', DEV_CREDENTIALS);
+            
+            // 암호화된 자격증명 검증
+            const validId = simpleDecrypt(DEV_CREDENTIALS.id);
+            const validPass = simpleDecrypt(DEV_CREDENTIALS.pass);
+            
+            console.log('[DEV-AUTH] 복호화된 값:', { validId, validPass });
+            console.log('[DEV-AUTH] 비교 결과:', { 
+                idMatch: inputId === validId, 
+                passMatch: inputPass === validPass 
+            });
+            
+            if (inputId === validId && inputPass === validPass) {
+                isDeveloperAuthenticated = true;
+                resultDiv.innerHTML = '<div style="color: #28a745; padding: 10px; background: #d4edda; border-radius: 4px;">✅ 인증 성공! 개발자 모드로 이동합니다...</div>';
+                
+                // 인증 성공 시 디버깅 로그 제거
+                console.clear();
+                console.log('[DEV-AUTH] ✅ 개발자 모드 활성화됨');
+                
+                setTimeout(() => {
+                    closeDeveloperLoginModal();
+                    showSection('developer');
+                    updateDeveloperMenu();
+                    loadDeveloperInfo();
+                }, 1500);
+            } else {
+                resultDiv.innerHTML = '<div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">❌ 인증 실패! ID 또는 비밀번호가 잘못되었습니다.</div>';
+                
+                // 보안 로그 (개발자 도구 콘솔에 기록)
+                console.warn('[DEV-AUTH] 무허가 개발자 모드 접근 시도:', {
+                    timestamp: new Date().toISOString(),
+                    attemptedId: inputId,
+                    ip: 'client-side',
+                    userAgent: navigator.userAgent
+                });
+            }
+        }
+        
+        // 개발자 메뉴 업데이트
+        function updateDeveloperMenu() {
+            const menuButton = document.getElementById('developerMenuButton');
+            if (isDeveloperAuthenticated) {
+                menuButton.innerHTML = '<span class="icon">👨‍💻</span>개발자 정보 (인증됨)';
+                menuButton.style.color = '#28a745';
+            } else {
+                menuButton.innerHTML = '<span class="icon">👨‍💻</span>개발자 메뉴';
+                menuButton.style.color = '#dc3545';
+            }
+        }
+        
+        // 개발자 정보 로드
+        function loadDeveloperInfo() {
+            if (!isDeveloperAuthenticated) return;
+            
+            // 브라우저 정보 업데이트
+            document.getElementById('browserInfo').textContent = navigator.appName + ' ' + navigator.appVersion.split(' ')[0];
+            document.getElementById('screenRes').textContent = screen.width + 'x' + screen.height;
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            
+            // 데이터베이스 상태 확인
+            checkDatabaseStatus();
+        }
+        
+        // 개발자 로그아웃
+        function developerLogout() {
+            if (confirm('개발자 모드를 종료하시겠습니까?')) {
+                isDeveloperAuthenticated = false;
+                updateDeveloperMenu();
+                showSection('welcome');
+                alert('개발자 모드가 종료되었습니다.');
+            }
+        }
+        
+        // 로컬 스토리지 클리어
+        function clearAllLocalStorage() {
+            if (confirm('모든 로컬 스토리지 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+                const beforeCount = localStorage.length;
+                localStorage.clear();
+                alert(`로컬 스토리지가 클리어되었습니다.\n삭제된 항목 수: ${beforeCount}개`);
+            }
+        }
+        
+        // 시스템 로그 내보내기
+        function exportSystemLogs() {
+            const logs = {
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                screenResolution: screen.width + 'x' + screen.height,
+                localStorageItems: localStorage.length,
+                sessionStorageItems: sessionStorage.length,
+                currentToken: currentToken ? '인증됨' : '미인증',
+                serverUrl: document.getElementById('serverUrl').value
+            };
+            
+            const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `system-logs-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 디버그 정보 표시
+        function showDebugInfo() {
+            const info = `
+=== 시스템 디버그 정보 ===
+현재 시간: ${new Date().toLocaleString()}
+URL: ${window.location.href}
+토큰 상태: ${currentToken ? '인증됨 (' + currentToken.substring(0, 20) + '...)' : '미인증'}
+로컬 스토리지: ${localStorage.length}개 항목
+세션 스토리지: ${sessionStorage.length}개 항목
+화면 해상도: ${screen.width}x${screen.height}
+브라우저: ${navigator.appName} ${navigator.appVersion}
+플랫폼: ${navigator.platform}
+쿠키 활성화: ${navigator.cookieEnabled ? '예' : '아니오'}
+온라인 상태: ${navigator.onLine ? '온라인' : '오프라인'}
+            `.trim();
+            
+            alert(info);
+        }
+        
+        // 전체 API 테스트
+        async function testAllAPIs() {
+            if (!currentToken) {
+                alert('먼저 일반 사용자 로그인을 해주세요.');
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const endpoints = [
+                '/api/corporates',
+                '/api/employees', 
+                '/api/coupons',
+                '/api/email-config',
+                '/api/sms-config'
+            ];
+            
+            let results = '=== API 테스트 결과 ===\n';
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${serverUrl}${endpoint}`, {
+                        headers: { 'Authorization': `Bearer ${currentToken}` }
+                    });
+                    results += `${endpoint}: ${response.status} (${response.ok ? 'OK' : 'ERROR'})\n`;
+                } catch (error) {
+                    results += `${endpoint}: ERROR (${error.message})\n`;
+                }
+            }
+            
+            alert(results);
+        }
+        
+        // 데이터베이스 상태 확인
+        async function checkDatabaseStatus() {
+            const dbInfoDiv = document.getElementById('dbInfo');
+            dbInfoDiv.innerHTML = '데이터베이스 상태를 확인하고 있습니다...';
+            
+            if (!currentToken) {
+                dbInfoDiv.innerHTML = 'ERROR: 토큰이 없습니다. 먼저 로그인하세요.';
+                return;
+            }
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const responseTime = Date.now() - startTime;
+                    dbInfoDiv.innerHTML = `
+STATUS: CONNECTED ✅
+Response Time: ${responseTime}ms
+Data Count: ${data.data ? data.data.length : 'N/A'}
+Server: ${serverUrl}
+Last Check: ${new Date().toLocaleString()}
+                    `;
+                } else {
+                    dbInfoDiv.innerHTML = `
+STATUS: ERROR ❌
+HTTP Status: ${response.status}
+Server: ${serverUrl}
+Last Check: ${new Date().toLocaleString()}
+                    `;
+                }
+            } catch (error) {
+                dbInfoDiv.innerHTML = `
+STATUS: CONNECTION FAILED ❌
+Error: ${error.message}
+Server: ${serverUrl}
+Last Check: ${new Date().toLocaleString()}
+                `;
+            }
+        }
+        
+        // showSection 함수에 개발자 섹션 처리 추가
+        const originalShowSection = showSection;
+        showSection = function(sectionName) {
+            if (sectionName === 'developer') {
+                if (!isDeveloperAuthenticated) {
+                    alert('개발자 인증이 필요합니다.');
+                    showDeveloperLogin();
+                    return;
+                }
+                loadDeveloperInfo();
+            }
+            originalShowSection(sectionName);
+        };
     </script>
 </body>
 </html>

@@ -34,7 +34,8 @@
       "Bash(dir)",
       "Bash(cp:*)",
       "Bash(copy index.html index_v2.html)",
-      "Bash(file:*)"
+      "Bash(file:*)",
+      "Bash(head:*)"
     ],
     "deny": [],
     "ask": []
