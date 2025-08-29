@@ -423,45 +423,57 @@ public class ApiServer extends NanoHTTPD {
                 return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
             }
             
-            Log.d(TAG, "Fetching coupons from database...");
-            List<Coupon> couponList = couponDAO.getAllCoupons();
-            Log.d(TAG, "Retrieved " + couponList.size() + " coupons from database");
+            Log.d(TAG, "Opening database connection...");
+            couponDAO.open();
             
-            List<Map<String, Object>> couponData = new ArrayList<>();
-            
-            for (Coupon coupon : couponList) {
-                if (coupon == null) {
-                    Log.w(TAG, "Skipping null coupon");
-                    continue;
+            try {
+                Log.d(TAG, "Fetching coupons from database...");
+                List<Coupon> couponList = couponDAO.getAllCoupons();
+                Log.d(TAG, "Retrieved " + couponList.size() + " coupons from database");
+                
+                List<Map<String, Object>> couponData = new ArrayList<>();
+                
+                for (Coupon coupon : couponList) {
+                    if (coupon == null) {
+                        Log.w(TAG, "Skipping null coupon");
+                        continue;
+                    }
+                    
+                    Map<String, Object> couponMap = new HashMap<>();
+                    couponMap.put("id", coupon.getCouponId());
+                    couponMap.put("couponId", coupon.getCouponId());
+                    couponMap.put("code", coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "");
+                    couponMap.put("fullCouponCode", coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "");
+                    couponMap.put("employeeId", coupon.getEmployeeId());
+                    couponMap.put("cashBalance", coupon.getCashBalance());
+                    couponMap.put("pointBalance", coupon.getPointBalance());
+                    couponMap.put("expireDate", coupon.getExpireDate() != null ? coupon.getExpireDate() : "");
+                    couponMap.put("status", coupon.getStatus() != null ? coupon.getStatus() : "");
+                    couponMap.put("paymentType", coupon.getPaymentType() != null ? coupon.getPaymentType() : "");
+                    couponMap.put("availableDays", coupon.getAvailableDays() != null ? coupon.getAvailableDays() : "");
+                    couponMap.put("createdAt", coupon.getCreatedAt() != null ? coupon.getCreatedAt() : "");
+                    couponData.add(couponMap);
                 }
                 
-                Map<String, Object> couponMap = new HashMap<>();
-                couponMap.put("id", coupon.getCouponId());
-                couponMap.put("couponId", coupon.getCouponId());
-                couponMap.put("code", coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "");
-                couponMap.put("fullCouponCode", coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "");
-                couponMap.put("employeeId", coupon.getEmployeeId());
-                couponMap.put("cashBalance", coupon.getCashBalance());
-                couponMap.put("pointBalance", coupon.getPointBalance());
-                couponMap.put("expireDate", coupon.getExpireDate() != null ? coupon.getExpireDate() : "");
-                couponMap.put("status", coupon.getStatus() != null ? coupon.getStatus() : "");
-                couponMap.put("paymentType", coupon.getPaymentType() != null ? coupon.getPaymentType() : "");
-                couponMap.put("availableDays", coupon.getAvailableDays() != null ? coupon.getAvailableDays() : "");
-                couponMap.put("createdAt", coupon.getCreatedAt() != null ? coupon.getCreatedAt() : "");
-                couponData.add(couponMap);
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("data", couponData);
+                result.put("count", couponData.size());
+
+                String jsonResponse = gson.toJson(result);
+                Log.d(TAG, "JSON response length: " + jsonResponse.length());
+                Log.i(TAG, "✅ GET COUPONS SUCCESS - Returning " + couponData.size() + " coupons");
+                Log.i(TAG, "=== GET COUPONS END ===");
+
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", jsonResponse);
+                
+            } finally {
+                try {
+                    couponDAO.close();
+                } catch (Exception e) {
+                    Log.w(TAG, "Error closing couponDAO", e);
+                }
             }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", couponData);
-            result.put("count", couponData.size());
-
-            String jsonResponse = gson.toJson(result);
-            Log.d(TAG, "JSON response length: " + jsonResponse.length());
-            Log.i(TAG, "✅ GET COUPONS SUCCESS - Returning " + couponData.size() + " coupons");
-            Log.i(TAG, "=== GET COUPONS END ===");
-
-            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", jsonResponse);
             
         } catch (Exception e) {
             Log.e(TAG, "❌ ERROR: Failed to get coupons", e);
@@ -528,27 +540,111 @@ public class ApiServer extends NanoHTTPD {
     }
 
     private Response handleCreateCoupon(IHTTPSession session) {
+        Log.i(TAG, "=== COUPON CREATE START ===");
+        
         try {
             Map<String, String> body = new HashMap<>();
             session.parseBody(body);
             String postData = body.get("postData");
             
-            Map<String, Object> newCoupon = gson.fromJson(postData, Map.class);
-            newCoupon.put("isUsed", false);
-            coupons.add(newCoupon);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", newCoupon);
-            result.put("message", "쿠폰이 생성되었습니다");
-
-            return newFixedLengthResponse(Response.Status.CREATED, "application/json; charset=utf-8", gson.toJson(result));
+            Log.d(TAG, "[COUPON-CREATE] Request data: " + postData);
+            
+            Map<String, Object> couponData = gson.fromJson(postData, Map.class);
+            Log.d(TAG, "[COUPON-CREATE] Parsed coupon data: " + couponData);
+            
+            // 필수 필드 검증
+            if (!couponData.containsKey("employeeId")) {
+                Log.w(TAG, "[COUPON-CREATE] Missing employeeId");
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "직원 ID가 필요합니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            // Coupon 객체 생성
+            Coupon coupon = new Coupon();
+            coupon.setEmployeeId(((Number) couponData.get("employeeId")).intValue());
+            coupon.setCashBalance(couponData.containsKey("cashBalance") ? 
+                ((Number) couponData.get("cashBalance")).doubleValue() : 0.0);
+            coupon.setPointBalance(couponData.containsKey("pointBalance") ? 
+                ((Number) couponData.get("pointBalance")).doubleValue() : 0.0);
+            coupon.setExpireDate((String) couponData.getOrDefault("expireDate", "2024-12-31"));
+            coupon.setStatus(Coupon.STATUS_ACTIVE);
+            coupon.setPaymentType((String) couponData.getOrDefault("paymentType", Coupon.PAYMENT_TYPE_PREPAID));
+            coupon.setAvailableDays((String) couponData.getOrDefault("availableDays", "1111111"));
+            
+            Log.i(TAG, "[COUPON-CREATE] Created coupon object: " + coupon.toString());
+            
+            // 데이터베이스에 저장
+            couponDAO.open();
+            try {
+                long couponId = couponDAO.insertCoupon(coupon);
+                
+                if (couponId > 0) {
+                    Log.i(TAG, "[COUPON-CREATE] ✅ 쿠폰이 데이터베이스에 저장됨 - ID: " + couponId);
+                    
+                    // 저장된 쿠폰 조회 (완전한 정보 포함)
+                    Coupon savedCoupon = couponDAO.getCouponById((int) couponId);
+                    
+                    if (savedCoupon != null) {
+                        // 응답 데이터 구성
+                        Map<String, Object> couponResponseData = new HashMap<>();
+                        couponResponseData.put("id", savedCoupon.getCouponId());
+                        couponResponseData.put("couponId", savedCoupon.getCouponId());
+                        couponResponseData.put("code", savedCoupon.getFullCouponCode());
+                        couponResponseData.put("fullCouponCode", savedCoupon.getFullCouponCode());
+                        couponResponseData.put("employeeId", savedCoupon.getEmployeeId());
+                        couponResponseData.put("cashBalance", savedCoupon.getCashBalance());
+                        couponResponseData.put("pointBalance", savedCoupon.getPointBalance());
+                        couponResponseData.put("expireDate", savedCoupon.getExpireDate());
+                        couponResponseData.put("status", savedCoupon.getStatus());
+                        couponResponseData.put("paymentType", savedCoupon.getPaymentType());
+                        couponResponseData.put("availableDays", savedCoupon.getAvailableDays());
+                        couponResponseData.put("createdAt", savedCoupon.getCreatedAt());
+                        
+                        Map<String, Object> result = new HashMap<>();
+                        result.put("success", true);
+                        result.put("data", couponResponseData);
+                        result.put("message", "쿠폰이 성공적으로 생성되었습니다");
+                        result.put("timestamp", new java.util.Date().toString());
+                        
+                        Log.i(TAG, "[COUPON-CREATE] ✅ 쿠폰 생성 완료 - 코드: " + savedCoupon.getFullCouponCode());
+                        Log.i(TAG, "=== COUPON CREATE END ===");
+                        
+                        return newFixedLengthResponse(Response.Status.CREATED, "application/json; charset=utf-8", gson.toJson(result));
+                        
+                    } else {
+                        Log.e(TAG, "[COUPON-CREATE] ❌ 저장된 쿠폰 조회 실패");
+                        
+                        Map<String, Object> error = new HashMap<>();
+                        error.put("success", false);
+                        error.put("message", "쿠폰은 저장되었으나 조회에 실패했습니다");
+                        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+                    }
+                    
+                } else {
+                    Log.e(TAG, "[COUPON-CREATE] ❌ 데이터베이스 저장 실패");
+                    
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("success", false);
+                    error.put("message", "쿠폰 데이터베이스 저장에 실패했습니다");
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+                }
+                
+            } finally {
+                couponDAO.close();
+            }
 
         } catch (Exception e) {
+            Log.e(TAG, "[COUPON-CREATE] ❌ 쿠폰 생성 중 오류", e);
+            
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", "쿠폰 생성 중 오류가 발생했습니다");
-            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            error.put("message", "쿠폰 생성 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("timestamp", new java.util.Date().toString());
+            
+            Log.i(TAG, "=== COUPON CREATE END (ERROR) ===");
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 
@@ -3683,39 +3779,52 @@ public class ApiServer extends NanoHTTPD {
         try {
             int couponIdInt = Integer.parseInt(couponId);
             
-            // 쿠폰이 존재하는지 먼저 확인
-            Coupon existingCoupon = couponDAO.getCouponById(couponIdInt);
-            if (existingCoupon == null) {
-                Log.w(TAG, "Coupon not found with ID: " + couponId);
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", false);
-                result.put("message", "삭제할 쿠폰을 찾을 수 없습니다.");
-                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(result));
-            }
+            Log.d(TAG, "Opening database connection for deletion...");
+            couponDAO.open();
             
-            // 쿠폰 삭제 실행
-            int deletedRows = couponDAO.deleteCoupon(couponIdInt);
+            try {
+                // 쿠폰이 존재하는지 먼저 확인
+                Coupon existingCoupon = couponDAO.getCouponById(couponIdInt);
+                if (existingCoupon == null) {
+                    Log.w(TAG, "Coupon not found with ID: " + couponId);
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("success", false);
+                    result.put("message", "삭제할 쿠폰을 찾을 수 없습니다.");
+                    return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(result));
+                }
+                
+                // 쿠폰 삭제 실행
+                int deletedRows = couponDAO.deleteCoupon(couponIdInt);
             
-            if (deletedRows > 0) {
-                Log.i(TAG, "✅ Coupon deleted successfully - ID: " + couponId + ", Code: " + existingCoupon.getFullCouponCode());
+                if (deletedRows > 0) {
+                    Log.i(TAG, "✅ Coupon deleted successfully - ID: " + couponId + ", Code: " + existingCoupon.getFullCouponCode());
+                    
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("success", true);
+                    result.put("message", "쿠폰이 성공적으로 삭제되었습니다.");
+                    result.put("deletedCouponId", couponIdInt);
+                    result.put("deletedCouponCode", existingCoupon.getFullCouponCode());
+                    result.put("timestamp", new java.util.Date().toString());
+                    
+                    Log.i(TAG, "=== COUPON DELETE END ===");
+                    return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+                    
+                } else {
+                    Log.w(TAG, "❌ Coupon deletion failed - no rows affected for ID: " + couponId);
+                    
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("success", false);
+                    result.put("message", "쿠폰 삭제에 실패했습니다.");
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
+                }
                 
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", true);
-                result.put("message", "쿠폰이 성공적으로 삭제되었습니다.");
-                result.put("deletedCouponId", couponIdInt);
-                result.put("deletedCouponCode", existingCoupon.getFullCouponCode());
-                result.put("timestamp", new java.util.Date().toString());
-                
-                Log.i(TAG, "=== COUPON DELETE END ===");
-                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-                
-            } else {
-                Log.w(TAG, "❌ Coupon deletion failed - no rows affected for ID: " + couponId);
-                
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", false);
-                result.put("message", "쿠폰 삭제에 실패했습니다.");
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
+            } finally {
+                try {
+                    couponDAO.close();
+                    Log.d(TAG, "Database connection closed for coupon deletion");
+                } catch (Exception e) {
+                    Log.w(TAG, "Error closing couponDAO after deletion", e);
+                }
             }
             
         } catch (NumberFormatException e) {

@@ -38,7 +38,10 @@
       "Bash(head:*)",
       "Bash(mkdir:*)",
       "Bash(copy:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 shell am force-stop com.example.couponman_6)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 shell am start -n com.example.couponman_6/.MainActivity)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 forward tcp:8080 tcp:8080)"
     ],
     "deny": [],
     "ask": []
