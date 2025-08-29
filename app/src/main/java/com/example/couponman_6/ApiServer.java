@@ -452,6 +452,12 @@ public class ApiServer extends NanoHTTPD {
                     couponMap.put("paymentType", coupon.getPaymentType() != null ? coupon.getPaymentType() : "");
                     couponMap.put("availableDays", coupon.getAvailableDays() != null ? coupon.getAvailableDays() : "");
                     couponMap.put("createdAt", coupon.getCreatedAt() != null ? coupon.getCreatedAt() : "");
+                    
+                    // 거래처/직원명/전화번호 정보 (데이터베이스 JOIN으로 가져온 실제 데이터)
+                    couponMap.put("corporateName", coupon.getCorporateName() != null ? coupon.getCorporateName() : "거래처 정보 없음");
+                    couponMap.put("recipientName", coupon.getRecipientName() != null ? coupon.getRecipientName() : "직원 정보 없음");
+                    couponMap.put("recipientPhone", coupon.getRecipientPhone() != null ? coupon.getRecipientPhone() : "연락처 정보 없음");
+                    
                     couponData.add(couponMap);
                 }
                 

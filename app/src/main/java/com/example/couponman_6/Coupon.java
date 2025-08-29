@@ -33,6 +33,13 @@ public class Coupon {
     private String recipientName;
     private String recipientPhone;
     private String recipientEmail;
+    private String corporateName;
+    
+    // 추가 직원 및 거래처 정보 (런타임에만 사용, JOIN 쿼리 결과 저장용)
+    private String employeeDepartment;
+    private String corporateBusinessNumber;
+    private String corporateRepresentative;
+    private String corporatePhone;
 
     // 상태 상수
     public static final String STATUS_ACTIVE = "사용 가능";
@@ -425,6 +432,46 @@ public class Coupon {
 
     public void setRecipientEmail(String recipientEmail) {
         this.recipientEmail = recipientEmail;
+    }
+
+    public String getCorporateName() {
+        return corporateName;
+    }
+
+    public void setCorporateName(String corporateName) {
+        this.corporateName = corporateName;
+    }
+
+    public String getEmployeeDepartment() {
+        return employeeDepartment;
+    }
+
+    public void setEmployeeDepartment(String employeeDepartment) {
+        this.employeeDepartment = employeeDepartment;
+    }
+
+    public String getCorporateBusinessNumber() {
+        return corporateBusinessNumber;
+    }
+
+    public void setCorporateBusinessNumber(String corporateBusinessNumber) {
+        this.corporateBusinessNumber = corporateBusinessNumber;
+    }
+
+    public String getCorporateRepresentative() {
+        return corporateRepresentative;
+    }
+
+    public void setCorporateRepresentative(String corporateRepresentative) {
+        this.corporateRepresentative = corporateRepresentative;
+    }
+
+    public String getCorporatePhone() {
+        return corporatePhone;
+    }
+
+    public void setCorporatePhone(String corporatePhone) {
+        this.corporatePhone = corporatePhone;
     }
 
     @Override

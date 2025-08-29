@@ -302,30 +302,51 @@ public class CouponDAO {
     }
 
     /**
-     * 모든 쿠폰 조회
+     * 모든 쿠폰 조회 (직원 및 거래처 정보 포함)
      */
     public List<Coupon> getAllCoupons() {
         List<Coupon> coupons = new ArrayList<>();
         Cursor cursor = null;
         
         try {
-            cursor = database.query(
-                DatabaseHelper.TABLE_COUPON,
-                null, null, null, null, null,
-                DatabaseHelper.COLUMN_COUPON_CREATED_AT + " DESC"
-            );
+            // 쿠폰, 직원, 거래처 테이블을 JOIN하여 포괄적인 정보 조회
+            String sql = "SELECT " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_ID + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_FULL_CODE + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_CASH_BALANCE + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_POINT_BALANCE + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_EXPIRE_DATE + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_STATUS + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_PAYMENT_TYPE + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_AVAILABLE_DAYS + ", " +
+                        "c." + DatabaseHelper.COLUMN_COUPON_CREATED_AT + ", " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_NAME + " AS employee_name, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_PHONE + " AS employee_phone, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_EMAIL + " AS employee_email, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT + " AS employee_department, " +
+                        "corp." + DatabaseHelper.COLUMN_NAME + " AS corporate_name, " +
+                        "corp." + DatabaseHelper.COLUMN_BUSINESS_NUMBER + " AS corporate_business_number, " +
+                        "corp." + DatabaseHelper.COLUMN_REPRESENTATIVE + " AS corporate_representative, " +
+                        "corp." + DatabaseHelper.COLUMN_PHONE + " AS corporate_phone " +
+                        "FROM " + DatabaseHelper.TABLE_COUPON + " c " +
+                        "LEFT JOIN " + DatabaseHelper.TABLE_EMPLOYEE + " e ON c." + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + " = e." + DatabaseHelper.COLUMN_EMPLOYEE_ID + " " +
+                        "LEFT JOIN " + DatabaseHelper.TABLE_CORPORATE + " corp ON e." + DatabaseHelper.COLUMN_EMPLOYEE_CORPORATE_ID + " = corp." + DatabaseHelper.COLUMN_CUSTOMER_ID + " " +
+                        "ORDER BY c." + DatabaseHelper.COLUMN_COUPON_CREATED_AT + " DESC";
+            
+            cursor = database.rawQuery(sql, null);
 
             if (cursor != null && cursor.moveToFirst()) {
                 do {
-                    Coupon coupon = cursorToCoupon(cursor);
+                    Coupon coupon = cursorToCouponWithJoinedData(cursor);
                     coupons.add(coupon);
                 } while (cursor.moveToNext());
             }
             
-            Log.i(TAG, "Retrieved " + coupons.size() + " coupons");
+            Log.i(TAG, "Retrieved " + coupons.size() + " coupons with employee and corporate information");
             
         } catch (SQLiteException e) {
-            Log.e(TAG, "Error getting all coupons", e);
+            Log.e(TAG, "Error getting all coupons with JOIN", e);
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -520,6 +541,67 @@ public class CouponDAO {
         coupon.setPaymentType(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_PAYMENT_TYPE)));
         coupon.setAvailableDays(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_AVAILABLE_DAYS)));
         coupon.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_CREATED_AT)));
+        
+        return coupon;
+    }
+
+    /**
+     * Cursor를 Coupon 객체로 변환 (JOIN된 직원 및 거래처 정보 포함)
+     */
+    private Coupon cursorToCouponWithJoinedData(Cursor cursor) {
+        Coupon coupon = new Coupon();
+        
+        // 기본 쿠폰 정보
+        coupon.setCouponId(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_ID)));
+        coupon.setFullCouponCode(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_FULL_CODE)));
+        coupon.setEmployeeId(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID)));
+        coupon.setCashBalance(cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_CASH_BALANCE)));
+        coupon.setPointBalance(cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_POINT_BALANCE)));
+        coupon.setExpireDate(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_EXPIRE_DATE)));
+        coupon.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_STATUS)));
+        coupon.setPaymentType(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_PAYMENT_TYPE)));
+        coupon.setAvailableDays(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_AVAILABLE_DAYS)));
+        coupon.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_CREATED_AT)));
+        
+        // 직원 정보 설정 (JOIN된 데이터에서)
+        try {
+            String employeeName = cursor.getString(cursor.getColumnIndex("employee_name"));
+            String employeePhone = cursor.getString(cursor.getColumnIndex("employee_phone"));
+            String employeeEmail = cursor.getString(cursor.getColumnIndex("employee_email"));
+            String employeeDepartment = cursor.getString(cursor.getColumnIndex("employee_department"));
+            
+            // 직원 정보를 Coupon 객체에 저장 (수신자 정보 필드 활용)
+            if (employeeName != null) {
+                coupon.setRecipientName(employeeName);
+                coupon.setRecipientPhone(employeePhone);
+                coupon.setRecipientEmail(employeeEmail);
+                coupon.setEmployeeDepartment(employeeDepartment);
+                Log.d(TAG, "Coupon ID " + coupon.getCouponId() + " - Employee: " + employeeName + 
+                          " (" + employeeDepartment + "), Phone: " + employeePhone);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Employee data not available for coupon " + coupon.getCouponId());
+        }
+        
+        // 거래처 정보 설정 (JOIN된 데이터에서)
+        try {
+            String corporateName = cursor.getString(cursor.getColumnIndex("corporate_name"));
+            String corporateBusinessNumber = cursor.getString(cursor.getColumnIndex("corporate_business_number"));
+            String corporateRepresentative = cursor.getString(cursor.getColumnIndex("corporate_representative"));
+            String corporatePhone = cursor.getString(cursor.getColumnIndex("corporate_phone"));
+            
+            // 거래처 정보를 Coupon 객체에 저장
+            if (corporateName != null) {
+                coupon.setCorporateName(corporateName);
+                coupon.setCorporateBusinessNumber(corporateBusinessNumber);
+                coupon.setCorporateRepresentative(corporateRepresentative);
+                coupon.setCorporatePhone(corporatePhone);
+                Log.d(TAG, "Coupon ID " + coupon.getCouponId() + " - Corporate: " + corporateName + 
+                          " (Business No: " + corporateBusinessNumber + "), Representative: " + corporateRepresentative);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Corporate data not available for coupon " + coupon.getCouponId());
+        }
         
         return coupon;
     }
