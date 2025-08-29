@@ -546,20 +546,23 @@
                     <a class="dropdown-item" onclick="showSection('coupon')">
                         <span class="icon">🎟️</span>쿠폰 발행
                     </a>
+                    <a class="dropdown-item" onclick="showSection('couponManagement')">
+                        <span class="icon">📋</span>쿠폰 관리
+                    </a>
                     <a class="dropdown-item" onclick="showSection('send')">
                         <span class="icon">📤</span>쿠폰 발송
                     </a>
                     <a class="dropdown-item" onclick="showSection('deliveryHistory')">
                         <span class="icon">📋</span>발송 기록
                     </a>
-                    <a class="dropdown-item" onclick="showSection('emailConfig')">
+                    <a class="dropdown-item" id="emailConfigMenu" onclick="showSection('emailConfig')" style="display: none;">
                         <span class="icon">📧</span>이메일 설정
                     </a>
-                    <a class="dropdown-item" onclick="showSection('smsConfig')">
+                    <a class="dropdown-item" id="smsConfigMenu" onclick="showSection('smsConfig')" style="display: none;">
                         <span class="icon">📱</span>SMS 설정
                     </a>
                     <a class="dropdown-item" onclick="showSection('systemSettings')">
-                        <span class="icon">⚙️</span>시스템 설정
+                        <span class="icon">💰</span>가격 설정
                     </a>
                     <a class="dropdown-item" onclick="showSection('managementInfo')">
                         <span class="icon">📊</span>경영정보
@@ -641,9 +644,13 @@
                             <h3>🎟️ 쿠폰 발행</h3>
                             <p>쿠폰 생성 및 발행</p>
                         </div>
+                        <div class="card" style="text-align: center; cursor: pointer;" onclick="showSection('couponManagement')">
+                            <h3>📋 쿠폰 관리</h3>
+                            <p>발행된 쿠폰 조회, 수정, 삭제</p>
+                        </div>
                         <div class="card" style="text-align: center; cursor: pointer;" onclick="showSection('systemSettings')">
-                            <h3>⚙️ 시스템 설정</h3>
-                            <p>시간대별 차감 설정</p>
+                            <h3>💰 가격 설정</h3>
+                            <p>시간대별 가격 설정</p>
                         </div>
                     </div>
                 </div>
@@ -678,24 +685,54 @@
             <!-- System Settings Section -->
             <div id="systemSettingsSection" class="content-section">
                 <div class="section-header">
-                    <span class="icon">⚙️</span>
-                    <h2>시스템 설정</h2>
+                    <span class="icon">💰</span>
+                    <h2>가격 설정</h2>
                 </div>
                 
+                <!-- 기본 가격 설정 (항상 표시되는 기본 설정) -->
+                <div class="card">
+                    <h3>🕒 기본 가격 설정</h3>
+                    <div class="setting-item">
+                        <div class="form-row">
+                            <div>
+                                <label>기본 현금 차감 (원)</label>
+                                <input type="number" id="defaultCashDeduction" value="1000" min="0">
+                            </div>
+                            <div>
+                                <label>포인트 차감 방식</label>
+                                <select id="pointDeductionMethod" onchange="showPointMethodWarning()">
+                                    <option value="후순위" selected>포인트 후순위 차감</option>
+                                    <option value="비례">포인트 비례 차감</option>
+                                </select>
+                            </div>
+                        </div>
+                        <small style="color: #666;" id="defaultSettingsDescription">
+                            시간대별 차감이 비활성화된 경우 이 값들이 사용됩니다
+                        </small>
+                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #495057;">
+                            <strong>💡 포인트 차감 방식 설명:</strong><br>
+                            • <strong>후순위 차감:</strong> 현금 먼저 차감 후 부족분을 포인트로 차감<br>
+                            • <strong>비례 차감:</strong> 현금과 포인트를 일정 비율로 동시 차감
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3>⏰ 시간대별 차감 설정</h3>
                     
                     <div class="setting-item">
                         <div class="checkbox-group">
-                            <input type="checkbox" id="enableTimeBasedDeduction">
+                            <input type="checkbox" id="enableTimeBasedDeduction" onchange="toggleTimeBasedControls()">
                             <label for="enableTimeBasedDeduction" style="margin: 0; font-weight: bold;">시간대별 차감 기능 활성화</label>
                         </div>
                         <small style="color: #666;">체크하면 시간대에 따라 다른 금액이 차감됩니다</small>
                     </div>
 
+                    <!-- 시간대별 가격 설정 컨트롤들 -->
+                    <div id="timeBasedControls" style="opacity: 0.5; pointer-events: none;">
                     <div class="setting-item">
                         <h4>🌅 아침 설정</h4>
-                        <div class="form-row-4">
+                        <div class="form-row">
                             <div>
                                 <label>시작 시간</label>
                                 <input type="time" id="breakfastStartTime" value="06:00">
@@ -708,16 +745,12 @@
                                 <label>현금 차감 (원)</label>
                                 <input type="number" id="breakfastCashDeduction" value="3000" min="0">
                             </div>
-                            <div>
-                                <label>포인트 차감 (P)</label>
-                                <input type="number" id="breakfastPointDeduction" value="0" min="0">
-                            </div>
                         </div>
                     </div>
 
                     <div class="setting-item">
                         <h4>🌞 점심 설정</h4>
-                        <div class="form-row-4">
+                        <div class="form-row">
                             <div>
                                 <label>시작 시간</label>
                                 <input type="time" id="lunchStartTime" value="11:00">
@@ -730,16 +763,12 @@
                                 <label>현금 차감 (원)</label>
                                 <input type="number" id="lunchCashDeduction" value="5000" min="0">
                             </div>
-                            <div>
-                                <label>포인트 차감 (P)</label>
-                                <input type="number" id="lunchPointDeduction" value="0" min="0">
-                            </div>
                         </div>
                     </div>
 
                     <div class="setting-item">
                         <h4>🌙 저녁 설정</h4>
-                        <div class="form-row-4">
+                        <div class="form-row">
                             <div>
                                 <label>시작 시간</label>
                                 <input type="time" id="dinnerStartTime" value="15:00">
@@ -752,27 +781,10 @@
                                 <label>현금 차감 (원)</label>
                                 <input type="number" id="dinnerCashDeduction" value="7000" min="0">
                             </div>
-                            <div>
-                                <label>포인트 차감 (P)</label>
-                                <input type="number" id="dinnerPointDeduction" value="0" min="0">
-                            </div>
                         </div>
                     </div>
 
-                    <div class="setting-item">
-                        <h4>🕒 기본 설정 (시간대 외)</h4>
-                        <div class="form-row">
-                            <div>
-                                <label>기본 현금 차감 (원)</label>
-                                <input type="number" id="defaultCashDeduction" value="1000" min="0">
-                            </div>
-                            <div>
-                                <label>기본 포인트 차감 (P)</label>
-                                <input type="number" id="defaultPointDeduction" value="0" min="0">
-                            </div>
-                        </div>
-                        <small style="color: #666;">설정된 시간대에 해당하지 않는 경우 사용되는 차감액</small>
-                    </div>
+                    </div> <!-- timeBasedControls 컨테이너 종료 -->
                 </div>
 
                 <div class="card">
@@ -789,6 +801,7 @@
                 <div style="text-align: center; margin-top: 30px;">
                     <button onclick="loadSystemSettings()" class="btn btn-secondary">🔄 설정 불러오기</button>
                     <button onclick="saveSystemSettings()" class="btn btn-success">💾 설정 저장</button>
+                    <button onclick="testCurrentDeduction()" class="btn" style="background: #17a2b8; color: white; margin-left: 10px;">🧮 현재 차감액 테스트</button>
                 </div>
 
                 <div id="settingsPreview" style="background: #e6f3ff; padding: 15px; border-radius: 8px; margin-top: 20px; display: none;">
@@ -951,6 +964,126 @@
                             <li style="margin: 8px 0;">배분 현황을 확인 후 일괄 발행하세요</li>
                         </ol>
                     </div>
+                </div>
+            </div>
+
+            <!-- Coupon Management Section -->
+            <div id="couponManagementSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📋</span>
+                    <h2>쿠폰 관리</h2>
+                </div>
+                
+                <!-- 검색 및 필터 -->
+                <div class="card">
+                    <h3>🔍 쿠폰 검색 및 필터</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label for="couponSearchCorporate">거래처:</label>
+                            <select id="couponSearchCorporate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" onchange="searchCoupons()">
+                                <option value="">전체 거래처</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="couponSearchStatus">상태:</label>
+                            <select id="couponSearchStatus" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" onchange="searchCoupons()">
+                                <option value="">전체 상태</option>
+                                <option value="ACTIVE">사용 가능</option>
+                                <option value="USED">사용됨</option>
+                                <option value="EXPIRED">만료됨</option>
+                                <option value="SUSPENDED">일시 중지</option>
+                                <option value="TERMINATED">해지됨</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="couponSearchCode">쿠폰 코드:</label>
+                            <input type="text" id="couponSearchCode" placeholder="쿠폰 코드 검색..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" onchange="searchCoupons()">
+                        </div>
+                        <div>
+                            <label for="couponSearchEmployee">직원명/전화번호:</label>
+                            <input type="text" id="couponSearchEmployee" placeholder="직원명 또는 전화번호" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" onchange="searchCoupons()">
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <button onclick="searchCoupons()" class="btn">🔍 검색</button>
+                        <button onclick="loadAllCoupons()" class="btn btn-success">📋 전체 목록</button>
+                        <button onclick="refreshCouponList()" class="btn" style="background: #4299e1; color: white;">🔄 새로고침</button>
+                    </div>
+                </div>
+
+                <!-- 통계 요약 -->
+                <div id="couponStats" class="card" style="margin-bottom: 20px;">
+                    <h3>📊 쿠폰 통계</h3>
+                    <div id="couponStatsContent" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #667eea;" id="totalCoupons">0</div>
+                            <div style="color: #666; font-size: 14px;">총 쿠폰</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #48bb78;" id="activeCoupons">0</div>
+                            <div style="color: #666; font-size: 14px;">사용 가능</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #ed8936;" id="usedCoupons">0</div>
+                            <div style="color: #666; font-size: 14px;">사용됨</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-size: 2em; font-weight: bold; color: #e53e3e;" id="expiredCoupons">0</div>
+                            <div style="color: #666; font-size: 14px;">만료됨</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 쿠폰 목록 -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📋 쿠폰 목록</h3>
+                        <div id="couponListActions" style="display: flex; gap: 10px;">
+                            <button onclick="exportCouponData()" class="btn" style="background: #38a169; color: white;">📊 데이터 내보내기</button>
+                            <button onclick="bulkStatusUpdate()" class="btn" style="background: #ed8936; color: white;">🔄 일괄 상태변경</button>
+                        </div>
+                    </div>
+
+                    <div id="couponListContainer" style="max-height: 600px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                        <table id="couponListTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 40px;">
+                                        <input type="checkbox" id="selectAllCoupons" onchange="toggleSelectAllCoupons()">
+                                    </th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 180px;">쿠폰 코드</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">거래처</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 100px;">직원명</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">전화번호</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right; width: 100px;">현금잔고</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right; width: 100px;">포인트잔고</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 80px;">상태</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 100px;">만료일</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 120px;">생성일</th>
+                                    <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 180px;">액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="couponListBody">
+                                <tr>
+                                    <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
+                                        로그인 후 '전체 목록' 버튼을 클릭하여 쿠폰 목록을 불러오세요.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 쿠폰 관리 안내 -->
+                <div class="card" style="background: #f0f8ff; border-left: 4px solid #4299e1; margin-top: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5aa0;">📋 쿠폰 관리 기능</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #2c5aa0;">
+                        <li style="margin: 8px 0;"><strong>조회:</strong> 거래처, 상태, 쿠폰코드, 직원정보로 검색 가능</li>
+                        <li style="margin: 8px 0;"><strong>수정:</strong> 개별 쿠폰의 잔액, 상태, 만료일 수정 가능</li>
+                        <li style="margin: 8px 0;"><strong>삭제:</strong> 필요시 쿠폰을 완전 삭제 (주의 필요)</li>
+                        <li style="margin: 8px 0;"><strong>일괄 작업:</strong> 여러 쿠폰을 선택하여 상태 일괄 변경</li>
+                        <li style="margin: 8px 0;"><strong>데이터 내보내기:</strong> Excel 호환 형식으로 데이터 다운로드</li>
+                    </ul>
                 </div>
             </div>
 
@@ -1417,6 +1550,58 @@
                     </div>
                 </div>
                 
+                <!-- 사업자 설정 -->
+                <div class="card">
+                    <h3>🏢 사업자 설정</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label for="businessNumber">사업자등록번호 (10자리):</label>
+                        <input type="text" id="businessNumber" maxlength="10" pattern="[0-9]{10}" 
+                               placeholder="1234567890" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" 
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            숫자 10자리만 입력하세요. 쿠폰 코드에 사용됩니다.
+                        </small>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="companyName">회사명:</label>
+                        <input type="text" id="companyName" placeholder="회사명을 입력하세요" 
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="representativeName">대표자명:</label>
+                        <input type="text" id="representativeName" placeholder="대표자명을 입력하세요" 
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="businessPhone">전화번호:</label>
+                        <input type="text" id="businessPhone" placeholder="02-1234-5678" 
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="businessAddress">주소:</label>
+                        <textarea id="businessAddress" placeholder="회사 주소를 입력하세요" 
+                                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; height: 60px; resize: vertical;"></textarea>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button onclick="loadBusinessSettings()" class="btn btn-secondary">🔄 설정 불러오기</button>
+                        <button onclick="saveBusinessSettings()" class="btn btn-success">💾 설정 저장</button>
+                    </div>
+                    
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4299e1;">
+                        <h4 style="margin: 0 0 10px 0; color: #2c5aa0;">💡 사업자등록번호 설정 안내</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #2c5aa0; font-size: 14px;">
+                            <li style="margin: 5px 0;">사업자등록번호는 쿠폰 코드의 첫 번째 부분에 사용됩니다</li>
+                            <li style="margin: 5px 0;">현재: <span id="currentBusinessNumber" style="font-weight: bold; color: #dc3545;">0000000000</span></li>
+                            <li style="margin: 5px 0;">쿠폰 코드 예시: <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">1234567890-1111100-0000000005-1-615</code></li>
+                        </ul>
+                    </div>
+                </div>
+
                 <!-- 로그아웃 -->
                 <div class="card" style="text-align: center;">
                     <button onclick="developerLogout()" class="btn btn-danger">🚪 개발자 모드 종료</button>
@@ -1606,9 +1791,152 @@
         </div>
     </div>
 
+    <!-- Coupon Edit Modal -->
+    <div id="couponEditModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>✏️ 쿠폰 정보 수정</h3>
+                <button class="close-btn" onclick="closeCouponEditModal()">×</button>
+            </div>
+            
+            <form id="couponEditForm" onsubmit="submitCouponEdit(event)">
+                <input type="hidden" id="editCouponId" value="">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>쿠폰 코드</label>
+                        <input type="text" id="editCouponCode" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>직원명</label>
+                        <input type="text" id="editEmployeeName" readonly style="background: #f5f5f5;">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="editCashBalance">현금 잔고 (원)</label>
+                        <input type="number" id="editCashBalance" min="0" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPointBalance">포인트 잔고</label>
+                        <input type="number" id="editPointBalance" min="0" step="10">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="editCouponStatus">상태</label>
+                        <select id="editCouponStatus">
+                            <option value="ACTIVE">사용 가능</option>
+                            <option value="SUSPENDED">일시 중지</option>
+                            <option value="TERMINATED">해지됨</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editExpireDate">만료일</label>
+                        <input type="date" id="editExpireDate">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="editAvailableDays">사용 가능 요일</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="sun"> 일
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="mon"> 월
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="tue"> 화
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="wed"> 수
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="thu"> 목
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="fri"> 금
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="sat"> 토
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="text-align: right; margin-top: 30px;">
+                    <button type="button" onclick="closeCouponEditModal()" class="btn btn-secondary">취소</button>
+                    <button type="submit" class="btn btn-success" style="margin-left: 10px;">💾 저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Coupon Delete Confirmation Modal -->
+    <div id="couponDeleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #e53e3e;">🗑️ 쿠폰 삭제 확인</h3>
+                <button class="close-btn" onclick="closeCouponDeleteModal()">×</button>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <div style="background: #fee; padding: 15px; border-radius: 8px; border-left: 4px solid #e53e3e; margin-bottom: 20px;">
+                    <strong>⚠️ 경고:</strong> 이 작업은 되돌릴 수 없습니다.
+                </div>
+                
+                <p style="margin-bottom: 15px;">다음 쿠폰을 완전히 삭제하시겠습니까?</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace;">
+                    <div><strong>쿠폰 코드:</strong> <span id="deleteCouponCode"></span></div>
+                    <div><strong>직원:</strong> <span id="deleteEmployeeName"></span></div>
+                    <div><strong>현금 잔고:</strong> <span id="deleteCashBalance"></span>원</div>
+                    <div><strong>포인트 잔고:</strong> <span id="deletePointBalance"></span>P</div>
+                </div>
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="button" onclick="closeCouponDeleteModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="confirmCouponDelete()" class="btn btn-danger" style="margin-left: 10px;">🗑️ 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Status Update Modal -->
+    <div id="bulkStatusModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🔄 일괄 상태 변경</h3>
+                <button class="close-btn" onclick="closeBulkStatusModal()">×</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p><strong>선택된 쿠폰:</strong> <span id="selectedCouponCount">0</span>개</p>
+                
+                <div class="form-group">
+                    <label for="bulkNewStatus">변경할 상태:</label>
+                    <select id="bulkNewStatus" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="ACTIVE">사용 가능</option>
+                        <option value="SUSPENDED">일시 중지</option>
+                        <option value="TERMINATED">해지됨</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="button" onclick="closeBulkStatusModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="confirmBulkStatusUpdate()" class="btn btn-success" style="margin-left: 10px;">🔄 일괄 변경</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentToken = localStorage.getItem('apiToken') || '';
         let currentSection = 'welcome';
+        let currentCoupons = [];
+        let selectedCouponIds = [];
 
         // Initialize page
         window.onload = function() {
@@ -1679,6 +2007,12 @@
                     console.log('Coupon section activated');
                     // Auto-load corporates for coupon tab
                     loadCorporatesForCouponTab();
+                } else if (sectionName === 'couponManagement') {
+                    console.log('Coupon management section activated');
+                    // Auto-load coupon list when section is shown
+                    if (currentToken) {
+                        loadAllCoupons();
+                    }
                 } else if (sectionName === 'send') {
                     console.log('Send section activated');
                     // Auto-load corporates for send tab
@@ -4958,12 +5292,27 @@
         // 개발자 메뉴 업데이트
         function updateDeveloperMenu() {
             const menuButton = document.getElementById('developerMenuButton');
+            const emailConfigMenu = document.getElementById('emailConfigMenu');
+            const smsConfigMenu = document.getElementById('smsConfigMenu');
+            
             if (isDeveloperAuthenticated) {
                 menuButton.innerHTML = '<span class="icon">👨‍💻</span>개발자 정보 (인증됨)';
                 menuButton.style.color = '#28a745';
+                
+                // 개발자 인증 시 이메일/SMS 설정 메뉴 표시
+                if (emailConfigMenu) emailConfigMenu.style.display = 'block';
+                if (smsConfigMenu) smsConfigMenu.style.display = 'block';
+                
+                console.log('[DEV-MENU] 이메일/SMS 설정 메뉴 활성화됨');
             } else {
                 menuButton.innerHTML = '<span class="icon">👨‍💻</span>개발자 메뉴';
                 menuButton.style.color = '#dc3545';
+                
+                // 개발자 미인증 시 이메일/SMS 설정 메뉴 숨김
+                if (emailConfigMenu) emailConfigMenu.style.display = 'none';
+                if (smsConfigMenu) smsConfigMenu.style.display = 'none';
+                
+                console.log('[DEV-MENU] 이메일/SMS 설정 메뉴 비활성화됨');
             }
         }
         
@@ -5072,6 +5421,494 @@ URL: ${window.location.href}
             alert(results);
         }
         
+        // 사업자 설정 저장
+        async function saveBusinessSettings() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const businessNumber = document.getElementById('businessNumber').value.trim();
+            const companyName = document.getElementById('companyName').value.trim();
+            const representativeName = document.getElementById('representativeName').value.trim();
+            const businessPhone = document.getElementById('businessPhone').value.trim();
+            const businessAddress = document.getElementById('businessAddress').value.trim();
+            
+            // 사업자등록번호 유효성 검사
+            if (businessNumber && (businessNumber.length !== 10 || !/^\d{10}$/.test(businessNumber))) {
+                alert('사업자등록번호는 10자리 숫자여야 합니다.');
+                document.getElementById('businessNumber').focus();
+                return;
+            }
+
+            const settings = {
+                business_number: businessNumber,
+                company_name: companyName,
+                representative_name: representativeName,
+                phone_number: businessPhone,
+                address: businessAddress
+            };
+            
+            console.log('[BUSINESS-SETTINGS] 사업자 설정 저장 시작:', settings);
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/business-settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                console.log('[BUSINESS-SETTINGS] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[BUSINESS-SETTINGS] 저장 실패:', response.status, errorText);
+                    alert(`사업자 설정 저장 실패: ${response.status} - ${errorText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[BUSINESS-SETTINGS] API 응답:', data);
+                
+                if (data.success) {
+                    console.log('[BUSINESS-SETTINGS] 사업자 설정 저장 성공');
+                    alert('사업자 설정이 성공적으로 저장되었습니다.\n이제 쿠폰 발행 시 올바른 사업자등록번호가 사용됩니다.');
+                    
+                    // 현재 사업자등록번호 표시 업데이트
+                    updateCurrentBusinessNumber(data.business_number || businessNumber);
+                } else {
+                    console.error('[BUSINESS-SETTINGS] 저장 실패:', data.message);
+                    alert('사업자 설정 저장 실패: ' + (data.message || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('[BUSINESS-SETTINGS] 사업자 설정 저장 예외:', error);
+                alert('사업자 설정 저장 오류: ' + error.message);
+            }
+        }
+        
+        // 사업자 설정 불러오기
+        async function loadBusinessSettings() {
+            console.log('[BUSINESS-SETTINGS] 사업자 설정 불러오기 시작');
+            
+            if (!currentToken) {
+                console.warn('[BUSINESS-SETTINGS] 토큰이 없어서 설정 불러오기 건너뜀');
+                return;
+            }
+
+            const serverUrlElement = document.getElementById('serverUrl');
+            const serverUrl = serverUrlElement ? serverUrlElement.value : 'http://localhost:8080';
+            console.log('[BUSINESS-SETTINGS] 사용 중인 서버 URL:', serverUrl);
+            
+            try {
+                // SMS 설정과 동일한 방식으로 사업자등록번호 가져오기
+                console.log('[BUSINESS-SETTINGS] SMS config에서 사업자등록번호 가져오기');
+                let businessNumber = '0000000000';
+                
+                try {
+                    const smsResponse = await fetch(`${serverUrl}/api/sms-config`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                            'Authorization': `Bearer ${currentToken}`
+                        }
+                    });
+
+                    if (smsResponse.ok) {
+                        const smsData = await smsResponse.json();
+                        if (smsData.success && smsData.config && smsData.config.businessId) {
+                            businessNumber = smsData.config.businessId;
+                            console.log('[BUSINESS-SETTINGS] SMS config에서 사업자등록번호 획득:', businessNumber);
+                        }
+                    }
+                } catch (smsError) {
+                    console.warn('[BUSINESS-SETTINGS] SMS config 불러오기 실패:', smsError);
+                }
+
+                // 기본 사업자 설정 불러오기
+                const response = await fetch(`${serverUrl}/api/business-settings`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                console.log('[BUSINESS-SETTINGS] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.info('[BUSINESS-SETTINGS] 저장된 사업자 설정이 없음 (첫 설정)');
+                        // SMS config에서 가져온 사업자등록번호로 초기화
+                        document.getElementById('businessNumber').value = businessNumber;
+                        updateCurrentBusinessNumber(businessNumber);
+                        initializeDefaultBusinessSettings();
+                    } else {
+                        console.error('[BUSINESS-SETTINGS] 설정 불러오기 실패:', response.status);
+                        alert('사업자 설정 불러오기 실패: ' + response.status);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[BUSINESS-SETTINGS] 불러온 데이터:', data);
+
+                if (data.success && data.settings) {
+                    const settings = data.settings;
+                    
+                    // 폼 필드에 설정값 적용 (사업자등록번호는 SMS config에서 가져온 값 우선 사용)
+                    document.getElementById('businessNumber').value = businessNumber;
+                    document.getElementById('companyName').value = settings.company_name || '';
+                    document.getElementById('representativeName').value = settings.representative_name || '';
+                    document.getElementById('businessPhone').value = settings.phone_number || '';
+                    document.getElementById('businessAddress').value = settings.address || '';
+                    
+                    // 현재 사업자등록번호 표시 업데이트
+                    updateCurrentBusinessNumber(businessNumber);
+                    
+                    console.log('[BUSINESS-SETTINGS] 사업자 설정 불러오기 완료 (사업자등록번호:', businessNumber + ')');
+                    alert('사업자 설정을 성공적으로 불러왔습니다.');
+                } else {
+                    console.warn('[BUSINESS-SETTINGS] 설정 데이터가 없거나 실패:', data);
+                    // SMS config에서 가져온 사업자등록번호로 초기화
+                    document.getElementById('businessNumber').value = businessNumber;
+                    updateCurrentBusinessNumber(businessNumber);
+                    initializeDefaultBusinessSettings();
+                }
+            } catch (error) {
+                console.error('[BUSINESS-SETTINGS] 사업자 설정 불러오기 예외:', error);
+                alert('사업자 설정 불러오기 오류: ' + error.message);
+                initializeDefaultBusinessSettings();
+            }
+        }
+        
+        // 기본 사업자 설정 초기화
+        function initializeDefaultBusinessSettings() {
+            console.log('[BUSINESS-SETTINGS] 기본값으로 초기화');
+            document.getElementById('businessNumber').value = '';
+            document.getElementById('companyName').value = '';
+            document.getElementById('representativeName').value = '';
+            document.getElementById('businessPhone').value = '';
+            document.getElementById('businessAddress').value = '';
+            updateCurrentBusinessNumber('0000000000');
+        }
+        
+        // 현재 사업자등록번호 표시 업데이트
+        function updateCurrentBusinessNumber(businessNumber) {
+            const currentBusinessNumberElement = document.getElementById('currentBusinessNumber');
+            if (currentBusinessNumberElement) {
+                currentBusinessNumberElement.textContent = businessNumber || '0000000000';
+                
+                // 기본값인 경우 빨간색, 설정된 경우 파란색
+                if (businessNumber && businessNumber !== '0000000000') {
+                    currentBusinessNumberElement.style.color = '#28a745';
+                } else {
+                    currentBusinessNumberElement.style.color = '#dc3545';
+                }
+            }
+        }
+        
+        // 이메일 설정 불러오기
+        async function loadEmailConfig() {
+            console.log('[EMAIL-CONFIG] 이메일 설정 불러오기 시작');
+            
+            if (!currentToken) {
+                console.warn('[EMAIL-CONFIG] 토큰이 없어서 설정 불러오기 건너뜀');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            console.log('[EMAIL-CONFIG] 서버 URL:', serverUrl);
+
+            try {
+                console.log('[EMAIL-CONFIG] 설정 조회 API 호출');
+                const response = await fetch(`${serverUrl}/api/email-config`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                });
+
+                console.log('[EMAIL-CONFIG] 설정 조회 응답 상태:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.info('[EMAIL-CONFIG] 저장된 이메일 설정이 없음 (첫 설정)');
+                        initializeDefaultEmailSettings();
+                    } else {
+                        console.error('[EMAIL-CONFIG] 설정 조회 HTTP 오류:', response.status);
+                        alert('이메일 설정 불러오기 실패: ' + response.status);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[EMAIL-CONFIG] 설정 조회 응답 데이터:', data);
+                
+                if (data.success && data.data) {
+                    const config = data.data;
+                    console.log('[EMAIL-CONFIG] 불러온 설정:', {
+                        smtpHost: config.smtpHost,
+                        smtpPort: config.smtpPort,
+                        security: config.security,
+                        username: config.username,
+                        useAuth: config.useAuth,
+                        senderName: config.senderName,
+                        senderEmail: config.senderEmail,
+                        passwordSet: config.password ? '설정됨' : '미설정'
+                    });
+                    
+                    // SMTP 서버 설정
+                    if (document.getElementById('smtpHost')) {
+                        document.getElementById('smtpHost').value = config.smtpHost || '';
+                    }
+                    if (document.getElementById('smtpPort')) {
+                        document.getElementById('smtpPort').value = config.smtpPort || '';
+                    }
+                    
+                    // 보안 설정
+                    const securityRadio = document.querySelector(`input[name="security"][value="${config.security || 'tls'}"]`);
+                    if (securityRadio) securityRadio.checked = true;
+                    
+                    // 인증 정보
+                    if (document.getElementById('smtpUsername')) {
+                        document.getElementById('smtpUsername').value = config.username || '';
+                    }
+                    if (document.getElementById('smtpPassword')) {
+                        document.getElementById('smtpPassword').value = config.password || '';
+                    }
+                    if (document.getElementById('useAuth')) {
+                        document.getElementById('useAuth').checked = config.useAuth !== false;
+                    }
+                    
+                    // 발송자 정보
+                    if (document.getElementById('senderName')) {
+                        document.getElementById('senderName').value = config.senderName || '';
+                    }
+                    if (document.getElementById('senderEmail')) {
+                        document.getElementById('senderEmail').value = config.senderEmail || '';
+                    }
+                    
+                    // 이메일 템플릿
+                    if (document.getElementById('emailSubject')) {
+                        document.getElementById('emailSubject').value = config.emailSubject || '[쿠폰 발송] {{회사명}} 쿠폰이 발급되었습니다';
+                    }
+                    if (document.getElementById('emailTemplate')) {
+                        document.getElementById('emailTemplate').value = config.emailTemplate || `안녕하세요 {{이름}}님,
+
+{{회사명}}에서 쿠폰이 발급되었습니다.
+
+쿠폰 코드: {{쿠폰코드}}
+충전 금액: {{충전금액}}원
+포인트: {{포인트}}P
+유효기간: {{유효기간}}
+
+감사합니다.`;
+                    }
+                    
+                    console.log('[EMAIL-CONFIG] 폼 필드 업데이트 완료');
+                    alert('이메일 설정을 성공적으로 불러왔습니다.');
+                } else {
+                    console.warn('[EMAIL-CONFIG] 설정 데이터가 없거나 실패:', data);
+                    initializeDefaultEmailSettings();
+                }
+            } catch (error) {
+                console.error('[EMAIL-CONFIG] 이메일 설정 불러오기 예외:', error);
+                alert('이메일 설정 불러오기 오류: ' + error.message);
+                initializeDefaultEmailSettings();
+            }
+        }
+        
+        // 기본 이메일 설정 초기화
+        function initializeDefaultEmailSettings() {
+            console.log('[EMAIL-CONFIG] 기본 이메일 설정으로 초기화');
+            
+            // 기본값 설정
+            if (document.getElementById('smtpHost')) document.getElementById('smtpHost').value = '';
+            if (document.getElementById('smtpPort')) document.getElementById('smtpPort').value = '587';
+            if (document.getElementById('smtpUsername')) document.getElementById('smtpUsername').value = '';
+            if (document.getElementById('smtpPassword')) document.getElementById('smtpPassword').value = '';
+            if (document.getElementById('useAuth')) document.getElementById('useAuth').checked = true;
+            if (document.getElementById('senderName')) document.getElementById('senderName').value = '쿠폰관리시스템';
+            if (document.getElementById('senderEmail')) document.getElementById('senderEmail').value = '';
+            if (document.getElementById('emailSubject')) document.getElementById('emailSubject').value = '[쿠폰 발송] {{회사명}} 쿠폰이 발급되었습니다';
+            
+            // 기본 이메일 템플릿
+            if (document.getElementById('emailTemplate')) {
+                document.getElementById('emailTemplate').value = `안녕하세요 {{이름}}님,
+
+{{회사명}}에서 쿠폰이 발급되었습니다.
+
+쿠폰 코드: {{쿠폰코드}}
+충전 금액: {{충전금액}}원
+포인트: {{포인트}}P
+유효기간: {{유효기간}}
+
+감사합니다.`;
+            }
+            
+            // 기본 보안 설정 (TLS)
+            const tlsRadio = document.querySelector(`input[name="security"][value="tls"]`);
+            if (tlsRadio) tlsRadio.checked = true;
+        }
+        
+        // 이메일 설정 저장
+        async function saveEmailConfig() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            // 폼 데이터 수집
+            const emailConfig = {
+                smtpHost: document.getElementById('smtpHost')?.value?.trim() || '',
+                smtpPort: parseInt(document.getElementById('smtpPort')?.value) || 587,
+                security: document.querySelector('input[name="security"]:checked')?.value || 'tls',
+                username: document.getElementById('smtpUsername')?.value?.trim() || '',
+                password: document.getElementById('smtpPassword')?.value || '',
+                useAuth: document.getElementById('useAuth')?.checked !== false,
+                senderName: document.getElementById('senderName')?.value?.trim() || '',
+                senderEmail: document.getElementById('senderEmail')?.value?.trim() || '',
+                emailSubject: document.getElementById('emailSubject')?.value?.trim() || '[쿠폰 발송] {{회사명}} 쿠폰이 발급되었습니다',
+                emailTemplate: document.getElementById('emailTemplate')?.value || ''
+            };
+
+            // 기본 유효성 검사
+            if (!emailConfig.smtpHost) {
+                alert('SMTP 호스트를 입력해주세요.');
+                document.getElementById('smtpHost')?.focus();
+                return;
+            }
+
+            if (!emailConfig.username) {
+                alert('사용자명/이메일을 입력해주세요.');
+                document.getElementById('smtpUsername')?.focus();
+                return;
+            }
+
+            console.log('[EMAIL-CONFIG] 이메일 설정 저장 시작:', emailConfig);
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/email-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(emailConfig)
+                });
+
+                console.log('[EMAIL-CONFIG] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[EMAIL-CONFIG] 저장 실패:', response.status, errorText);
+                    alert(`이메일 설정 저장 실패: ${response.status} - ${errorText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[EMAIL-CONFIG] API 응답:', data);
+                
+                if (data.success) {
+                    console.log('[EMAIL-CONFIG] 이메일 설정 저장 성공');
+                    alert('이메일 설정이 성공적으로 저장되었습니다.');
+                } else {
+                    console.error('[EMAIL-CONFIG] 저장 실패:', data.message);
+                    alert('이메일 설정 저장 실패: ' + (data.message || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('[EMAIL-CONFIG] 이메일 설정 저장 예외:', error);
+                alert('이메일 설정 저장 오류: ' + error.message);
+            }
+        }
+        
+        // 이메일 연결 테스트
+        async function testEmailConnection() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            console.log('[EMAIL-CONFIG] 이메일 연결 테스트 시작');
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/email-config/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                console.log('[EMAIL-CONFIG] 테스트 응답 상태:', response.status);
+
+                const data = await response.json();
+                console.log('[EMAIL-CONFIG] 테스트 API 응답:', data);
+                
+                if (data.success) {
+                    console.log('[EMAIL-CONFIG] 이메일 연결 테스트 성공');
+                    alert('✅ 이메일 서버 연결에 성공했습니다!\n설정이 올바르게 구성되었습니다.');
+                } else {
+                    console.error('[EMAIL-CONFIG] 연결 테스트 실패:', data.message);
+                    alert('❌ 이메일 서버 연결 실패:\n' + (data.message || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('[EMAIL-CONFIG] 이메일 연결 테스트 예외:', error);
+                alert('❌ 이메일 연결 테스트 오류:\n' + error.message);
+            }
+        }
+        
+        // 프로바이더 프리셋 함수들
+        function applyGmailPreset() {
+            document.getElementById('smtpHost').value = 'smtp.gmail.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            console.log('[EMAIL-CONFIG] Gmail 프리셋 적용됨');
+        }
+
+        function applyOutlookPreset() {
+            document.getElementById('smtpHost').value = 'smtp-mail.outlook.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            console.log('[EMAIL-CONFIG] Outlook 프리셋 적용됨');
+        }
+
+        function applyYahooPreset() {
+            document.getElementById('smtpHost').value = 'smtp.mail.yahoo.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            console.log('[EMAIL-CONFIG] Yahoo 프리셋 적용됨');
+        }
+
+        function applyNaverPreset() {
+            document.getElementById('smtpHost').value = 'smtp.naver.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            console.log('[EMAIL-CONFIG] Naver 프리셋 적용됨');
+        }
+
+        function applyEcountPreset() {
+            document.getElementById('smtpHost').value = 'wsmtp.ecount.com';
+            document.getElementById('smtpPort').value = '587';
+            document.querySelector('input[name="security"][value="tls"]').checked = true;
+            document.getElementById('useAuth').checked = true;
+            console.log('[EMAIL-CONFIG] Ecount 프리셋 적용됨');
+        }
+        
         // 데이터베이스 상태 확인
         async function checkDatabaseStatus() {
             const dbInfoDiv = document.getElementById('dbInfo');
@@ -5121,6 +5958,7 @@ Last Check: ${new Date().toLocaleString()}
         // showSection 함수에 개발자 섹션 처리 추가
         const originalShowSection = showSection;
         showSection = function(sectionName) {
+            // 개발자 전용 섹션 보호
             if (sectionName === 'developer') {
                 if (!isDeveloperAuthenticated) {
                     alert('개발자 인증이 필요합니다.');
@@ -5129,8 +5967,894 @@ Last Check: ${new Date().toLocaleString()}
                 }
                 loadDeveloperInfo();
             }
+            
+            // 이메일/SMS 설정 섹션 보호
+            if (sectionName === 'emailConfig' || sectionName === 'smsConfig') {
+                if (!isDeveloperAuthenticated) {
+                    alert('🔒 이 기능은 개발자 전용입니다.\n개발자 인증이 필요합니다.');
+                    showDeveloperLogin();
+                    return;
+                }
+                
+                // 개발자 인증됨 - 설정 로드
+                if (sectionName === 'emailConfig') {
+                    console.log('[DEV-ACCESS] 이메일 설정 섹션 접근 허용');
+                    setTimeout(loadEmailConfig, 100); // 섹션 로드 후 설정 불러오기
+                } else if (sectionName === 'smsConfig') {
+                    console.log('[DEV-ACCESS] SMS 설정 섹션 접근 허용');
+                    setTimeout(loadSmsConfig, 100); // 섹션 로드 후 설정 불러오기
+                }
+            }
+            
             originalShowSection(sectionName);
         };
+        
+        // === 가격 설정 관련 함수들 ===
+        
+        // 시간대별 차감 기능 활성화/비활성화 토글
+        function toggleTimeBasedControls() {
+            const checkbox = document.getElementById('enableTimeBasedDeduction');
+            const controls = document.getElementById('timeBasedControls');
+            const defaultDescription = document.getElementById('defaultSettingsDescription');
+            
+            if (checkbox.checked) {
+                // 시간대별 설정 활성화
+                controls.style.opacity = '1';
+                controls.style.pointerEvents = 'auto';
+                
+                // 기본 설정 설명 변경 (시간대 외 용도)
+                defaultDescription.textContent = '설정된 시간대에 해당하지 않는 경우 사용되는 차감액';
+                defaultDescription.style.color = '#666';
+                
+                console.log('[PRICE-SETTINGS] 시간대별 가격 설정 모드 활성화');
+            } else {
+                // 시간대별 설정 비활성화
+                controls.style.opacity = '0.5';
+                controls.style.pointerEvents = 'none';
+                
+                // 기본 설정을 주요 설정으로 강조
+                defaultDescription.innerHTML = '<strong style="color: #28a745;">✅ 활성 상태: 모든 시간대에 이 기본 가격이 적용됩니다</strong>';
+                
+                console.log('[PRICE-SETTINGS] 기본 가격 설정 모드 활성화 (시간대별 비활성화)');
+            }
+        }
+        
+        // 시스템 설정 저장
+        async function saveSystemSettings() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const settings = {
+                enableTimeBasedDeduction: document.getElementById('enableTimeBasedDeduction').checked,
+                allowNegativeBalance: document.getElementById('allowNegativeBalance').checked,
+                pointDeductionMethod: document.getElementById('pointDeductionMethod').value,
+                breakfast: {
+                    startTime: document.getElementById('breakfastStartTime').value,
+                    endTime: document.getElementById('breakfastEndTime').value,
+                    cashDeduction: parseInt(document.getElementById('breakfastCashDeduction').value) || 0
+                },
+                lunch: {
+                    startTime: document.getElementById('lunchStartTime').value,
+                    endTime: document.getElementById('lunchEndTime').value,
+                    cashDeduction: parseInt(document.getElementById('lunchCashDeduction').value) || 0
+                },
+                dinner: {
+                    startTime: document.getElementById('dinnerStartTime').value,
+                    endTime: document.getElementById('dinnerEndTime').value,
+                    cashDeduction: parseInt(document.getElementById('dinnerCashDeduction').value) || 0
+                },
+                default: {
+                    cashDeduction: parseInt(document.getElementById('defaultCashDeduction').value) || 0
+                }
+            };
+            
+            console.log('[PRICE-SETTINGS] 가격 설정 저장 시작:', settings);
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/price-settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                console.log('[PRICE-SETTINGS] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[PRICE-SETTINGS] 저장 실패:', response.status, errorText);
+                    alert(`가격 설정 저장 실패: ${response.status} - ${errorText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[PRICE-SETTINGS] API 응답:', data);
+                
+                if (data.success) {
+                    console.log('[PRICE-SETTINGS] 가격 설정 저장 성공');
+                    alert('가격 설정이 성공적으로 저장되었습니다.');
+                } else {
+                    console.error('[PRICE-SETTINGS] 저장 실패:', data.message);
+                    alert('가격 설정 저장 실패: ' + (data.message || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('[PRICE-SETTINGS] 가격 설정 저장 예외:', error);
+                alert('가격 설정 저장 오류: ' + error.message);
+            }
+        }
+        
+        // 시스템 설정 불러오기
+        async function loadSystemSettings() {
+            console.log('[PRICE-SETTINGS] 가격 설정 불러오기 시작');
+            
+            if (!currentToken) {
+                console.warn('[PRICE-SETTINGS] 토큰이 없어서 설정 불러오기 건너뜀');
+                // 초기 상태 설정
+                const checkbox = document.getElementById('enableTimeBasedDeduction');
+                if (checkbox && !checkbox.checked) {
+                    toggleTimeBasedControls(); // 초기에는 비활성화 상태로 설정
+                }
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/price-settings`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                console.log('[PRICE-SETTINGS] 응답 상태:', response.status);
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.info('[PRICE-SETTINGS] 저장된 가격 설정이 없음 (첫 설정)');
+                        // 기본값으로 초기화
+                        initializeDefaultPriceSettings();
+                    } else {
+                        console.error('[PRICE-SETTINGS] 설정 불러오기 실패:', response.status);
+                        alert('가격 설정 불러오기 실패: ' + response.status);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[PRICE-SETTINGS] 불러온 데이터:', data);
+
+                if (data.success && data.settings) {
+                    const settings = data.settings;
+                    
+                    // 폼 필드에 설정값 적용
+                    document.getElementById('enableTimeBasedDeduction').checked = settings.enableTimeBasedDeduction || false;
+                    document.getElementById('allowNegativeBalance').checked = settings.allowNegativeBalance || false;
+                    document.getElementById('pointDeductionMethod').value = settings.pointDeductionMethod || '후순위';
+                    
+                    if (settings.breakfast) {
+                        document.getElementById('breakfastStartTime').value = settings.breakfast.startTime || '07:00';
+                        document.getElementById('breakfastEndTime').value = settings.breakfast.endTime || '10:59';
+                        document.getElementById('breakfastCashDeduction').value = settings.breakfast.cashDeduction || 3000;
+                    }
+                    
+                    if (settings.lunch) {
+                        document.getElementById('lunchStartTime').value = settings.lunch.startTime || '11:00';
+                        document.getElementById('lunchEndTime').value = settings.lunch.endTime || '14:59';
+                        document.getElementById('lunchCashDeduction').value = settings.lunch.cashDeduction || 5000;
+                    }
+                    
+                    if (settings.dinner) {
+                        document.getElementById('dinnerStartTime').value = settings.dinner.startTime || '15:00';
+                        document.getElementById('dinnerEndTime').value = settings.dinner.endTime || '21:59';
+                        document.getElementById('dinnerCashDeduction').value = settings.dinner.cashDeduction || 7000;
+                    }
+                    
+                    if (settings.default) {
+                        document.getElementById('defaultCashDeduction').value = settings.default.cashDeduction || 4000;
+                    }
+                    
+                    // 시간대별 컨트롤 상태 업데이트
+                    toggleTimeBasedControls();
+                    
+                    console.log('[PRICE-SETTINGS] 가격 설정 불러오기 완료');
+                    alert('가격 설정을 성공적으로 불러왔습니다.');
+                } else {
+                    console.warn('[PRICE-SETTINGS] 설정 데이터가 없거나 실패:', data);
+                    initializeDefaultPriceSettings();
+                }
+            } catch (error) {
+                console.error('[PRICE-SETTINGS] 가격 설정 불러오기 예외:', error);
+                alert('가격 설정 불러오기 오류: ' + error.message);
+                initializeDefaultPriceSettings();
+            }
+        }
+        
+        // 기본 가격 설정 초기화
+        function initializeDefaultPriceSettings() {
+            console.log('[PRICE-SETTINGS] 기본값으로 초기화');
+            document.getElementById('enableTimeBasedDeduction').checked = false;
+            document.getElementById('allowNegativeBalance').checked = false;
+            document.getElementById('pointDeductionMethod').value = '후순위';
+            document.getElementById('defaultCashDeduction').value = 4000;
+            document.getElementById('breakfastCashDeduction').value = 3000;
+            document.getElementById('lunchCashDeduction').value = 5000;
+            document.getElementById('dinnerCashDeduction').value = 7000;
+            toggleTimeBasedControls();
+        }
+        
+        // 현재 시간에 따른 차감액 계산
+        function calculateCurrentDeduction() {
+            const enableTimeBasedDeduction = document.getElementById('enableTimeBasedDeduction').checked;
+            
+            if (!enableTimeBasedDeduction) {
+                // 시간대별 기능이 비활성화된 경우 기본 설정 사용
+                const cashDeduction = parseInt(document.getElementById('defaultCashDeduction').value) || 0;
+                const pointMethod = document.getElementById('pointDeductionMethod').value;
+                
+                console.log('[PRICE-CALC] 기본 가격 적용 - 현금:', cashDeduction + '원, 포인트 방식:', pointMethod);
+                return {
+                    cash: cashDeduction,
+                    pointMethod: pointMethod,
+                    period: '기본'
+                };
+            }
+            
+            // 현재 시간 구하기
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            
+            // 시간대별 설정 확인
+            const breakfast = {
+                start: document.getElementById('breakfastStartTime').value,
+                end: document.getElementById('breakfastEndTime').value,
+                cash: parseInt(document.getElementById('breakfastCashDeduction').value) || 0
+            };
+            
+            const lunch = {
+                start: document.getElementById('lunchStartTime').value,
+                end: document.getElementById('lunchEndTime').value,
+                cash: parseInt(document.getElementById('lunchCashDeduction').value) || 0
+            };
+            
+            const dinner = {
+                start: document.getElementById('dinnerStartTime').value,
+                end: document.getElementById('dinnerEndTime').value,
+                cash: parseInt(document.getElementById('dinnerCashDeduction').value) || 0
+            };
+            
+            const defaultDeduction = {
+                cash: parseInt(document.getElementById('defaultCashDeduction').value) || 0
+            };
+            
+            const pointMethod = document.getElementById('pointDeductionMethod').value;
+            
+            // 현재 시간이 어느 시간대에 속하는지 확인
+            if (isTimeInRange(currentTime, breakfast.start, breakfast.end)) {
+                console.log('[PRICE-CALC] 아침 시간대 적용 - 현금:', breakfast.cash + '원, 포인트 방식:', pointMethod);
+                return { cash: breakfast.cash, pointMethod: pointMethod, period: '아침' };
+            } else if (isTimeInRange(currentTime, lunch.start, lunch.end)) {
+                console.log('[PRICE-CALC] 점심 시간대 적용 - 현금:', lunch.cash + '원, 포인트 방식:', pointMethod);
+                return { cash: lunch.cash, pointMethod: pointMethod, period: '점심' };
+            } else if (isTimeInRange(currentTime, dinner.start, dinner.end)) {
+                console.log('[PRICE-CALC] 저녁 시간대 적용 - 현금:', dinner.cash + '원, 포인트 방식:', pointMethod);
+                return { cash: dinner.cash, pointMethod: pointMethod, period: '저녁' };
+            } else {
+                console.log('[PRICE-CALC] 시간대 외 기본 설정 적용 - 현금:', defaultDeduction.cash + '원, 포인트 방식:', pointMethod);
+                return { cash: defaultDeduction.cash, pointMethod: pointMethod, period: '시간대 외' };
+            }
+        }
+        
+        // 시간 범위 확인 유틸리티 함수
+        function isTimeInRange(currentTime, startTime, endTime) {
+            return currentTime >= startTime && currentTime <= endTime;
+        }
+        
+        // 현재 차감액 테스트 함수 (개발자 도구에서 호출 가능)
+        function testCurrentDeduction() {
+            const deduction = calculateCurrentDeduction();
+            const now = new Date();
+            const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            const pointMethod = document.getElementById('pointDeductionMethod').value;
+            
+            alert(`현재 시간: ${timeString}\n적용 시간대: ${deduction.period}\n현금 차감: ${deduction.cash}원\n포인트 차감방식: ${pointMethod}`);
+            return deduction;
+        }
+        
+        // 포인트 차감 방식 변경 시 경고 메시지
+        function showPointMethodWarning() {
+            const selectedMethod = document.getElementById('pointDeductionMethod').value;
+            
+            let warningMessage = '';
+            
+            if (selectedMethod === '후순위') {
+                warningMessage = `⚠️ 포인트 차감 방식이 '후순위 차감'으로 변경됩니다.
+                
+📋 후순위 차감 방식:
+• 먼저 현금을 차감합니다
+• 현금이 부족할 경우에만 부족분을 포인트로 차감합니다
+• 예시: 요금 5000원, 현금 3000원 → 현금 3000원 차감 + 포인트 2000P 차감
+
+⚠️ 이 변경사항은 즉시 모든 결제에 적용됩니다.
+계속하시겠습니까?`;
+            } else if (selectedMethod === '비례') {
+                warningMessage = `⚠️ 포인트 차감 방식이 '비례 차감'으로 변경됩니다.
+                
+📋 비례 차감 방식:
+• 현금과 포인트를 보유 비율에 따라 동시에 차감합니다
+• 현금 70%, 포인트 30% 보유 시 → 요금의 70%는 현금, 30%는 포인트로 차감
+• 예시: 요금 5000원, 현금 7000원, 포인트 3000P → 현금 3500원 + 포인트 1500P 차감
+
+⚠️ 이 변경사항은 즉시 모든 결제에 적용됩니다.
+계속하시겠습니까?`;
+            }
+            
+            if (!confirm(warningMessage)) {
+                // 사용자가 취소하면 이전 값으로 되돌리기
+                const previousValue = selectedMethod === '후순위' ? '비례' : '후순위';
+                document.getElementById('pointDeductionMethod').value = previousValue;
+                console.log('[PRICE-SETTINGS] 포인트 차감 방식 변경이 취소됨');
+            } else {
+                console.log('[PRICE-SETTINGS] 포인트 차감 방식 변경됨:', selectedMethod);
+            }
+        }
+
+        // ========== 쿠폰 관리 관련 함수들 ==========
+
+        // 전체 쿠폰 목록 로드
+        async function loadAllCoupons() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                console.log('Loading coupons from:', `${serverUrl}/api/coupons`);
+                console.log('Using token:', currentToken ? 'Present' : 'Missing');
+                
+                const response = await fetch(`${serverUrl}/api/coupons`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    currentCoupons = data.data || [];
+                    console.log('Loaded', currentCoupons.length, 'coupons');
+                    await loadCorporatesForCouponSearch();
+                    updateCouponList(currentCoupons);
+                    updateCouponStats(currentCoupons);
+                } else {
+                    console.error('Server returned error:', data);
+                    alert('쿠폰 목록 로드 실패: ' + (data.message || data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('쿠폰 목록 로드 오류:', error);
+                console.error('Error details:', error.stack);
+                alert('쿠폰 목록 로드 오류: ' + error.message);
+            }
+        }
+
+        // 쿠폰 검색용 거래처 목록 로드
+        async function loadCorporatesForCouponSearch() {
+            if (!currentToken) return;
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const select = document.getElementById('couponSearchCorporate');
+                    select.innerHTML = '<option value="">전체 거래처</option>';
+                    
+                    data.data.forEach(corporate => {
+                        const option = document.createElement('option');
+                        option.value = corporate.customerId;
+                        option.textContent = corporate.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('거래처 목록 로드 오류:', error);
+            }
+        }
+
+        // 쿠폰 검색
+        async function searchCoupons() {
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const corporateId = document.getElementById('couponSearchCorporate').value;
+            const status = document.getElementById('couponSearchStatus').value;
+            const couponCode = document.getElementById('couponSearchCode').value;
+            const employeeInfo = document.getElementById('couponSearchEmployee').value;
+
+            let filteredCoupons = [...currentCoupons];
+
+            // 거래처 필터
+            if (corporateId) {
+                filteredCoupons = filteredCoupons.filter(coupon => 
+                    coupon.corporateId == corporateId
+                );
+            }
+
+            // 상태 필터
+            if (status) {
+                filteredCoupons = filteredCoupons.filter(coupon => 
+                    coupon.status === status
+                );
+            }
+
+            // 쿠폰 코드 필터
+            if (couponCode) {
+                filteredCoupons = filteredCoupons.filter(coupon => 
+                    coupon.fullCouponCode && coupon.fullCouponCode.toLowerCase().includes(couponCode.toLowerCase())
+                );
+            }
+
+            // 직원 정보 필터
+            if (employeeInfo) {
+                filteredCoupons = filteredCoupons.filter(coupon => 
+                    (coupon.recipientName && coupon.recipientName.includes(employeeInfo)) ||
+                    (coupon.recipientPhone && coupon.recipientPhone.includes(employeeInfo))
+                );
+            }
+
+            updateCouponList(filteredCoupons);
+            updateCouponStats(filteredCoupons);
+        }
+
+        // 쿠폰 목록 새로고침
+        function refreshCouponList() {
+            loadAllCoupons();
+        }
+
+        // 쿠폰 목록 UI 업데이트
+        function updateCouponList(coupons) {
+            const tbody = document.getElementById('couponListBody');
+            tbody.innerHTML = '';
+
+            if (coupons.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
+                            검색 조건에 맞는 쿠폰이 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            coupons.forEach(coupon => {
+                const row = document.createElement('tr');
+                
+                const statusColor = getStatusColor(coupon.status);
+                const statusText = getStatusText(coupon.status);
+                
+                row.innerHTML = `
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: center;">
+                        <input type="checkbox" class="coupon-checkbox" data-coupon-id="${coupon.couponId}" onchange="updateSelectedCoupons()">
+                    </td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; font-family: monospace; font-size: 12px;">${coupon.fullCouponCode || 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${coupon.corporateName || 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${coupon.recipientName || 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px;">${coupon.recipientPhone || 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: right; font-weight: bold; color: #e53e3e;">${(coupon.cashBalance || 0).toLocaleString()}원</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: right; font-weight: bold; color: #38a169;">${(coupon.pointBalance || 0).toLocaleString()}P</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: center;">
+                        <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: center;">${coupon.expireDate || 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: center; font-size: 12px;">${coupon.createdAt ? coupon.createdAt.split(' ')[0] : 'N/A'}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 8px; text-align: center;">
+                        <button onclick="editCoupon(${coupon.couponId})" class="btn" style="padding: 4px 8px; font-size: 11px; background: #4299e1; color: white; margin-right: 5px;">✏️ 수정</button>
+                        <button onclick="deleteCoupon(${coupon.couponId})" class="btn" style="padding: 4px 8px; font-size: 11px; background: #e53e3e; color: white;">🗑️ 삭제</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // 쿠폰 상태 색상 반환
+        function getStatusColor(status) {
+            switch (status) {
+                case 'ACTIVE': return '#48bb78';
+                case 'USED': return '#ed8936';
+                case 'EXPIRED': return '#e53e3e';
+                case 'SUSPENDED': return '#718096';
+                case 'TERMINATED': return '#e53e3e';
+                default: return '#718096';
+            }
+        }
+
+        // 쿠폰 상태 텍스트 반환
+        function getStatusText(status) {
+            switch (status) {
+                case 'ACTIVE': return '사용 가능';
+                case 'USED': return '사용됨';
+                case 'EXPIRED': return '만료됨';
+                case 'SUSPENDED': return '일시 중지';
+                case 'TERMINATED': return '해지됨';
+                default: return status;
+            }
+        }
+
+        // 쿠폰 통계 업데이트
+        function updateCouponStats(coupons) {
+            const total = coupons.length;
+            const active = coupons.filter(c => c.status === 'ACTIVE').length;
+            const used = coupons.filter(c => c.status === 'USED').length;
+            const expired = coupons.filter(c => c.status === 'EXPIRED').length;
+
+            document.getElementById('totalCoupons').textContent = total;
+            document.getElementById('activeCoupons').textContent = active;
+            document.getElementById('usedCoupons').textContent = used;
+            document.getElementById('expiredCoupons').textContent = expired;
+        }
+
+        // 전체 선택 토글
+        function toggleSelectAllCoupons() {
+            const selectAll = document.getElementById('selectAllCoupons');
+            const checkboxes = document.querySelectorAll('.coupon-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedCoupons();
+        }
+
+        // 선택된 쿠폰 업데이트
+        function updateSelectedCoupons() {
+            const checkboxes = document.querySelectorAll('.coupon-checkbox:checked');
+            selectedCouponIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.couponId));
+            
+            const selectAll = document.getElementById('selectAllCoupons');
+            const totalCheckboxes = document.querySelectorAll('.coupon-checkbox').length;
+            
+            if (selectedCouponIds.length === 0) {
+                selectAll.indeterminate = false;
+                selectAll.checked = false;
+            } else if (selectedCouponIds.length === totalCheckboxes) {
+                selectAll.indeterminate = false;
+                selectAll.checked = true;
+            } else {
+                selectAll.indeterminate = true;
+                selectAll.checked = false;
+            }
+        }
+
+        // 쿠폰 수정
+        function editCoupon(couponId) {
+            const coupon = currentCoupons.find(c => c.couponId === couponId);
+            if (!coupon) return;
+
+            // 모달에 데이터 채우기
+            document.getElementById('editCouponId').value = coupon.couponId;
+            document.getElementById('editCouponCode').value = coupon.fullCouponCode || '';
+            document.getElementById('editEmployeeName').value = coupon.recipientName || '';
+            document.getElementById('editCashBalance').value = coupon.cashBalance || 0;
+            document.getElementById('editPointBalance').value = coupon.pointBalance || 0;
+            document.getElementById('editCouponStatus').value = coupon.status || 'ACTIVE';
+            document.getElementById('editExpireDate').value = coupon.expireDate || '';
+
+            // 사용 가능 요일 설정
+            const availableDays = coupon.availableDays || '1111111';
+            const dayValues = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+            dayValues.forEach((day, index) => {
+                const checkbox = document.querySelector(`.edit-available-day[value="${day}"]`);
+                if (checkbox) {
+                    checkbox.checked = availableDays[index] === '1';
+                }
+            });
+
+            // 모달 표시
+            document.getElementById('couponEditModal').style.display = 'block';
+        }
+
+        // 쿠폰 수정 모달 닫기
+        function closeCouponEditModal() {
+            document.getElementById('couponEditModal').style.display = 'none';
+        }
+
+        // 쿠폰 수정 제출
+        async function submitCouponEdit(event) {
+            event.preventDefault();
+            
+            if (!currentToken) {
+                alert('먼저 로그인해주세요.');
+                return;
+            }
+
+            const couponId = document.getElementById('editCouponId').value;
+            const serverUrl = document.getElementById('serverUrl').value;
+
+            // 사용 가능 요일 수집
+            const dayCheckboxes = document.querySelectorAll('.edit-available-day');
+            let availableDays = '';
+            dayCheckboxes.forEach(checkbox => {
+                availableDays += checkbox.checked ? '1' : '0';
+            });
+
+            const updateData = {
+                cashBalance: parseFloat(document.getElementById('editCashBalance').value) || 0,
+                pointBalance: parseFloat(document.getElementById('editPointBalance').value) || 0,
+                status: document.getElementById('editCouponStatus').value,
+                expireDate: document.getElementById('editExpireDate').value,
+                availableDays: availableDays
+            };
+
+            try {
+                const response = await fetch(`${serverUrl}/api/coupons/${couponId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('쿠폰이 성공적으로 수정되었습니다.');
+                    closeCouponEditModal();
+                    refreshCouponList();
+                } else {
+                    alert('쿠폰 수정 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('쿠폰 수정 오류:', error);
+                alert('쿠폰 수정 오류: ' + error.message);
+            }
+        }
+
+        // 쿠폰 삭제
+        function deleteCoupon(couponId) {
+            console.log('[DELETE-COUPON] ===== 삭제 프로세스 시작 =====');
+            console.log('[DELETE-COUPON] 삭제하려는 쿠폰 ID:', couponId);
+            console.log('[DELETE-COUPON] 현재 쿠폰 목록 개수:', currentCoupons ? currentCoupons.length : 'undefined');
+            console.log('[DELETE-COUPON] currentCoupons 배열:', currentCoupons);
+            
+            const coupon = currentCoupons.find(c => c.couponId === couponId || c.id === couponId);
+            console.log('[DELETE-COUPON] 찾은 쿠폰:', coupon);
+            
+            if (!coupon) {
+                console.error('[DELETE-COUPON] ❌ 쿠폰을 찾을 수 없습니다!');
+                console.log('[DELETE-COUPON] 쿠폰 검색 조건: couponId === ' + couponId + ' || id === ' + couponId);
+                alert('삭제할 쿠폰을 찾을 수 없습니다.');
+                return;
+            }
+
+            console.log('[DELETE-COUPON] ✅ 쿠폰을 찾았습니다. 모달에 정보 표시 시작');
+            
+            // 삭제 확인 모달에 정보 표시
+            document.getElementById('deleteCouponCode').textContent = coupon.fullCouponCode || coupon.code || 'N/A';
+            document.getElementById('deleteEmployeeName').textContent = coupon.recipientName || 'N/A';
+            document.getElementById('deleteCashBalance').textContent = (coupon.cashBalance || 0).toLocaleString();
+            document.getElementById('deletePointBalance').textContent = (coupon.pointBalance || 0).toLocaleString();
+
+            // 전역 변수에 삭제할 쿠폰 ID 저장
+            window.deletingCouponId = coupon.couponId || coupon.id;
+            console.log('[DELETE-COUPON] window.deletingCouponId 설정됨:', window.deletingCouponId);
+
+            // 모달 표시
+            document.getElementById('couponDeleteModal').style.display = 'block';
+            console.log('[DELETE-COUPON] 모달이 표시되었습니다');
+        }
+
+        // 쿠폰 삭제 모달 닫기
+        function closeCouponDeleteModal() {
+            document.getElementById('couponDeleteModal').style.display = 'none';
+            window.deletingCouponId = null;
+        }
+
+        // 쿠폰 삭제 확인
+        async function confirmCouponDelete() {
+            console.log('[CONFIRM-DELETE] ===== 삭제 확인 시작 =====');
+            console.log('[CONFIRM-DELETE] currentToken:', currentToken ? 'Present' : 'Missing');
+            console.log('[CONFIRM-DELETE] window.deletingCouponId:', window.deletingCouponId);
+            
+            if (!currentToken || !window.deletingCouponId) {
+                console.error('[CONFIRM-DELETE] ❌ 삭제 조건 미충족');
+                console.log('[CONFIRM-DELETE] currentToken 상태:', currentToken);
+                console.log('[CONFIRM-DELETE] window.deletingCouponId 상태:', window.deletingCouponId);
+                alert('삭제할 쿠폰 정보가 없습니다.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            const couponId = window.deletingCouponId;
+            const deleteUrl = `${serverUrl}/api/coupons/${couponId}`;
+            
+            console.log('[CONFIRM-DELETE] 서버 URL:', serverUrl);
+            console.log('[CONFIRM-DELETE] 쿠폰 ID:', couponId);
+            console.log('[CONFIRM-DELETE] 삭제 API URL:', deleteUrl);
+
+            try {
+                console.log('[CONFIRM-DELETE] API 호출 시작...');
+                const response = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                console.log('[CONFIRM-DELETE] API 응답 상태:', response.status);
+                console.log('[CONFIRM-DELETE] API 응답 OK:', response.ok);
+                console.log('[CONFIRM-DELETE] API 응답 헤더:', response.headers);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('[CONFIRM-DELETE] API 응답 데이터:', data);
+
+                if (data.success) {
+                    console.log('[CONFIRM-DELETE] ✅ 삭제 성공!');
+                    alert('쿠폰이 성공적으로 삭제되었습니다.');
+                    closeCouponDeleteModal();
+                    refreshCouponList();
+                } else {
+                    console.error('[CONFIRM-DELETE] ❌ 삭제 실패:', data.message);
+                    alert('쿠폰 삭제 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('[CONFIRM-DELETE] ❌ 오류 발생:', error);
+                console.error('[CONFIRM-DELETE] 오류 스택:', error.stack);
+                alert('쿠폰 삭제 오류: ' + error.message);
+            }
+            
+            console.log('[CONFIRM-DELETE] ===== 삭제 확인 종료 =====');
+        }
+
+        // 일괄 상태 변경
+        function bulkStatusUpdate() {
+            if (selectedCouponIds.length === 0) {
+                alert('변경할 쿠폰을 선택해주세요.');
+                return;
+            }
+
+            document.getElementById('selectedCouponCount').textContent = selectedCouponIds.length;
+            document.getElementById('bulkStatusModal').style.display = 'block';
+        }
+
+        // 일괄 상태 변경 모달 닫기
+        function closeBulkStatusModal() {
+            document.getElementById('bulkStatusModal').style.display = 'none';
+        }
+
+        // 일괄 상태 변경 확인
+        async function confirmBulkStatusUpdate() {
+            if (!currentToken || selectedCouponIds.length === 0) {
+                alert('변경할 쿠폰이 선택되지 않았습니다.');
+                return;
+            }
+
+            const newStatus = document.getElementById('bulkNewStatus').value;
+            const serverUrl = document.getElementById('serverUrl').value;
+
+            let successCount = 0;
+            let failCount = 0;
+
+            try {
+                for (const couponId of selectedCouponIds) {
+                    const response = await fetch(`${serverUrl}/api/coupons/${couponId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${currentToken}`
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                }
+
+                alert(`일괄 상태 변경 완료!\n성공: ${successCount}개, 실패: ${failCount}개`);
+                closeBulkStatusModal();
+                refreshCouponList();
+
+            } catch (error) {
+                console.error('일괄 상태 변경 오류:', error);
+                alert('일괄 상태 변경 오류: ' + error.message);
+            }
+        }
+
+        // 데이터 내보내기
+        function exportCouponData() {
+            if (currentCoupons.length === 0) {
+                alert('내보낼 데이터가 없습니다.');
+                return;
+            }
+
+            // CSV 헤더
+            const headers = ['쿠폰코드', '거래처', '직원명', '전화번호', '현금잔고', '포인트잔고', '상태', '만료일', '생성일'];
+            
+            // CSV 데이터
+            const csvData = currentCoupons.map(coupon => [
+                coupon.fullCouponCode || '',
+                coupon.corporateName || '',
+                coupon.recipientName || '',
+                coupon.recipientPhone || '',
+                coupon.cashBalance || 0,
+                coupon.pointBalance || 0,
+                getStatusText(coupon.status),
+                coupon.expireDate || '',
+                coupon.createdAt ? coupon.createdAt.split(' ')[0] : ''
+            ]);
+
+            // CSV 문자열 생성
+            const csvContent = [headers, ...csvData]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+
+            // BOM 추가 (Excel에서 한글 깨짐 방지)
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            // 다운로드
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `쿠폰목록_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 페이지 로드 시 개발자 메뉴 상태 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDeveloperMenu(); // 초기 메뉴 상태 설정 (이메일/SMS 메뉴 숨김)
+            
+            // 가격 설정 초기화
+            setTimeout(function() {
+                const enableCheckbox = document.getElementById('enableTimeBasedDeduction');
+                if (enableCheckbox) {
+                    toggleTimeBasedControls(); // 초기 컨트롤 상태 설정
+                }
+            }, 100);
+        });
     </script>
 </body>
 </html>

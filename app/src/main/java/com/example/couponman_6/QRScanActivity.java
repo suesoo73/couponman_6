@@ -3,6 +3,7 @@ package com.example.couponman_6;
 import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
@@ -51,9 +52,13 @@ public class QRScanActivity extends AppCompatActivity {
     private CouponDAO couponDAO;
     private EmployeeDAO employeeDAO;
     private CorporateDAO corporateDAO;
+    private TransactionDAO transactionDAO;
     
     // 카메라 설정
     private boolean isUsingFrontCamera = false;
+    
+    // 음성 재생
+    private MediaPlayer mediaPlayer;
 
     private BarcodeCallback callback = new BarcodeCallback() {
         @Override
@@ -103,6 +108,7 @@ public class QRScanActivity extends AppCompatActivity {
             couponDAO = new CouponDAO(this);
             employeeDAO = new EmployeeDAO(this);
             corporateDAO = new CorporateDAO(this);
+            transactionDAO = new TransactionDAO(this);
             Log.i(TAG, "[DB-INIT] DAO 초기화 완료");
         } catch (Exception e) {
             Log.e(TAG, "[DB-INIT] DAO 초기화 실패", e);
@@ -337,12 +343,13 @@ public class QRScanActivity extends AppCompatActivity {
             Log.i(TAG, "[COUPON-CHECK] 쿠폰 코드: " + couponCode);
             
             // 데이터베이스에서 쿠폰 조회
-            if (couponDAO != null && employeeDAO != null && corporateDAO != null) {
+            if (couponDAO != null && employeeDAO != null && corporateDAO != null && transactionDAO != null) {
                 try {
                     // DAO 데이터베이스 연결 열기
                     couponDAO.open();
                     employeeDAO.open();
                     corporateDAO.open();
+                    transactionDAO.open();
                     
                     Coupon coupon = couponDAO.getCouponByCode(couponCode);
                     if (coupon != null) {
@@ -361,6 +368,9 @@ public class QRScanActivity extends AppCompatActivity {
                         // UI에 결과 표시
                         displayCouponInfo(couponCode, coupon, employee, corporate);
                         
+                        // 가격 설정에 따른 차감 처리
+                        boolean deductionSuccess = applyPriceDeduction(coupon, employee, corporate);
+                        
                         // 하단 잔고 표시 업데이트
                         updateBalanceDisplay(coupon, employee, corporate);
                         
@@ -370,20 +380,30 @@ public class QRScanActivity extends AppCompatActivity {
                         
                         // 하단 잔고 표시 - 찾을 수 없음
                         updateBalanceDisplayNotFound();
+                        
+                        // 쿠폰을 찾을 수 없음 - 실패 음성 재생
+                        playAudioFeedback(false);
                     }
                 } finally {
                     // DAO 데이터베이스 연결 닫기
                     try { couponDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing couponDAO", e); }
                     try { employeeDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing employeeDAO", e); }
                     try { corporateDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing corporateDAO", e); }
+                    try { transactionDAO.close(); } catch (Exception e) { Log.w(TAG, "Error closing transactionDAO", e); }
                 }
             } else {
                 Log.e(TAG, "[COUPON-BALANCE] DAO가 초기화되지 않았습니다");
                 updateBalanceDisplayError("시스템 오류");
+                
+                // 시스템 오류 - 실패 음성 재생
+                playAudioFeedback(false);
             }
         } catch (Exception e) {
             Log.e(TAG, "[COUPON-CHECK] 쿠폰 확인 중 오류", e);
             updateBalanceDisplayError("오류 발생");
+            
+            // 일반 오류 - 실패 음성 재생
+            playAudioFeedback(false);
         }
     }
     
@@ -576,6 +596,222 @@ public class QRScanActivity extends AppCompatActivity {
     private void updateScanCount() {
         tvScanCount.setText("총 스캔 횟수: " + scanCount);
     }
+    
+    /**
+     * 현재 시간에 따른 가격 차감 적용
+     */
+    private boolean applyPriceDeduction(Coupon coupon, Employee employee, Corporate corporate) {
+        try {
+            Log.i(TAG, "[PRICE-DEDUCTION] 가격 차감 처리 시작");
+            
+            // 가격 설정 불러오기
+            SharedPreferences prefs = getSharedPreferences("PriceSettings", MODE_PRIVATE);
+            
+            // 시간대별 기능 활성화 여부 확인
+            boolean enableTimeBasedDeduction = prefs.getBoolean("enableTimeBasedDeduction", false);
+            boolean allowNegativeBalance = prefs.getBoolean("allowNegativeBalance", false);
+            String pointDeductionMethod = prefs.getString("pointDeductionMethod", "후순위");
+            
+            Log.i(TAG, "[PRICE-DEDUCTION] 시간대별 차감 활성화: " + enableTimeBasedDeduction);
+            Log.i(TAG, "[PRICE-DEDUCTION] 마이너스 잔고 허용: " + allowNegativeBalance);
+            Log.i(TAG, "[PRICE-DEDUCTION] 포인트 차감 방식: " + pointDeductionMethod);
+            
+            int cashDeduction = 0;
+            String periodName = "기본";
+            
+            if (enableTimeBasedDeduction) {
+                // 현재 시간에 따른 시간대별 차감액 계산
+                DeductionInfo deductionInfo = calculateCurrentDeduction(prefs);
+                cashDeduction = deductionInfo.cashAmount;
+                periodName = deductionInfo.periodName;
+            } else {
+                // 기본 차감액 사용
+                cashDeduction = prefs.getInt("default_cashDeduction", 4000);
+                periodName = "기본";
+            }
+            
+            // Lambda에서 사용하기 위해 final 변수로 복사
+            final int finalCashDeduction = cashDeduction;
+            final String finalPeriodName = periodName;
+            
+            Log.i(TAG, "[PRICE-DEDUCTION] 적용할 현금 차감액: " + cashDeduction + "원 (" + periodName + " 시간대)");
+            
+            // 현재 쿠폰 잔고 확인
+            double currentCash = coupon.getCashBalance();
+            double currentPoints = coupon.getPointBalance();
+            
+            Log.i(TAG, "[PRICE-DEDUCTION] 차감 전 잔고 - 현금: " + currentCash + "원, 포인트: " + currentPoints + "P");
+            
+            // 잔고 검사
+            if (currentCash < cashDeduction && !allowNegativeBalance) {
+                Log.w(TAG, "[PRICE-DEDUCTION] 현금 잔고 부족 (현금: " + currentCash + "원 < 차감액: " + cashDeduction + "원)");
+                
+                runOnUiThread(() -> {
+                    Toast.makeText(this, 
+                        "현금 잔고가 부족합니다!\n현재: " + String.format("%,d", (int)currentCash) + "원\n필요: " + String.format("%,d", finalCashDeduction) + "원", 
+                        Toast.LENGTH_LONG).show();
+                    tvCouponStatus.setText("❌ 현금 잔고 부족");
+                });
+                
+                // 결제 실패 음성 재생
+                playAudioFeedback(false);
+                
+                return false;
+            }
+            
+            // 차감 적용
+            double newCashBalance = currentCash - cashDeduction;
+            
+            Log.i(TAG, "[PRICE-DEDUCTION] 차감 적용 - 현금: " + currentCash + "원 → " + newCashBalance + "원");
+            
+            // 쿠폰 업데이트
+            coupon.setCashBalance(newCashBalance);
+            
+            // 데이터베이스에 업데이트
+            couponDAO.open();
+            transactionDAO.open();
+            try {
+                int updateResult = couponDAO.updateCoupon(coupon);
+                if (updateResult > 0) {
+                    Log.i(TAG, "[PRICE-DEDUCTION] 쿠폰 업데이트 성공");
+                    
+                    // 거래 기록 생성
+                    Transaction transaction = new Transaction();
+                    transaction.setCouponId(coupon.getCouponId());
+                    transaction.setTransactionType("DEDUCTION"); // 차감 거래
+                    transaction.setAmount(finalCashDeduction); // 차감 금액
+                    transaction.setBalanceType(Transaction.BALANCE_TYPE_CASH); // 현금 거래
+                    transaction.setDescription("QR 스캔 " + finalPeriodName + " 시간대 차감");
+                    transaction.setTransactionDate(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()));
+                    transaction.setBalanceBefore(currentCash); // 차감 전 잔고
+                    transaction.setBalanceAfter(newCashBalance); // 차감 후 잔고
+                    
+                    long transactionId = transactionDAO.insertTransaction(transaction);
+                    
+                    if (transactionId > 0) {
+                        Log.i(TAG, "[PRICE-DEDUCTION] 거래 기록 생성 성공 - ID: " + transactionId);
+                    } else {
+                        Log.w(TAG, "[PRICE-DEDUCTION] 거래 기록 생성 실패");
+                    }
+                    
+                    // 성공 메시지 표시
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, 
+                            "💰 차감 완료!\n" + finalPeriodName + " 시간대: " + String.format("%,d", finalCashDeduction) + "원 차감\n" +
+                            "현금 잔고: " + String.format("%,d", (int)currentCash) + "원 → " + String.format("%,d", (int)newCashBalance) + "원", 
+                            Toast.LENGTH_LONG).show();
+                        tvCouponStatus.setText("✅ 차감 완료 (" + finalPeriodName + " 시간대)");
+                    });
+                    
+                    // 결제 성공 음성 재생
+                    playAudioFeedback(true);
+                    
+                    return true;
+                } else {
+                    Log.e(TAG, "[PRICE-DEDUCTION] 쿠폰 업데이트 실패");
+                    
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "차감 처리 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show();
+                        tvCouponStatus.setText("❌ 차감 처리 실패");
+                    });
+                    
+                    // 결제 실패 음성 재생
+                    playAudioFeedback(false);
+                    
+                    return false;
+                }
+            } finally {
+                couponDAO.close();
+                transactionDAO.close();
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[PRICE-DEDUCTION] 가격 차감 처리 중 오류", e);
+            
+            runOnUiThread(() -> {
+                Toast.makeText(this, "차감 처리 중 오류: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                tvCouponStatus.setText("❌ 처리 오류");
+            });
+            
+            // 결제 실패 음성 재생
+            playAudioFeedback(false);
+            
+            return false;
+        }
+    }
+    
+    /**
+     * 차감 정보를 담는 클래스
+     */
+    private static class DeductionInfo {
+        int cashAmount;
+        String periodName;
+        
+        DeductionInfo(int cashAmount, String periodName) {
+            this.cashAmount = cashAmount;
+            this.periodName = periodName;
+        }
+    }
+    
+    /**
+     * 현재 시간에 따른 차감액 계산
+     */
+    private DeductionInfo calculateCurrentDeduction(SharedPreferences prefs) {
+        // 현재 시간 구하기
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int hour = now.get(java.util.Calendar.HOUR_OF_DAY);
+        int minute = now.get(java.util.Calendar.MINUTE);
+        String currentTime = String.format("%02d:%02d", hour, minute);
+        
+        Log.i(TAG, "[TIME-CALC] 현재 시간: " + currentTime);
+        
+        // 시간대별 설정 불러오기
+        String breakfastStart = prefs.getString("breakfast_startTime", "07:00");
+        String breakfastEnd = prefs.getString("breakfast_endTime", "10:59");
+        int breakfastCash = prefs.getInt("breakfast_cashDeduction", 3000);
+        
+        String lunchStart = prefs.getString("lunch_startTime", "11:00");
+        String lunchEnd = prefs.getString("lunch_endTime", "14:59");
+        int lunchCash = prefs.getInt("lunch_cashDeduction", 5000);
+        
+        String dinnerStart = prefs.getString("dinner_startTime", "15:00");
+        String dinnerEnd = prefs.getString("dinner_endTime", "21:59");
+        int dinnerCash = prefs.getInt("dinner_cashDeduction", 7000);
+        
+        int defaultCash = prefs.getInt("default_cashDeduction", 4000);
+        
+        // 현재 시간이 어느 시간대에 속하는지 확인
+        if (isTimeInRange(currentTime, breakfastStart, breakfastEnd)) {
+            Log.i(TAG, "[TIME-CALC] 아침 시간대 적용: " + breakfastCash + "원");
+            return new DeductionInfo(breakfastCash, "아침");
+        } else if (isTimeInRange(currentTime, lunchStart, lunchEnd)) {
+            Log.i(TAG, "[TIME-CALC] 점심 시간대 적용: " + lunchCash + "원");
+            return new DeductionInfo(lunchCash, "점심");
+        } else if (isTimeInRange(currentTime, dinnerStart, dinnerEnd)) {
+            Log.i(TAG, "[TIME-CALC] 저녁 시간대 적용: " + dinnerCash + "원");
+            return new DeductionInfo(dinnerCash, "저녁");
+        } else {
+            Log.i(TAG, "[TIME-CALC] 기본 시간대 적용: " + defaultCash + "원");
+            return new DeductionInfo(defaultCash, "기본");
+        }
+    }
+    
+    /**
+     * 시간이 특정 범위에 속하는지 확인
+     */
+    private boolean isTimeInRange(String currentTime, String startTime, String endTime) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm");
+            java.util.Date current = sdf.parse(currentTime);
+            java.util.Date start = sdf.parse(startTime);
+            java.util.Date end = sdf.parse(endTime);
+            
+            return current.compareTo(start) >= 0 && current.compareTo(end) <= 0;
+        } catch (Exception e) {
+            Log.e(TAG, "[TIME-RANGE] 시간 범위 확인 중 오류", e);
+            return false;
+        }
+    }
 
     @Override
     protected void onResume() {
@@ -585,9 +821,114 @@ public class QRScanActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 음성 파일 재생
+     */
+    private void playAudioFeedback(boolean paymentSuccess) {
+        try {
+            Log.i(TAG, "[AUDIO] 음성 재생 시작 - 결제 " + (paymentSuccess ? "성공" : "실패"));
+            
+            // 기존 MediaPlayer가 있으면 해제
+            if (mediaPlayer != null) {
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
+            
+            // 결제 결과에 따른 음성 파일 선택
+            int audioResource = paymentSuccess ? R.raw.payment_success : R.raw.payment_failed;
+            String audioType = paymentSuccess ? "payment_success.mp3" : "payment_failed.mp3";
+            
+            Log.i(TAG, "[AUDIO] 재생할 파일: " + audioType);
+            
+            // MediaPlayer 생성 및 설정
+            mediaPlayer = MediaPlayer.create(this, audioResource);
+            
+            if (mediaPlayer != null) {
+                // 재생 완료 리스너 설정
+                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        Log.i(TAG, "[AUDIO] 음성 재생 완료");
+                        if (mp != null) {
+                            mp.release();
+                        }
+                        mediaPlayer = null;
+                    }
+                });
+                
+                // 에러 리스너 설정
+                mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                    @Override
+                    public boolean onError(MediaPlayer mp, int what, int extra) {
+                        Log.e(TAG, "[AUDIO] 음성 재생 오류 - what: " + what + ", extra: " + extra);
+                        if (mp != null) {
+                            mp.release();
+                        }
+                        mediaPlayer = null;
+                        return true;
+                    }
+                });
+                
+                // 음성 재생 시작
+                mediaPlayer.start();
+                Log.i(TAG, "[AUDIO] 음성 재생 시작됨");
+                
+            } else {
+                Log.e(TAG, "[AUDIO] MediaPlayer 생성 실패 - 리소스를 찾을 수 없습니다: " + audioType);
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "[AUDIO] 음성 재생 중 오류", e);
+            
+            // MediaPlayer 정리
+            if (mediaPlayer != null) {
+                try {
+                    mediaPlayer.release();
+                } catch (Exception ex) {
+                    Log.w(TAG, "[AUDIO] MediaPlayer 해제 중 오류", ex);
+                }
+                mediaPlayer = null;
+            }
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
         barcodeView.pause();
+        
+        // MediaPlayer 정리
+        if (mediaPlayer != null) {
+            try {
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
+                mediaPlayer.release();
+            } catch (Exception e) {
+                Log.w(TAG, "[AUDIO] onPause에서 MediaPlayer 해제 중 오류", e);
+            }
+            mediaPlayer = null;
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        // MediaPlayer 정리
+        if (mediaPlayer != null) {
+            try {
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
+                mediaPlayer.release();
+            } catch (Exception e) {
+                Log.w(TAG, "[AUDIO] onDestroy에서 MediaPlayer 해제 중 오류", e);
+            }
+            mediaPlayer = null;
+        }
     }
 }

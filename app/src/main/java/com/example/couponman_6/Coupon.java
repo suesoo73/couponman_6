@@ -9,6 +9,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Map;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import com.google.gson.Gson;
 
 public class Coupon {
     private static final String TAG = "Coupon";
@@ -167,16 +173,15 @@ public class Coupon {
      * {발급자_사업자등록번호}-{사용가능요일}-{coupon_id(10자리_제로패딩)}-{결제_유형_코드}-{패리티}
      */
     public String generateFullCouponCode(Context context) {
-        SharedPreferences settings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
-        String issuerBusinessNumber = settings.getString("business_number", "0000000000");
+        String issuerBusinessNumber = getBusinessNumberFromSmsConfig(context);
         
         Log.i(TAG, "[COUPON-CODE] 사업자등록번호 조회: " + issuerBusinessNumber);
         if ("0000000000".equals(issuerBusinessNumber)) {
-            Log.w(TAG, "[COUPON-CODE] 경고: 사업자등록번호가 기본값(0000000000)입니다. BusinessSettings에서 설정을 확인하세요.");
+            Log.w(TAG, "[COUPON-CODE] 경고: 사업자등록번호가 기본값(0000000000)입니다. SMS 설정을 확인하세요.");
         }
         
-        // 1. 발급자 사업자등록번호
-        String issuerCode = issuerBusinessNumber;
+        // 1. 발급자 사업자등록번호 (하이픈 제거)
+        String issuerCode = issuerBusinessNumber.replace("-", "");
         
         // 2. 사용가능요일 (7자리)
         String availableDaysCode = availableDays != null ? availableDays : "1111111";
@@ -195,6 +200,77 @@ public class Coupon {
         Log.i(TAG, "[COUPON-CODE] 생성된 전체 쿠폰 코드: " + fullCode);
         
         return fullCode;
+    }
+
+    /**
+     * SMS 설정에서 사업자등록번호 가져오기
+     */
+    private String getBusinessNumberFromSmsConfig(Context context) {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE);
+            String serverUrl = prefs.getString("server_url", "http://localhost:8080");
+            String currentToken = prefs.getString("current_token", "");
+            
+            if (currentToken.isEmpty()) {
+                Log.w(TAG, "[COUPON-CODE] 토큰이 없어서 SMS config에서 사업자등록번호 가져오기 실패");
+                return getBusinessNumberFromSharedPreferences(context);
+            }
+
+            Log.d(TAG, "[COUPON-CODE] SMS config API 호출 시작");
+            
+            // HTTP 요청 생성
+            URL url = new URL(serverUrl + "/api/sms-config");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            conn.setRequestProperty("Authorization", "Bearer " + currentToken);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
+                }
+                in.close();
+
+                Log.d(TAG, "[COUPON-CODE] SMS config 응답: " + response.toString());
+
+                // JSON 파싱
+                Gson gson = new Gson();
+                Map<String, Object> responseMap = gson.fromJson(response.toString(), Map.class);
+                
+                if (responseMap.containsKey("success") && (Boolean) responseMap.get("success")) {
+                    Map<String, Object> config = (Map<String, Object>) responseMap.get("config");
+                    if (config != null && config.containsKey("businessId")) {
+                        String businessId = (String) config.get("businessId");
+                        Log.i(TAG, "[COUPON-CODE] SMS config에서 사업자등록번호 획득: " + businessId);
+                        return businessId;
+                    }
+                }
+            } else {
+                Log.w(TAG, "[COUPON-CODE] SMS config API 호출 실패: " + responseCode);
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "[COUPON-CODE] SMS config에서 사업자등록번호 가져오기 오류", e);
+        }
+
+        // 오류 발생 시 SharedPreferences에서 가져오기
+        return getBusinessNumberFromSharedPreferences(context);
+    }
+
+    /**
+     * SharedPreferences에서 사업자등록번호 가져오기 (fallback)
+     */
+    private String getBusinessNumberFromSharedPreferences(Context context) {
+        SharedPreferences settings = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
+        String businessNumber = settings.getString("business_number", "0000000000");
+        Log.d(TAG, "[COUPON-CODE] SharedPreferences에서 사업자등록번호 fallback: " + businessNumber);
+        return businessNumber;
     }
 
     /**

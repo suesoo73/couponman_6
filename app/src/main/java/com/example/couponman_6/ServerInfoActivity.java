@@ -97,7 +97,13 @@ public class ServerInfoActivity extends AppCompatActivity {
         
         // 브로드캐스트 리시버 등록
         IntentFilter filter = new IntentFilter("com.example.couponman_6.SERVER_STATUS");
-        registerReceiver(serverStatusReceiver, filter);
+        
+        // Android 14+ requires explicit export flag for broadcast receivers
+        if (android.os.Build.VERSION.SDK_INT >= 34) { // API 34 = Android 14
+            registerReceiver(serverStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(serverStatusReceiver, filter);
+        }
     }
 
     private void initializeViews() {

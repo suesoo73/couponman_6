@@ -176,14 +176,27 @@ public class ApiServer extends NanoHTTPD {
                     break;
                 default:
                     if (uri.startsWith("/api/coupons/")) {
+                        Log.i(TAG, "[COUPON-API] URI matched: /api/coupons/*");
+                        Log.i(TAG, "[COUPON-API] Method: " + method);
+                        
                         if (!isAuthorized(session)) {
+                            Log.w(TAG, "[COUPON-API] Unauthorized request for: " + uri);
                             response = createUnauthorizedResponse();
                         } else {
                             String couponId = uri.substring("/api/coupons/".length());
+                            Log.i(TAG, "[COUPON-API] Extracted coupon ID: " + couponId);
+                            
                             if (Method.GET.equals(method)) {
+                                Log.i(TAG, "[COUPON-API] Handling GET request for coupon: " + couponId);
                                 response = handleGetCoupon(couponId);
                             } else if (Method.PUT.equals(method)) {
+                                Log.i(TAG, "[COUPON-API] Handling PUT request for coupon: " + couponId);
                                 response = handleUpdateCoupon(couponId, session);
+                            } else if (Method.DELETE.equals(method)) {
+                                Log.i(TAG, "[COUPON-API] Handling DELETE request for coupon: " + couponId);
+                                response = handleDeleteCoupon(couponId);
+                            } else {
+                                Log.w(TAG, "[COUPON-API] Unsupported method: " + method);
                             }
                         }
                     } else if (uri.startsWith("/api/corporates/")) {
@@ -319,6 +332,26 @@ public class ApiServer extends NanoHTTPD {
                                 response = handleSaveSystemSettings(session);
                             }
                         }
+                    } else if (uri.startsWith("/api/price-settings")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/price-settings")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetPriceSettings();
+                            } else if (Method.POST.equals(method)) {
+                                response = handleSavePriceSettings(session);
+                            }
+                        }
+                    } else if (uri.startsWith("/api/business-settings")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/business-settings")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetBusinessSettings();
+                            } else if (Method.POST.equals(method)) {
+                                response = handleSaveBusinessSettings(session);
+                            }
+                        }
                     }
                     break;
             }
@@ -379,12 +412,70 @@ public class ApiServer extends NanoHTTPD {
     }
 
     private Response handleGetCoupons() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("data", coupons);
-        result.put("count", coupons.size());
+        Log.i(TAG, "=== GET COUPONS START ===");
+        
+        try {
+            if (couponDAO == null) {
+                Log.e(TAG, "CouponDAO is null");
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("error", "Database connection not available");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
+            }
+            
+            Log.d(TAG, "Fetching coupons from database...");
+            List<Coupon> couponList = couponDAO.getAllCoupons();
+            Log.d(TAG, "Retrieved " + couponList.size() + " coupons from database");
+            
+            List<Map<String, Object>> couponData = new ArrayList<>();
+            
+            for (Coupon coupon : couponList) {
+                if (coupon == null) {
+                    Log.w(TAG, "Skipping null coupon");
+                    continue;
+                }
+                
+                Map<String, Object> couponMap = new HashMap<>();
+                couponMap.put("id", coupon.getCouponId());
+                couponMap.put("couponId", coupon.getCouponId());
+                couponMap.put("code", coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "");
+                couponMap.put("fullCouponCode", coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "");
+                couponMap.put("employeeId", coupon.getEmployeeId());
+                couponMap.put("cashBalance", coupon.getCashBalance());
+                couponMap.put("pointBalance", coupon.getPointBalance());
+                couponMap.put("expireDate", coupon.getExpireDate() != null ? coupon.getExpireDate() : "");
+                couponMap.put("status", coupon.getStatus() != null ? coupon.getStatus() : "");
+                couponMap.put("paymentType", coupon.getPaymentType() != null ? coupon.getPaymentType() : "");
+                couponMap.put("availableDays", coupon.getAvailableDays() != null ? coupon.getAvailableDays() : "");
+                couponMap.put("createdAt", coupon.getCreatedAt() != null ? coupon.getCreatedAt() : "");
+                couponData.add(couponMap);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", couponData);
+            result.put("count", couponData.size());
 
-        return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            String jsonResponse = gson.toJson(result);
+            Log.d(TAG, "JSON response length: " + jsonResponse.length());
+            Log.i(TAG, "✅ GET COUPONS SUCCESS - Returning " + couponData.size() + " coupons");
+            Log.i(TAG, "=== GET COUPONS END ===");
+
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", jsonResponse);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Failed to get coupons", e);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("error", "Failed to retrieve coupons: " + e.getMessage());
+            
+            String errorJson = gson.toJson(result);
+            Log.e(TAG, "Error response: " + errorJson);
+            Log.i(TAG, "=== GET COUPONS END (ERROR) ===");
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", errorJson);
+        }
     }
 
     private Response handleGetCoupon(String couponId) {
@@ -564,13 +655,38 @@ public class ApiServer extends NanoHTTPD {
     private boolean isAuthorized(IHTTPSession session) {
         Map<String, String> headers = session.getHeaders();
         String authHeader = headers.get("authorization");
+        String uri = session.getUri();
+        Method method = session.getMethod();
         
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        Log.i(TAG, "[AUTH] Checking authorization for: " + method + " " + uri);
+        Log.i(TAG, "[AUTH] Authorization header: " + authHeader);
+        
+        if (authHeader == null) {
+            Log.w(TAG, "[AUTH] Authorization failed: No authorization header present");
+            return false;
+        }
+        
+        if (!authHeader.startsWith("Bearer ")) {
+            Log.w(TAG, "[AUTH] Authorization failed: Invalid authorization header format. Expected 'Bearer <token>', got: " + authHeader);
             return false;
         }
         
         String token = authHeader.substring(7);
-        return activeTokens.containsKey(token);
+        Log.i(TAG, "[AUTH] Extracted token: " + token);
+        
+        boolean isValid = activeTokens.containsKey(token);
+        if (isValid) {
+            Log.i(TAG, "[AUTH] Authorization successful: Token is valid");
+        } else {
+            Log.w(TAG, "[AUTH] Authorization failed: Token not found in active tokens");
+            Log.w(TAG, "[AUTH] Active tokens count: " + activeTokens.size());
+            // Log first few characters of active tokens for debugging (avoid logging full tokens)
+            for (String activeToken : activeTokens.keySet()) {
+                Log.d(TAG, "[AUTH] Active token prefix: " + activeToken.substring(0, Math.min(10, activeToken.length())) + "...");
+            }
+        }
+        
+        return isValid;
     }
 
     private Response createUnauthorizedResponse() {
@@ -3245,6 +3361,380 @@ public class ApiServer extends NanoHTTPD {
             Log.i(TAG, "=== SYSTEM SETTINGS SAVE END (ERROR) ===");
             
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", errorJson);
+        }
+    }
+    
+    // 가격 설정 불러오기
+    private Response handleGetPriceSettings() {
+        try {
+            Log.i(TAG, "=== PRICE SETTINGS GET START ===");
+            
+            SharedPreferences prefs = context.getSharedPreferences("PriceSettings", Context.MODE_PRIVATE);
+            
+            // 설정된 값들을 불러오기
+            Map<String, Object> settings = new HashMap<>();
+            settings.put("enableTimeBasedDeduction", prefs.getBoolean("enableTimeBasedDeduction", false));
+            settings.put("allowNegativeBalance", prefs.getBoolean("allowNegativeBalance", false));
+            settings.put("pointDeductionMethod", prefs.getString("pointDeductionMethod", "후순위"));
+            
+            // 아침 설정
+            Map<String, Object> breakfast = new HashMap<>();
+            breakfast.put("startTime", prefs.getString("breakfast_startTime", "07:00"));
+            breakfast.put("endTime", prefs.getString("breakfast_endTime", "10:59"));
+            breakfast.put("cashDeduction", prefs.getInt("breakfast_cashDeduction", 3000));
+            settings.put("breakfast", breakfast);
+            
+            // 점심 설정
+            Map<String, Object> lunch = new HashMap<>();
+            lunch.put("startTime", prefs.getString("lunch_startTime", "11:00"));
+            lunch.put("endTime", prefs.getString("lunch_endTime", "14:59"));
+            lunch.put("cashDeduction", prefs.getInt("lunch_cashDeduction", 5000));
+            settings.put("lunch", lunch);
+            
+            // 저녁 설정
+            Map<String, Object> dinner = new HashMap<>();
+            dinner.put("startTime", prefs.getString("dinner_startTime", "15:00"));
+            dinner.put("endTime", prefs.getString("dinner_endTime", "21:59"));
+            dinner.put("cashDeduction", prefs.getInt("dinner_cashDeduction", 7000));
+            settings.put("dinner", dinner);
+            
+            // 기본 설정
+            Map<String, Object> defaultSettings = new HashMap<>();
+            defaultSettings.put("cashDeduction", prefs.getInt("default_cashDeduction", 4000));
+            settings.put("default", defaultSettings);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("settings", settings);
+            result.put("timestamp", new java.util.Date().toString());
+            
+            Log.i(TAG, "✅ Price settings loaded successfully");
+            Log.i(TAG, "=== PRICE SETTINGS GET END ===");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Price settings get failed", e);
+            
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "가격 설정 불러오기 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("timestamp", new java.util.Date().toString());
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    // 가격 설정 저장하기
+    private Response handleSavePriceSettings(IHTTPSession session) {
+        try {
+            Log.i(TAG, "=== PRICE SETTINGS SAVE START ===");
+            
+            // POST 데이터 파싱
+            Map<String, String> files = new HashMap<>();
+            session.parseBody(files);
+            String postData = files.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Log.w(TAG, "Empty or null price settings data received");
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "가격 설정 데이터가 없습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Log.i(TAG, "Raw price settings data: " + postData);
+            
+            // JSON 파싱
+            @SuppressWarnings("unchecked")
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            
+            Log.i(TAG, "Parsed price settings: " + requestData);
+            
+            // SharedPreferences에 저장
+            SharedPreferences.Editor editor = context.getSharedPreferences("PriceSettings", Context.MODE_PRIVATE).edit();
+            
+            // 기본 설정
+            if (requestData.containsKey("enableTimeBasedDeduction")) {
+                Boolean value = (Boolean) requestData.get("enableTimeBasedDeduction");
+                editor.putBoolean("enableTimeBasedDeduction", value != null ? value : false);
+                Log.d(TAG, "Set enableTimeBasedDeduction: " + value);
+            }
+            
+            if (requestData.containsKey("allowNegativeBalance")) {
+                Boolean value = (Boolean) requestData.get("allowNegativeBalance");
+                editor.putBoolean("allowNegativeBalance", value != null ? value : false);
+                Log.d(TAG, "Set allowNegativeBalance: " + value);
+            }
+            
+            if (requestData.containsKey("pointDeductionMethod")) {
+                String value = (String) requestData.get("pointDeductionMethod");
+                editor.putString("pointDeductionMethod", value != null ? value : "후순위");
+                Log.d(TAG, "Set pointDeductionMethod: " + value);
+            }
+            
+            // 시간대별 설정 저장
+            String[] periods = {"breakfast", "lunch", "dinner", "default"};
+            for (String period : periods) {
+                if (requestData.containsKey(period)) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> periodData = (Map<String, Object>) requestData.get(period);
+                    
+                    if (periodData != null) {
+                        // 시작/종료 시간은 default에는 없음
+                        if (!period.equals("default")) {
+                            if (periodData.containsKey("startTime")) {
+                                String value = (String) periodData.get("startTime");
+                                editor.putString(period + "_startTime", value);
+                                Log.d(TAG, "Set " + period + "_startTime: " + value);
+                            }
+                            
+                            if (periodData.containsKey("endTime")) {
+                                String value = (String) periodData.get("endTime");
+                                editor.putString(period + "_endTime", value);
+                                Log.d(TAG, "Set " + period + "_endTime: " + value);
+                            }
+                        }
+                        
+                        // 현금 차감액
+                        if (periodData.containsKey("cashDeduction")) {
+                            Object cashObj = periodData.get("cashDeduction");
+                            int cashValue = 0;
+                            if (cashObj instanceof Number) {
+                                cashValue = ((Number) cashObj).intValue();
+                            } else if (cashObj instanceof String) {
+                                try {
+                                    cashValue = Integer.parseInt((String) cashObj);
+                                } catch (NumberFormatException e) {
+                                    Log.w(TAG, "Invalid cash deduction format for " + period + ": " + cashObj);
+                                }
+                            }
+                            editor.putInt(period + "_cashDeduction", cashValue);
+                            Log.d(TAG, "Set " + period + "_cashDeduction: " + cashValue);
+                        }
+                    }
+                }
+            }
+            
+            // 저장 실행
+            boolean success = editor.commit();
+            Log.i(TAG, "SharedPreferences commit result: " + success);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "가격 설정이 성공적으로 저장되었습니다");
+            result.put("timestamp", new java.util.Date().toString());
+            
+            Log.i(TAG, "✅ Price settings saved successfully");
+            Log.i(TAG, "=== PRICE SETTINGS SAVE END ===");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Price settings save failed", e);
+            
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "가격 설정 저장 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("timestamp", new java.util.Date().toString());
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    // 사업자등록번호 설정 불러오기
+    private Response handleGetBusinessSettings() {
+        try {
+            Log.i(TAG, "=== BUSINESS SETTINGS GET START ===");
+            
+            SharedPreferences prefs = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE);
+            
+            // 설정된 값들을 불러오기
+            Map<String, Object> settings = new HashMap<>();
+            settings.put("business_number", prefs.getString("business_number", ""));
+            settings.put("company_name", prefs.getString("company_name", ""));
+            settings.put("representative_name", prefs.getString("representative_name", ""));
+            settings.put("phone_number", prefs.getString("phone_number", ""));
+            settings.put("address", prefs.getString("address", ""));
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("settings", settings);
+            result.put("timestamp", new java.util.Date().toString());
+            
+            Log.i(TAG, "✅ Business settings loaded successfully");
+            Log.i(TAG, "=== BUSINESS SETTINGS GET END ===");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Business settings get failed", e);
+            
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "사업자 설정 불러오기 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("timestamp", new java.util.Date().toString());
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+    
+    // 사업자등록번호 설정 저장하기
+    private Response handleSaveBusinessSettings(IHTTPSession session) {
+        try {
+            Log.i(TAG, "=== BUSINESS SETTINGS SAVE START ===");
+            
+            // POST 데이터 파싱
+            Map<String, String> files = new HashMap<>();
+            session.parseBody(files);
+            String postData = files.get("postData");
+            
+            if (postData == null || postData.trim().isEmpty()) {
+                Log.w(TAG, "Empty or null business settings data received");
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "사업자 설정 데이터가 없습니다");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+            
+            Log.i(TAG, "Raw business settings data: " + postData);
+            
+            // JSON 파싱
+            @SuppressWarnings("unchecked")
+            Map<String, Object> requestData = gson.fromJson(postData, Map.class);
+            
+            Log.i(TAG, "Parsed business settings: " + requestData);
+            
+            // 사업자등록번호 유효성 검증
+            String businessNumber = (String) requestData.get("business_number");
+            if (businessNumber != null) {
+                businessNumber = businessNumber.replaceAll("[^0-9]", ""); // 숫자만 남기기
+                if (businessNumber.length() != 10) {
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("success", false);
+                    error.put("message", "사업자등록번호는 10자리 숫자여야 합니다");
+                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+                }
+            }
+            
+            // SharedPreferences에 저장
+            SharedPreferences.Editor editor = context.getSharedPreferences("BusinessSettings", Context.MODE_PRIVATE).edit();
+            
+            if (businessNumber != null) {
+                editor.putString("business_number", businessNumber);
+                Log.d(TAG, "Set business_number: " + businessNumber);
+            }
+            
+            if (requestData.containsKey("company_name")) {
+                String companyName = (String) requestData.get("company_name");
+                editor.putString("company_name", companyName);
+                Log.d(TAG, "Set company_name: " + companyName);
+            }
+            
+            if (requestData.containsKey("representative_name")) {
+                String representativeName = (String) requestData.get("representative_name");
+                editor.putString("representative_name", representativeName);
+                Log.d(TAG, "Set representative_name: " + representativeName);
+            }
+            
+            if (requestData.containsKey("phone_number")) {
+                String phoneNumber = (String) requestData.get("phone_number");
+                editor.putString("phone_number", phoneNumber);
+                Log.d(TAG, "Set phone_number: " + phoneNumber);
+            }
+            
+            if (requestData.containsKey("address")) {
+                String address = (String) requestData.get("address");
+                editor.putString("address", address);
+                Log.d(TAG, "Set address: " + address);
+            }
+            
+            // 저장 실행
+            boolean success = editor.commit();
+            Log.i(TAG, "SharedPreferences commit result: " + success);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "사업자 설정이 성공적으로 저장되었습니다");
+            result.put("business_number", businessNumber); // 저장된 사업자등록번호 반환
+            result.put("timestamp", new java.util.Date().toString());
+            
+            Log.i(TAG, "✅ Business settings saved successfully - Business Number: " + businessNumber);
+            Log.i(TAG, "=== BUSINESS SETTINGS SAVE END ===");
+            
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Business settings save failed", e);
+            
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "사업자 설정 저장 중 오류가 발생했습니다: " + e.getMessage());
+            error.put("timestamp", new java.util.Date().toString());
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    private Response handleDeleteCoupon(String couponId) {
+        Log.i(TAG, "=== COUPON DELETE START ===");
+        Log.i(TAG, "Deleting coupon with ID: " + couponId);
+        
+        try {
+            int couponIdInt = Integer.parseInt(couponId);
+            
+            // 쿠폰이 존재하는지 먼저 확인
+            Coupon existingCoupon = couponDAO.getCouponById(couponIdInt);
+            if (existingCoupon == null) {
+                Log.w(TAG, "Coupon not found with ID: " + couponId);
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("message", "삭제할 쿠폰을 찾을 수 없습니다.");
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(result));
+            }
+            
+            // 쿠폰 삭제 실행
+            int deletedRows = couponDAO.deleteCoupon(couponIdInt);
+            
+            if (deletedRows > 0) {
+                Log.i(TAG, "✅ Coupon deleted successfully - ID: " + couponId + ", Code: " + existingCoupon.getFullCouponCode());
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("message", "쿠폰이 성공적으로 삭제되었습니다.");
+                result.put("deletedCouponId", couponIdInt);
+                result.put("deletedCouponCode", existingCoupon.getFullCouponCode());
+                result.put("timestamp", new java.util.Date().toString());
+                
+                Log.i(TAG, "=== COUPON DELETE END ===");
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+                
+            } else {
+                Log.w(TAG, "❌ Coupon deletion failed - no rows affected for ID: " + couponId);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("message", "쿠폰 삭제에 실패했습니다.");
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
+            }
+            
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "❌ Invalid coupon ID format: " + couponId, e);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "잘못된 쿠폰 ID 형식입니다.");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(result));
+            
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Coupon deletion failed", e);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "쿠폰 삭제 중 오류가 발생했습니다: " + e.getMessage());
+            result.put("timestamp", new java.util.Date().toString());
+            
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
         }
     }
 }
