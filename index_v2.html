@@ -1041,6 +1041,7 @@
                         <div id="couponListActions" style="display: flex; gap: 10px;">
                             <button onclick="exportCouponData()" class="btn" style="background: #38a169; color: white;">📊 데이터 내보내기</button>
                             <button onclick="bulkStatusUpdate()" class="btn" style="background: #ed8936; color: white;">🔄 일괄 상태변경</button>
+                            <button onclick="bulkDeleteCoupons()" class="btn" style="background: #e53e3e; color: white;">🗑️ 일괄 삭제</button>
                         </div>
                     </div>
 
@@ -1928,6 +1929,35 @@
             <div style="text-align: right;">
                 <button type="button" onclick="closeBulkStatusModal()" class="btn btn-secondary">취소</button>
                 <button type="button" onclick="confirmBulkStatusUpdate()" class="btn btn-success" style="margin-left: 10px;">🔄 일괄 변경</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Modal -->
+    <div id="bulkDeleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #e53e3e;">🗑️ 쿠폰 일괄 삭제 확인</h3>
+                <button class="close-btn" onclick="closeBulkDeleteModal()">×</button>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <div style="background: #fee; padding: 15px; border-radius: 8px; border-left: 4px solid #e53e3e; margin-bottom: 20px;">
+                    <strong>⚠️ 경고:</strong> 이 작업은 되돌릴 수 없습니다.
+                </div>
+                
+                <p style="margin-bottom: 15px;"><strong>선택된 쿠폰 <span id="bulkDeleteCouponCount">0</span>개를 모두 삭제하시겠습니까?</strong></p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div>• 모든 선택된 쿠폰이 완전히 삭제됩니다.</div>
+                    <div>• 삭제된 쿠폰의 잔액은 복구할 수 없습니다.</div>
+                    <div>• 이 작업은 되돌릴 수 없습니다.</div>
+                </div>
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="button" onclick="closeBulkDeleteModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="confirmBulkDelete()" class="btn" style="background: #e53e3e; color: white; margin-left: 10px;">🗑️ 삭제</button>
             </div>
         </div>
     </div>
@@ -4544,10 +4574,10 @@
 
             console.log('[EMAIL-CONFIG] 이메일 설정 저장 시작');
             
-            // 폼 데이터 수집 (v1과 동일한 구조)
+            // 폼 데이터 수집 (index.html과 동일한 구조)
             const emailConfig = {
                 smtpHost: document.getElementById('smtpHost').value,
-                smtpPort: document.getElementById('smtpPort').value,  // 문자열로 전송 (v1과 동일)
+                smtpPort: document.getElementById('smtpPort').value,
                 security: document.querySelector('input[name="security"]:checked').value,
                 username: document.getElementById('smtpUsername').value,
                 password: document.getElementById('smtpPassword').value,
@@ -5764,10 +5794,10 @@ URL: ${window.location.href}
                 return;
             }
 
-            // 폼 데이터 수집
+            // 폼 데이터 수집 (index.html과 동일한 형식)
             const emailConfig = {
                 smtpHost: document.getElementById('smtpHost')?.value?.trim() || '',
-                smtpPort: parseInt(document.getElementById('smtpPort')?.value) || 587,
+                smtpPort: document.getElementById('smtpPort')?.value || '587',
                 security: document.querySelector('input[name="security"]:checked')?.value || 'tls',
                 username: document.getElementById('smtpUsername')?.value?.trim() || '',
                 password: document.getElementById('smtpPassword')?.value || '',
@@ -6797,6 +6827,76 @@ Last Check: ${new Date().toLocaleString()}
             } catch (error) {
                 console.error('일괄 상태 변경 오류:', error);
                 alert('일괄 상태 변경 오류: ' + error.message);
+            }
+        }
+
+        // 일괄 삭제
+        function bulkDeleteCoupons() {
+            if (selectedCouponIds.length === 0) {
+                alert('삭제할 쿠폰을 선택해주세요.');
+                return;
+            }
+
+            document.getElementById('bulkDeleteCouponCount').textContent = selectedCouponIds.length;
+            document.getElementById('bulkDeleteModal').style.display = 'block';
+        }
+
+        // 일괄 삭제 모달 닫기
+        function closeBulkDeleteModal() {
+            document.getElementById('bulkDeleteModal').style.display = 'none';
+        }
+
+        // 일괄 삭제 확인
+        async function confirmBulkDelete() {
+            if (!currentToken || selectedCouponIds.length === 0) {
+                alert('삭제할 쿠폰이 선택되지 않았습니다.');
+                return;
+            }
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            let successCount = 0;
+            let failCount = 0;
+
+            try {
+                for (const couponId of selectedCouponIds) {
+                    try {
+                        const response = await fetch(`${serverUrl}/api/coupons/${couponId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${currentToken}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                successCount++;
+                            } else {
+                                failCount++;
+                            }
+                        } else {
+                            failCount++;
+                        }
+                    } catch (error) {
+                        failCount++;
+                        console.error(`쿠폰 ${couponId} 삭제 오류:`, error);
+                    }
+                }
+
+                closeBulkDeleteModal();
+                alert(`일괄 삭제 완료\n성공: ${successCount}개\n실패: ${failCount}개`);
+                
+                // 선택된 쿠폰 ID 초기화
+                selectedCouponIds = [];
+                document.getElementById('selectAllCoupons').checked = false;
+                
+                // 쿠폰 목록 새로고침
+                refreshCouponList();
+
+            } catch (error) {
+                closeBulkDeleteModal();
+                alert('일괄 삭제 오류: ' + error.message);
             }
         }
 
