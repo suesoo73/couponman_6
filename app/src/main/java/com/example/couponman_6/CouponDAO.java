@@ -364,6 +364,11 @@ public class CouponDAO {
         Cursor cursor = null;
         
         try {
+            // 데이터베이스 연결 열기
+            if (database == null || !database.isOpen()) {
+                open();
+            }
+            
             // 쿠폰 테이블과 직원 테이블을 조인하여 거래처 ID로 필터링
             String sql = "SELECT c.* FROM " + DatabaseHelper.TABLE_COUPON + " c " +
                         "JOIN " + DatabaseHelper.TABLE_EMPLOYEE + " e ON c." + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + " = e." + DatabaseHelper.COLUMN_EMPLOYEE_ID + " " +
