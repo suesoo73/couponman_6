@@ -36,9 +36,10 @@ public class QRScanActivity extends AppCompatActivity {
     private TextView tvScanResult;
     private TextView tvLastScanTime;
     private TextView tvScanCount;
-    private TextView tvCashBalance;
-    private TextView tvPointBalance;
-    private TextView tvCouponStatus;
+    // 쿠폰 잔고 관련 뷰들 제거 (레이아웃에서 삭제됨)
+    // private TextView tvCashBalance;
+    // private TextView tvPointBalance;
+    // private TextView tvCouponStatus;
     private Button btnToggleScan;
     private Button btnClearResults;
     private Button btnSwitchCamera;
@@ -90,9 +91,10 @@ public class QRScanActivity extends AppCompatActivity {
         tvScanResult = findViewById(R.id.tvScanResult);
         tvLastScanTime = findViewById(R.id.tvLastScanTime);
         tvScanCount = findViewById(R.id.tvScanCount);
-        tvCashBalance = findViewById(R.id.tvCashBalance);
-        tvPointBalance = findViewById(R.id.tvPointBalance);
-        tvCouponStatus = findViewById(R.id.tvCouponStatus);
+        // 쿠폰 잔고 관련 뷰들 제거 (레이아웃에서 삭제됨)
+        // tvCashBalance = findViewById(R.id.tvCashBalance);
+        // tvPointBalance = findViewById(R.id.tvPointBalance);
+        // tvCouponStatus = findViewById(R.id.tvCouponStatus);
         btnToggleScan = findViewById(R.id.btnToggleScan);
         btnClearResults = findViewById(R.id.btnClearResults);
         btnSwitchCamera = findViewById(R.id.btnSwitchCamera);
@@ -100,7 +102,7 @@ public class QRScanActivity extends AppCompatActivity {
         
         updateScanCount();
         updateCameraSwitchButtonText();
-        resetBalanceDisplay();
+        // resetBalanceDisplay(); // 잔고 표시 제거
     }
     
     private void initializeDatabase() {
@@ -527,12 +529,13 @@ public class QRScanActivity extends AppCompatActivity {
     }
     
     /**
-     * 잔고 표시 초기화
+     * 잔고 표시 초기화 - 레이아웃에서 제거되어 사용하지 않음
      */
     private void resetBalanceDisplay() {
-        tvCashBalance.setText("0원");
-        tvPointBalance.setText("0P");
-        tvCouponStatus.setText("QR 코드를 스캔하면 잔고 정보가 표시됩니다");
+        // 잔고 표시 UI가 제거되어 더 이상 사용하지 않음
+        // tvCashBalance.setText("0원");
+        // tvPointBalance.setText("0P");
+        // tvCouponStatus.setText("QR 코드를 스캔하면 잔고 정보가 표시됩니다");
     }
     
     /**
@@ -543,52 +546,43 @@ public class QRScanActivity extends AppCompatActivity {
             @Override
             public void run() {
                 // 현금 잔고 표시
-                tvCashBalance.setText(String.format("%,d원", (int)coupon.getCashBalance()));
+                // 잔고 표시 UI가 제거되어 스캔 결과에 잔고 정보를 포함하도록 수정
+                // 기존 updateBalanceDisplay 함수를 호출할 때 이미 표시되도록 되어 있음
                 
-                // 포인트 잔고 표시  
-                tvPointBalance.setText(String.format("%,dP", (int)coupon.getPointBalance()));
-                
-                // 상태 메시지 구성
-                StringBuilder statusText = new StringBuilder();
-                if (employee != null) {
-                    statusText.append("👤 ").append(employee.getName());
-                    if (corporate != null) {
-                        statusText.append(" (").append(corporate.getName()).append(")");
-                    }
-                    statusText.append(" | ");
-                }
-                statusText.append("📊 ").append(coupon.getStatus());
-                statusText.append(" | 📅 ").append(coupon.getExpireDate());
-                
-                tvCouponStatus.setText(statusText.toString());
+                // 잔고 정보는 displayCouponInfo에서 처리
             }
         });
     }
     
     /**
-     * 쿠폰을 찾을 수 없을 때 잔고 표시 업데이트
+     * 쿠폰을 찾을 수 없을 때 잔고 표시 업데이트 - 더 이상 사용하지 않음
      */
     private void updateBalanceDisplayNotFound() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                tvCashBalance.setText("---");
-                tvPointBalance.setText("---");
-                tvCouponStatus.setText("❌ 쿠폰을 찾을 수 없습니다");
-            }
-        });
+        // 잔고 표시 UI가 제거되어 displayCouponNotFound에서 처리
+        // runOnUiThread(new Runnable() {
+        //     @Override
+        //     public void run() {
+        //         tvCashBalance.setText("---");
+        //         tvPointBalance.setText("---");
+        //         tvCouponStatus.setText("❌ 쿠폰을 찾을 수 없습니다");
+        //     }
+        // });
     }
     
     /**
-     * 에러 발생 시 잔고 표시 업데이트
+     * 에러 발생 시 잔고 표시 업데이트 - 더 이상 사용하지 않음
      */
     private void updateBalanceDisplayError(String errorMessage) {
+        // 잔고 표시 UI가 제거되어 스캔 결과에 오류 표시
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                tvCashBalance.setText("오류");
-                tvPointBalance.setText("오류");
-                tvCouponStatus.setText("⚠️ " + errorMessage);
+                String currentResult = tvScanResult.getText().toString();
+                if (currentResult.contains("QR 코드를 스캔하면")) {
+                    tvScanResult.setText("⚠️ " + errorMessage);
+                } else {
+                    tvScanResult.setText(currentResult + "\n\n⚠️ " + errorMessage);
+                }
             }
         });
     }
@@ -650,7 +644,9 @@ public class QRScanActivity extends AppCompatActivity {
                     Toast.makeText(this, 
                         "현금 잔고가 부족합니다!\n현재: " + String.format("%,d", (int)currentCash) + "원\n필요: " + String.format("%,d", finalCashDeduction) + "원", 
                         Toast.LENGTH_LONG).show();
-                    tvCouponStatus.setText("❌ 현금 잔고 부족");
+                    // 잔고 부족 메시지를 스캔 결과에 추가
+                    String currentResult = tvScanResult.getText().toString();
+                    tvScanResult.setText(currentResult + "\n❌ 현금 잔고 부족");
                 });
                 
                 // 결제 실패 음성 재생
@@ -700,7 +696,9 @@ public class QRScanActivity extends AppCompatActivity {
                             "💰 차감 완료!\n" + finalPeriodName + " 시간대: " + String.format("%,d", finalCashDeduction) + "원 차감\n" +
                             "현금 잔고: " + String.format("%,d", (int)currentCash) + "원 → " + String.format("%,d", (int)newCashBalance) + "원", 
                             Toast.LENGTH_LONG).show();
-                        tvCouponStatus.setText("✅ 차감 완료 (" + finalPeriodName + " 시간대)");
+                        // 차감 완료 메시지를 스캔 결과에 추가
+                        String currentResult = tvScanResult.getText().toString();
+                        tvScanResult.setText(currentResult + "\n✅ 차감 완료 (" + finalPeriodName + " 시간대)");
                     });
                     
                     // 결제 성공 음성 재생
@@ -712,7 +710,9 @@ public class QRScanActivity extends AppCompatActivity {
                     
                     runOnUiThread(() -> {
                         Toast.makeText(this, "차감 처리 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show();
-                        tvCouponStatus.setText("❌ 차감 처리 실패");
+                        // 차감 실패 메시지를 스캔 결과에 추가
+                        String currentResult = tvScanResult.getText().toString();
+                        tvScanResult.setText(currentResult + "\n❌ 차감 처리 실패");
                     });
                     
                     // 결제 실패 음성 재생
@@ -730,7 +730,9 @@ public class QRScanActivity extends AppCompatActivity {
             
             runOnUiThread(() -> {
                 Toast.makeText(this, "차감 처리 중 오류: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                tvCouponStatus.setText("❌ 처리 오류");
+                // 처리 오류 메시지를 스캔 결과에 추가
+                String currentResult = tvScanResult.getText().toString();
+                tvScanResult.setText(currentResult + "\n❌ 처리 오류");
             });
             
             // 결제 실패 음성 재생
