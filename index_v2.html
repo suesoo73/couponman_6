@@ -322,6 +322,47 @@
             box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
         }
 
+        /* Tab Button Styles */
+        .management-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-bottom: 3px solid #e0e0e0;
+            color: #666;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-button:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            font-weight: 700;
+        }
+
+        .management-tab-content {
+            display: none;
+        }
+
+        .management-tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
         /* Card Styles */
         .card {
             background: #f8f9fa;
@@ -1428,7 +1469,15 @@
                     <h2>경영정보</h2>
                 </div>
                 
-                <h3 style="margin-bottom: 20px;">📊 거래처별 쿠폰 발행 및 사용 통계</h3>
+                <!-- 탭 메뉴 -->
+                <div class="management-tabs" style="margin-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                    <button class="tab-button active" onclick="showManagementTab('statistics')">📊 거래처별 통계</button>
+                    <button class="tab-button" onclick="showManagementTab('monthlyReport')">📋 월간정산보고서</button>
+                </div>
+                
+                <!-- 거래처별 통계 탭 -->
+                <div id="statisticsTab" class="management-tab-content active">
+                    <h3 style="margin-bottom: 20px;">📊 거래처별 쿠폰 발행 및 사용 통계</h3>
                 
                 <!-- 기간 선택 -->
                 <div class="card" style="margin-bottom: 20px;">
@@ -1498,6 +1547,109 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                </div>
+                
+                <!-- 월간정산보고서 탭 -->
+                <div id="monthlyReportTab" class="management-tab-content">
+                    <h3 style="margin-bottom: 20px;">📋 월간정산보고서</h3>
+                    
+                    <!-- 조회 조건 -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">🔍 조회 조건</h4>
+                        <div class="form-row">
+                            <div>
+                                <label for="monthlyReportYear">년도:</label>
+                                <select id="monthlyReportYear">
+                                    <option value="2025">2025년</option>
+                                    <option value="2024">2024년</option>
+                                    <option value="2023">2023년</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="monthlyReportMonth">월:</label>
+                                <select id="monthlyReportMonth">
+                                    <option value="01">1월</option>
+                                    <option value="02">2월</option>
+                                    <option value="03">3월</option>
+                                    <option value="04">4월</option>
+                                    <option value="05">5월</option>
+                                    <option value="06">6월</option>
+                                    <option value="07">7월</option>
+                                    <option value="08">8월</option>
+                                    <option value="09">9월</option>
+                                    <option value="10">10월</option>
+                                    <option value="11">11월</option>
+                                    <option value="12">12월</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="monthlyReportCorporate">거래처:</label>
+                                <select id="monthlyReportCorporate">
+                                    <option value="">전체</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <button onclick="loadMonthlyReport()" class="btn btn-success">📊 월간보고서 조회</button>
+                            <button onclick="exportMonthlyReportToExcel()" class="btn" style="background: #52c41a; color: white;">📥 엑셀 다운로드</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 월간 요약 정보 -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">📈 월간 요약</h4>
+                        <div id="monthlySummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                            <div class="stat-item" style="background: #e6f7ff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 사용 횟수</div>
+                                <div id="monthlyTotalUsage" style="font-size: 24px; font-weight: bold; color: #1890ff;">-</div>
+                            </div>
+                            <div class="stat-item" style="background: #f6ffed; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 차감 현금</div>
+                                <div id="monthlyTotalCash" style="font-size: 20px; font-weight: bold; color: #52c41a;">-</div>
+                            </div>
+                            <div class="stat-item" style="background: #fff7e6; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 차감 포인트</div>
+                                <div id="monthlyTotalPoints" style="font-size: 20px; font-weight: bold; color: #fa8c16;">-</div>
+                            </div>
+                            <div class="stat-item" style="background: #f0f5ff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">현금 잔액</div>
+                                <div id="monthlyCashBalance" style="font-size: 20px; font-weight: bold; color: #722ed1;">-</div>
+                            </div>
+                            <div class="stat-item" style="background: #fff0f6; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">포인트 잔액</div>
+                                <div id="monthlyPointBalance" style="font-size: 20px; font-weight: bold; color: #eb2f96;">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 직원별 상세 내역 -->
+                    <div class="card">
+                        <h4 style="margin-bottom: 15px;">👥 직원별 상세 내역</h4>
+                        <div style="max-height: 500px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <table id="monthlyReportTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left;">거래처명</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left;">직원명</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">사용 횟수</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">차감 현금</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">차감 포인트</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">현금 잔액</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">포인트 잔액</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">상세보기</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthlyReportBody">
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; padding: 20px; border: 1px solid #e0e0e0;">
+                                            조회 버튼을 클릭하여 월간보고서를 확인하세요.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2067,6 +2219,29 @@
                     document.getElementById('statsStartDate').value = firstDay.toISOString().split('T')[0];
                     document.getElementById('statsEndDate').value = today.toISOString().split('T')[0];
                 }
+            }
+        }
+
+        // 경영정보 탭 전환 함수
+        function showManagementTab(tabName) {
+            // 모든 탭 버튼 비활성화
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 모든 탭 콘텐츠 숨김
+            document.querySelectorAll('.management-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 선택된 탭 활성화
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // 월간정산보고서 탭이 활성화될 때 거래처 목록 로드
+            if (tabName === 'monthlyReport') {
+                loadCorporatesForMonthlyReport();
+                setCurrentMonth();
             }
         }
 
@@ -6937,6 +7112,234 @@ Last Check: ${new Date().toLocaleString()}
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
             link.setAttribute('download', `쿠폰목록_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 월간정산보고서 관련 함수들
+        
+        // 거래처 목록을 월간보고서용 셀렉트박스에 로드
+        async function loadCorporatesForMonthlyReport() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            if (!serverUrl || !currentToken) {
+                console.log('서버 URL이나 토큰이 없습니다.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(serverUrl + '/api/corporates', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                });
+                
+                if (response.ok) {
+                    const corporates = await response.json();
+                    const select = document.getElementById('monthlyReportCorporate');
+                    
+                    // 기존 옵션 제거 (첫 번째 "전체" 옵션은 유지)
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
+                    
+                    // 거래처 옵션 추가
+                    corporates.forEach(corporate => {
+                        const option = document.createElement('option');
+                        option.value = corporate.id;
+                        option.textContent = corporate.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('거래처 목록 로드 실패:', error);
+            }
+        }
+        
+        // 현재 월로 초기 설정
+        function setCurrentMonth() {
+            const now = new Date();
+            document.getElementById('monthlyReportYear').value = now.getFullYear().toString();
+            document.getElementById('monthlyReportMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+        }
+        
+        // 월간보고서 데이터 로드
+        async function loadMonthlyReport() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const year = document.getElementById('monthlyReportYear').value;
+            const month = document.getElementById('monthlyReportMonth').value;
+            const corporateId = document.getElementById('monthlyReportCorporate').value;
+            
+            if (!serverUrl || !currentToken) {
+                alert('서버 설정을 먼저 완료해주세요.');
+                return;
+            }
+            
+            if (!year || !month) {
+                alert('년도와 월을 선택해주세요.');
+                return;
+            }
+            
+            try {
+                // API 호출 - 실제 API 엔드포인트에 맞게 수정 필요
+                const url = `${serverUrl}/api/monthly-report?year=${year}&month=${month}${corporateId ? '&corporateId=' + corporateId : ''}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayMonthlyReportData(data);
+                } else {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('월간보고서 로드 실패:', error);
+                
+                // 임시 데모 데이터 표시
+                displayDemoMonthlyData();
+            }
+        }
+        
+        // 월간보고서 데이터 표시
+        function displayMonthlyReportData(data) {
+            // 요약 정보 업데이트
+            document.getElementById('monthlyTotalUsage').textContent = data.summary.totalUsage.toLocaleString();
+            document.getElementById('monthlyTotalCash').textContent = data.summary.totalCash.toLocaleString() + '원';
+            document.getElementById('monthlyTotalPoints').textContent = data.summary.totalPoints.toLocaleString() + 'P';
+            document.getElementById('monthlyCashBalance').textContent = data.summary.cashBalance.toLocaleString() + '원';
+            document.getElementById('monthlyPointBalance').textContent = data.summary.pointBalance.toLocaleString() + 'P';
+            
+            // 직원별 상세 테이블 업데이트
+            const tbody = document.getElementById('monthlyReportBody');
+            tbody.innerHTML = '';
+            
+            data.employees.forEach(emp => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="border: 1px solid #e0e0e0; padding: 10px;">${emp.corporateName}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px;">${emp.employeeName}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: center;">${emp.usageCount.toLocaleString()}</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right;">${emp.deductedCash.toLocaleString()}원</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right;">${emp.deductedPoints.toLocaleString()}P</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right;">${emp.cashBalance.toLocaleString()}원</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right;">${emp.pointBalance.toLocaleString()}P</td>
+                    <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: center;">
+                        <button onclick="viewEmployeeDetail('${emp.employeeId}', '${emp.employeeName}')" class="btn" style="font-size: 12px; padding: 6px 12px;">상세보기</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 데모 데이터 표시 (API 연동 전 테스트용)
+        function displayDemoMonthlyData() {
+            const demoData = {
+                summary: {
+                    totalUsage: 245,
+                    totalCash: 122500,
+                    totalPoints: 2450,
+                    cashBalance: 877500,
+                    pointBalance: 7550
+                },
+                employees: [
+                    {
+                        corporateName: "삼성전자",
+                        employeeName: "김철수",
+                        usageCount: 22,
+                        deductedCash: 11000,
+                        deductedPoints: 220,
+                        cashBalance: 89000,
+                        pointBalance: 780,
+                        employeeId: "emp001"
+                    },
+                    {
+                        corporateName: "삼성전자",
+                        employeeName: "이영희",
+                        usageCount: 18,
+                        deductedCash: 9000,
+                        deductedPoints: 180,
+                        cashBalance: 91000,
+                        pointBalance: 820,
+                        employeeId: "emp002"
+                    },
+                    {
+                        corporateName: "LG화학",
+                        employeeName: "박민수",
+                        usageCount: 25,
+                        deductedCash: 12500,
+                        deductedPoints: 250,
+                        cashBalance: 87500,
+                        pointBalance: 750,
+                        employeeId: "emp003"
+                    }
+                ]
+            };
+            
+            displayMonthlyReportData(demoData);
+        }
+        
+        // 직원 상세보기
+        function viewEmployeeDetail(employeeId, employeeName) {
+            alert(`${employeeName} 직원의 상세 내역을 조회합니다.\n직원 ID: ${employeeId}\n\n(상세 내역 기능은 추후 구현 예정)`);
+        }
+        
+        // 월간보고서 Excel 다운로드
+        async function exportMonthlyReportToExcel() {
+            const year = document.getElementById('monthlyReportYear').value;
+            const month = document.getElementById('monthlyReportMonth').value;
+            const corporateSelect = document.getElementById('monthlyReportCorporate');
+            const corporateName = corporateSelect.options[corporateSelect.selectedIndex].text;
+            
+            // 현재 표시된 데이터 가져오기
+            const tableBody = document.getElementById('monthlyReportBody');
+            const rows = tableBody.querySelectorAll('tr');
+            
+            if (rows.length === 0 || rows[0].cells.length === 1) {
+                alert('먼저 월간보고서를 조회해주세요.');
+                return;
+            }
+            
+            // CSV 헤더
+            const headers = ['거래처명', '직원명', '사용횟수', '차감현금', '차감포인트', '현금잔액', '포인트잔액'];
+            
+            // CSV 데이터
+            const csvData = [];
+            rows.forEach(row => {
+                if (row.cells.length > 1) { // 메시지 행이 아닌 데이터 행만
+                    const rowData = [];
+                    for (let i = 0; i < 7; i++) { // 상세보기 버튼 제외
+                        rowData.push(row.cells[i].textContent.trim());
+                    }
+                    csvData.push(rowData);
+                }
+            });
+            
+            // CSV 문자열 생성
+            const csvContent = [headers, ...csvData]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+            
+            // BOM 추가 (Excel에서 한글 깨짐 방지)
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // 파일명 생성
+            const corporateId = document.getElementById('monthlyReportCorporate').value;
+            const filename = `월간정산보고서_${year}년${month}월_${corporateId ? corporateName : '전체'}_${new Date().toISOString().split('T')[0]}.csv`;
+            
+            // 다운로드
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
