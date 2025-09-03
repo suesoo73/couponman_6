@@ -7122,37 +7122,53 @@ Last Check: ${new Date().toLocaleString()}
         
         // 거래처 목록을 월간보고서용 셀렉트박스에 로드
         async function loadCorporatesForMonthlyReport() {
+            if (!currentToken) {
+                console.log('토큰이 없습니다.');
+                return;
+            }
+            
             const serverUrl = document.getElementById('serverUrl').value;
             
-            if (!serverUrl || !currentToken) {
-                console.log('서버 URL이나 토큰이 없습니다.');
+            if (!serverUrl) {
+                console.log('서버 URL이 없습니다.');
                 return;
             }
             
             try {
-                const response = await fetch(serverUrl + '/api/corporates', {
+                const response = await fetch(`${serverUrl}/api/corporates`, {
+                    method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${currentToken}`,
-                        'Content-Type': 'application/json; charset=utf-8'
+                        'Authorization': `Bearer ${currentToken}`
                     }
                 });
                 
-                if (response.ok) {
-                    const corporates = await response.json();
+                const data = await response.json();
+                
+                if (data.success) {
                     const select = document.getElementById('monthlyReportCorporate');
                     
                     // 기존 옵션 제거 (첫 번째 "전체" 옵션은 유지)
-                    while (select.children.length > 1) {
-                        select.removeChild(select.lastChild);
-                    }
+                    select.innerHTML = '<option value="">전체</option>';
                     
                     // 거래처 옵션 추가
-                    corporates.forEach(corporate => {
+                    data.data.forEach(corporate => {
                         const option = document.createElement('option');
-                        option.value = corporate.id;
+                        option.value = corporate.customerId;
                         option.textContent = corporate.name;
+                        option.dataset.corporateName = corporate.name;
                         select.appendChild(option);
                     });
+                    
+                    // 거래처 선택 시 월간보고서 자동 새로고침
+                    select.onchange = function() {
+                        if (document.getElementById('monthlyReportBody').children.length > 0 && 
+                            !document.getElementById('monthlyReportBody').children[0].textContent.includes('조회 버튼을 클릭')) {
+                            // 이미 데이터가 로드되어 있으면 자동 새로고침
+                            loadMonthlyReport();
+                        }
+                    };
+                } else {
+                    console.error('거래처 목록 로드 실패:', data.message);
                 }
             } catch (error) {
                 console.error('거래처 목록 로드 실패:', error);
@@ -7196,14 +7212,19 @@ Last Check: ${new Date().toLocaleString()}
                 
                 if (response.ok) {
                     const data = await response.json();
-                    displayMonthlyReportData(data);
+                    if (data.success) {
+                        displayMonthlyReportData(data);
+                    } else {
+                        throw new Error(data.message || '데이터를 불러오는데 실패했습니다.');
+                    }
                 } else {
-                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
                 console.error('월간보고서 로드 실패:', error);
                 
-                // 임시 데모 데이터 표시
+                // API 연동이 안되어 있거나 실패한 경우 데모 데이터 표시
+                console.log('API 연동이 되지 않아 데모 데이터를 표시합니다.');
                 displayDemoMonthlyData();
             }
         }
@@ -7241,46 +7262,83 @@ Last Check: ${new Date().toLocaleString()}
         
         // 데모 데이터 표시 (API 연동 전 테스트용)
         function displayDemoMonthlyData() {
-            const demoData = {
-                summary: {
-                    totalUsage: 245,
-                    totalCash: 122500,
-                    totalPoints: 2450,
-                    cashBalance: 877500,
-                    pointBalance: 7550
+            const corporateSelect = document.getElementById('monthlyReportCorporate');
+            const selectedCorporate = corporateSelect.value;
+            const selectedCorporateName = selectedCorporate ? 
+                corporateSelect.options[corporateSelect.selectedIndex].text : '';
+            
+            // 전체 데모 데이터
+            const allDemoData = [
+                {
+                    corporateName: "삼성전자",
+                    employeeName: "김철수",
+                    usageCount: 22,
+                    deductedCash: 11000,
+                    deductedPoints: 220,
+                    cashBalance: 89000,
+                    pointBalance: 780,
+                    employeeId: "emp001"
                 },
-                employees: [
-                    {
-                        corporateName: "삼성전자",
-                        employeeName: "김철수",
-                        usageCount: 22,
-                        deductedCash: 11000,
-                        deductedPoints: 220,
-                        cashBalance: 89000,
-                        pointBalance: 780,
-                        employeeId: "emp001"
-                    },
-                    {
-                        corporateName: "삼성전자",
-                        employeeName: "이영희",
-                        usageCount: 18,
-                        deductedCash: 9000,
-                        deductedPoints: 180,
-                        cashBalance: 91000,
-                        pointBalance: 820,
-                        employeeId: "emp002"
-                    },
-                    {
-                        corporateName: "LG화학",
-                        employeeName: "박민수",
-                        usageCount: 25,
-                        deductedCash: 12500,
-                        deductedPoints: 250,
-                        cashBalance: 87500,
-                        pointBalance: 750,
-                        employeeId: "emp003"
-                    }
-                ]
+                {
+                    corporateName: "삼성전자",
+                    employeeName: "이영희",
+                    usageCount: 18,
+                    deductedCash: 9000,
+                    deductedPoints: 180,
+                    cashBalance: 91000,
+                    pointBalance: 820,
+                    employeeId: "emp002"
+                },
+                {
+                    corporateName: "LG화학",
+                    employeeName: "박민수",
+                    usageCount: 25,
+                    deductedCash: 12500,
+                    deductedPoints: 250,
+                    cashBalance: 87500,
+                    pointBalance: 750,
+                    employeeId: "emp003"
+                },
+                {
+                    corporateName: "LG화학",
+                    employeeName: "이수진",
+                    usageCount: 20,
+                    deductedCash: 10000,
+                    deductedPoints: 200,
+                    cashBalance: 90000,
+                    pointBalance: 800,
+                    employeeId: "emp004"
+                },
+                {
+                    corporateName: "현대자동차",
+                    employeeName: "정민호",
+                    usageCount: 15,
+                    deductedCash: 7500,
+                    deductedPoints: 150,
+                    cashBalance: 92500,
+                    pointBalance: 850,
+                    employeeId: "emp005"
+                }
+            ];
+            
+            // 거래처 선택에 따라 데이터 필터링
+            let filteredEmployees = allDemoData;
+            if (selectedCorporate && selectedCorporateName !== '전체') {
+                filteredEmployees = allDemoData.filter(emp => emp.corporateName === selectedCorporateName);
+            }
+            
+            // 필터링된 데이터로 요약 통계 계산
+            const summary = {
+                totalUsage: filteredEmployees.reduce((sum, emp) => sum + emp.usageCount, 0),
+                totalCash: filteredEmployees.reduce((sum, emp) => sum + emp.deductedCash, 0),
+                totalPoints: filteredEmployees.reduce((sum, emp) => sum + emp.deductedPoints, 0),
+                cashBalance: filteredEmployees.reduce((sum, emp) => sum + emp.cashBalance, 0),
+                pointBalance: filteredEmployees.reduce((sum, emp) => sum + emp.pointBalance, 0)
+            };
+            
+            const demoData = {
+                summary: summary,
+                employees: filteredEmployees
             };
             
             displayMonthlyReportData(demoData);
