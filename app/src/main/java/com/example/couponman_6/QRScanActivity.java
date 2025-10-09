@@ -1,6 +1,7 @@
 package com.example.couponman_6;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
@@ -8,9 +9,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -369,10 +372,16 @@ public class QRScanActivity extends AppCompatActivity {
                         
                         // UI에 결과 표시
                         displayCouponInfo(couponCode, coupon, employee, corporate);
-                        
-                        // 가격 설정에 따른 차감 처리
-                        boolean deductionSuccess = applyPriceDeduction(coupon, employee, corporate);
-                        
+
+                        // 결제 유형 확인 - 임의결제(custom)인 경우 금액 입력 대화상자 표시
+                        if (Coupon.PAYMENT_TYPE_CUSTOM.equals(coupon.getPaymentType())) {
+                            Log.i(TAG, "[CUSTOM-PAYMENT] 임의결제 쿠폰 감지 - 금액 입력 대화상자 표시");
+                            showCustomAmountDialog(coupon, employee, corporate);
+                        } else {
+                            // 가격 설정에 따른 차감 처리 (선불/후불)
+                            boolean deductionSuccess = applyPriceDeduction(coupon, employee, corporate);
+                        }
+
                         // 하단 잔고 표시 업데이트
                         updateBalanceDisplay(coupon, employee, corporate);
                         
@@ -931,6 +940,192 @@ public class QRScanActivity extends AppCompatActivity {
                 Log.w(TAG, "[AUDIO] onDestroy에서 MediaPlayer 해제 중 오류", e);
             }
             mediaPlayer = null;
+        }
+    }
+
+    /**
+     * 임의결제 쿠폰 - 금액 입력 대화상자 표시
+     */
+    private void showCustomAmountDialog(final Coupon coupon, final Employee employee, final Corporate corporate) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(QRScanActivity.this);
+                builder.setTitle("💰 결제 금액 입력");
+                builder.setMessage("차감할 금액을 입력하세요");
+
+                // EditText 생성
+                final EditText input = new EditText(QRScanActivity.this);
+                input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+                input.setHint("금액 (원)");
+
+                // 패딩 추가
+                int padding = 50;
+                input.setPadding(padding, padding, padding, padding);
+
+                builder.setView(input);
+
+                // 확인 버튼
+                builder.setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String amountStr = input.getText().toString().trim();
+
+                        if (amountStr.isEmpty()) {
+                            Toast.makeText(QRScanActivity.this, "금액을 입력해주세요", Toast.LENGTH_SHORT).show();
+                            playAudioFeedback(false);
+                            return;
+                        }
+
+                        try {
+                            double amount = Double.parseDouble(amountStr);
+
+                            if (amount <= 0) {
+                                Toast.makeText(QRScanActivity.this, "0보다 큰 금액을 입력해주세요", Toast.LENGTH_SHORT).show();
+                                playAudioFeedback(false);
+                                return;
+                            }
+
+                            // 임의 금액 차감 처리
+                            boolean success = processCustomPayment(coupon, employee, corporate, amount);
+
+                            if (success) {
+                                Toast.makeText(QRScanActivity.this,
+                                    String.format("✅ %,d원이 차감되었습니다", (int)amount),
+                                    Toast.LENGTH_SHORT).show();
+                                playAudioFeedback(true);
+                            } else {
+                                playAudioFeedback(false);
+                            }
+
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(QRScanActivity.this, "올바른 금액을 입력해주세요", Toast.LENGTH_SHORT).show();
+                            playAudioFeedback(false);
+                        }
+                    }
+                });
+
+                // 취소 버튼
+                builder.setNegativeButton("취소", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                        Log.i(TAG, "[CUSTOM-PAYMENT] 사용자가 금액 입력을 취소함");
+                    }
+                });
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        });
+    }
+
+    /**
+     * 임의결제 처리 - 입력받은 금액만큼 차감
+     */
+    private boolean processCustomPayment(Coupon coupon, Employee employee, Corporate corporate, double amount) {
+        Log.i(TAG, String.format("[CUSTOM-PAYMENT] 임의결제 처리 시작 - 쿠폰ID: %d, 금액: %.0f원",
+            coupon.getCouponId(), amount));
+
+        // 현재 잔액 확인
+        double currentCashBalance = coupon.getCashBalance();
+        double currentPointBalance = coupon.getPointBalance();
+
+        Log.i(TAG, String.format("[CUSTOM-PAYMENT] 현재 잔액 - 현금: %.0f원, 포인트: %.0fP",
+            currentCashBalance, currentPointBalance));
+
+        // 마이너스 잔고 허용 여부 확인
+        SharedPreferences systemSettings = getSharedPreferences("SystemSettings", MODE_PRIVATE);
+        boolean allowNegativeBalance = systemSettings.getBoolean("allow_negative_balance", false);
+
+        // 현금 우선 차감
+        double cashToDeduct = Math.min(amount, currentCashBalance);
+        double remainingAmount = amount - cashToDeduct;
+
+        // 포인트로 남은 금액 차감 (1원 = 1포인트)
+        double pointsToDeduct = Math.min(remainingAmount, currentPointBalance);
+        double finalRemaining = remainingAmount - pointsToDeduct;
+
+        // 잔고 부족 확인
+        if (finalRemaining > 0 && !allowNegativeBalance) {
+            Log.w(TAG, String.format("[CUSTOM-PAYMENT] 잔고 부족 - 부족액: %.0f원", finalRemaining));
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(QRScanActivity.this,
+                        String.format("❌ 잔고가 부족합니다\n(부족액: %,d원)", (int)finalRemaining),
+                        Toast.LENGTH_LONG).show();
+                }
+            });
+            return false;
+        }
+
+        // 새로운 잔액 계산
+        double newCashBalance = currentCashBalance - cashToDeduct;
+        double newPointBalance = currentPointBalance - pointsToDeduct;
+
+        // 마이너스 허용 시 남은 금액을 현금에서 차감
+        if (finalRemaining > 0 && allowNegativeBalance) {
+            newCashBalance -= finalRemaining;
+            Log.i(TAG, "[CUSTOM-PAYMENT] 마이너스 잔고 허용 - 현금 잔액이 음수가 됩니다");
+        }
+
+        // 잔액 업데이트
+        coupon.setCashBalance(newCashBalance);
+        coupon.setPointBalance(newPointBalance);
+
+        // DB 업데이트
+        try {
+            couponDAO.open();
+            boolean updateSuccess = couponDAO.updateCouponBalance(
+                coupon.getCouponId(),
+                newCashBalance,
+                newPointBalance
+            );
+
+            if (updateSuccess) {
+                // 거래 내역 기록
+                transactionDAO.open();
+                Transaction transaction = new Transaction(
+                    coupon.getCouponId(),
+                    cashToDeduct,
+                    Transaction.TYPE_USE,
+                    Transaction.BALANCE_TYPE_CASH,
+                    currentCashBalance,
+                    newCashBalance,
+                    String.format("임의결제: %,d원", (int)amount)
+                );
+                transactionDAO.insertTransaction(transaction);
+
+                if (pointsToDeduct > 0) {
+                    Transaction pointTransaction = new Transaction(
+                        coupon.getCouponId(),
+                        pointsToDeduct,
+                        Transaction.TYPE_USE,
+                        Transaction.BALANCE_TYPE_POINT,
+                        currentPointBalance,
+                        newPointBalance,
+                        String.format("임의결제 포인트: %,dP", (int)pointsToDeduct)
+                    );
+                    transactionDAO.insertTransaction(pointTransaction);
+                }
+
+                Log.i(TAG, String.format("[CUSTOM-PAYMENT] ✅ 차감 완료 - 현금: %.0f원, 포인트: %.0fP",
+                    cashToDeduct, pointsToDeduct));
+                Log.i(TAG, String.format("[CUSTOM-PAYMENT] 새 잔액 - 현금: %.0f원, 포인트: %.0fP",
+                    newCashBalance, newPointBalance));
+
+                return true;
+            } else {
+                Log.e(TAG, "[CUSTOM-PAYMENT] DB 업데이트 실패");
+                return false;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "[CUSTOM-PAYMENT] 오류 발생", e);
+            return false;
+        } finally {
+            couponDAO.close();
+            transactionDAO.close();
         }
     }
 }

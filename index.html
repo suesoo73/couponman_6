@@ -416,6 +416,28 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- 결제 유형 설정 -->
+                            <div class="form-group" style="margin-top: 20px;">
+                                <label>💳 결제 유형:</label>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 8px;">
+                                    <label style="display: inline-flex; align-items: center; font-weight: normal; cursor: pointer;">
+                                        <input type="radio" name="paymentType" value="prepaid" checked style="margin-right: 5px;">
+                                        <span>선불 (Prepaid)</span>
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; font-weight: normal; cursor: pointer;">
+                                        <input type="radio" name="paymentType" value="postpaid" style="margin-right: 5px;">
+                                        <span>후불 (Postpaid)</span>
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; font-weight: normal; cursor: pointer;">
+                                        <input type="radio" name="paymentType" value="custom" style="margin-right: 5px;">
+                                        <span>임의결제 (Custom)</span>
+                                    </label>
+                                </div>
+                                <small style="color: #666; display: block; margin-top: 8px;">
+                                    ℹ️ 임의결제: QR 스캔 시 결제 금액을 직접 입력할 수 있습니다
+                                </small>
+                            </div>
                         </div>
 
                         <!-- 직원 목록 및 배분 현황 -->

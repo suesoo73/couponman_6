@@ -43,7 +43,8 @@
       "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 shell am start -n com.example.couponman_6/.MainActivity)",
       "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 forward tcp:8080 tcp:8080)",
       "Bash(gradle:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

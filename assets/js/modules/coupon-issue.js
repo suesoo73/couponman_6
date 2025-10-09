@@ -365,13 +365,18 @@ async function issueCoupons() {
                 // 쿠폰 데이터 준비
                 // Full coupon code는 서버에서 자동 생성됨:
                 // {발급자_사업자등록번호}-{사용가능요일(7자리)}-{coupon_id(10자리)}-{결제유형코드}-{패리티(3자리)}
+
+                // UI에서 선택된 결제 유형 가져오기
+                const selectedPaymentType = document.querySelector('input[name="paymentType"]:checked');
+                const paymentTypeValue = selectedPaymentType ? selectedPaymentType.value.toUpperCase() : 'PREPAID';
+
                 const couponData = {
                     employeeId: employee.employeeId,
                     cashBalance: cashPerEmployee,
                     pointBalance: pointPerEmployee,
                     expireDate: expireDate,
                     status: 'ACTIVE',
-                    paymentType: 'PREPAID',  // 결제유형: PREPAID(1) or POSTPAID(2)
+                    paymentType: paymentTypeValue,  // 결제유형: PREPAID(1), POSTPAID(2), CUSTOM(3)
                     availableDays: availableDays  // 7자리 이진 문자열 (일월화수목금토)
                 };
 

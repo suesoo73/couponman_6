@@ -44,6 +44,7 @@ public class Coupon {
     // 결제 타입 상수
     public static final String PAYMENT_TYPE_PREPAID = "prepaid";
     public static final String PAYMENT_TYPE_POSTPAID = "postpaid";
+    public static final String PAYMENT_TYPE_CUSTOM = "custom";  // 임의결제
 
     // 기본 생성자
     public Coupon() {
@@ -191,7 +192,16 @@ public class Coupon {
         String couponIdPadded = String.format("%010d", couponId);
         
         // 4. 결제 유형 코드
-        String paymentTypeCode = PAYMENT_TYPE_PREPAID.equals(paymentType) ? "1" : "2";
+        String paymentTypeCode;
+        if (PAYMENT_TYPE_PREPAID.equals(paymentType)) {
+            paymentTypeCode = "1";
+        } else if (PAYMENT_TYPE_POSTPAID.equals(paymentType)) {
+            paymentTypeCode = "2";
+        } else if (PAYMENT_TYPE_CUSTOM.equals(paymentType)) {
+            paymentTypeCode = "3";
+        } else {
+            paymentTypeCode = "1"; // 기본값
+        }
         
         // 5. 패리티 (3자리 랜덤)
         Random random = new Random();
