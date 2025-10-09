@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnAdminSettings = findViewById(R.id.btnAdminSettings);
         Button btnQRScan = findViewById(R.id.btnQRScan);
         Button btnServerInfo = findViewById(R.id.btnServerInfo);
+        Button btnParkingRegistration = findViewById(R.id.btnParkingRegistration);
 
         btnAdminSettings.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -71,6 +72,35 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        btnParkingRegistration.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openParkingRegistration();
+            }
+        });
+    }
+
+    /**
+     * 주차등록 WebView 열기
+     */
+    private void openParkingRegistration() {
+        try {
+            SharedPreferences systemSettings = getSharedPreferences("SystemSettings", MODE_PRIVATE);
+            String parkingUrl = systemSettings.getString("parking_registration_url", "");
+
+            if (parkingUrl == null || parkingUrl.trim().isEmpty()) {
+                Toast.makeText(this, "주차등록 URL이 설정되지 않았습니다.\n관리자 기본설정에서 URL을 설정해주세요.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            Intent intent = new Intent(MainActivity.this, ParkingWebViewActivity.class);
+            intent.putExtra("parking_url", parkingUrl);
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "주차등록 화면 열기 오류", e);
+            Toast.makeText(this, "주차등록 화면을 열 수 없습니다: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
     
     /**

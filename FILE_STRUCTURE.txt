@@ -1,0 +1,56 @@
+couponman_6/
+│
+├── index.html (NEW - Modular entry point with CSS/JS references)
+├── index_v2.html (ORIGINAL - 7,420 lines monolithic file - KEPT FOR BACKUP)
+│
+├── assets/
+│   ├── css/
+│   │   ├── base.css (14 lines)
+│   │   ├── layout.css (95 lines)
+│   │   ├── navigation.css (125 lines)
+│   │   ├── components.css (176 lines)
+│   │   ├── tables.css (29 lines)
+│   │   ├── modals.css (61 lines)
+│   │   ├── animations.css (29 lines)
+│   │   └── responsive.css (33 lines)
+│   │
+│   └── js/
+│       ├── utils/
+│       │   ├── formatters.js (109 lines)
+│       │   ├── notifications.js (50 lines)
+│       │   └── export.js (160 lines)
+│       │
+│       ├── core/
+│       │   ├── api.js (8 lines - placeholder)
+│       │   ├── auth.js (220 lines)
+│       │   ├── navigation.js (146 lines)
+│       │   └── app.js (35 lines)
+│       │
+│       └── modules/
+│           ├── corporate.js (307 lines)
+│           ├── employee.js (609 lines)
+│           ├── system-settings.js (186 lines)
+│           ├── coupon-issue.js (431 lines)
+│           ├── coupon-manage.js (912 lines)
+│           ├── coupon-send.js (661 lines)
+│           ├── delivery-history.js (255 lines)
+│           ├── email-config.js (257 lines)
+│           ├── sms-config.js (185 lines)
+│           ├── management-info.js (223 lines)
+│           └── developer.js (1,128 lines)
+│
+├── REFACTORING_SUMMARY.md (Detailed summary of changes)
+└── FILE_STRUCTURE.txt (This file)
+
+TOTALS:
+========
+CSS Files:          8 files,    562 lines
+JavaScript Files:  19 files,  5,882 lines
+  - Utils:          3 files,    319 lines
+  - Core:           4 files,    409 lines
+  - Modules:       11 files,  5,154 lines
+HTML:               1 file,   1,596 lines
+========
+GRAND TOTAL:       28 files,  8,040 lines (organized and modular)
+
+Original:           1 file,   7,420 lines (monolithic)

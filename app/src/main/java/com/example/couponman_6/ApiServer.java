@@ -43,6 +43,7 @@ public class ApiServer extends NanoHTTPD {
     private EmployeeDAO employeeDAO;
     private CouponDAO couponDAO;
     private CouponDeliveryDAO couponDeliveryDAO;
+    private TransactionDAO transactionDAO;
 
     public ApiServer(int port, Context context) {
         super(port);
@@ -58,6 +59,8 @@ public class ApiServer extends NanoHTTPD {
         couponDAO.open();
         couponDeliveryDAO = new CouponDeliveryDAO(context);
         couponDeliveryDAO.open();
+        transactionDAO = new TransactionDAO(context);
+        transactionDAO.open();
         initializeSampleData();
     }
 
@@ -75,6 +78,9 @@ public class ApiServer extends NanoHTTPD {
         }
         if (couponDeliveryDAO != null) {
             couponDeliveryDAO.close();
+        }
+        if (transactionDAO != null) {
+            transactionDAO.close();
         }
         Log.i(TAG, "API Server stopped and database connection closed");
     }
@@ -3230,7 +3236,10 @@ public class ApiServer extends NanoHTTPD {
                 int usedCoupons = 0;
                 double totalCashBalance = 0;
                 double totalPointBalance = 0;
-                
+
+                // 직원별 쿠폰 및 거래 내역 리스트
+                List<Map<String, Object>> couponTransactions = new ArrayList<>();
+
                 List<Coupon> empCoupons = couponDAO.getCouponsByEmployeeId(employee.getEmployeeId());
                 for (Coupon coupon : empCoupons) {
                     // 기간 필터링
@@ -3240,14 +3249,33 @@ public class ApiServer extends NanoHTTPD {
                             issuedCoupons++;
                             totalCashBalance += coupon.getCashBalance();
                             totalPointBalance += coupon.getPointBalance();
-                            
+
                             if ("USED".equals(coupon.getStatus())) {
                                 usedCoupons++;
                             }
+
+                            // 쿠폰별 거래 내역 정보 수집 (클라이언트에서 계산하도록 데이터만 전송)
+                            Map<String, Object> couponInfo = new HashMap<>();
+                            couponInfo.put("couponId", coupon.getCouponId());
+                            couponInfo.put("cashBalance", coupon.getCashBalance());
+                            couponInfo.put("pointBalance", coupon.getPointBalance());
+
+                            // Transaction 데이터 조회
+                            double cashCharged = transactionDAO.getTotalChargeAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_CASH);
+                            double pointCharged = transactionDAO.getTotalChargeAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_POINT);
+                            double cashUsed = transactionDAO.getTotalUseAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_CASH);
+                            double pointUsed = transactionDAO.getTotalUseAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_POINT);
+
+                            couponInfo.put("cashCharged", cashCharged);
+                            couponInfo.put("pointCharged", pointCharged);
+                            couponInfo.put("cashUsed", cashUsed);
+                            couponInfo.put("pointUsed", pointUsed);
+
+                            couponTransactions.add(couponInfo);
                         }
                     }
                 }
-                
+
                 Map<String, Object> employeeStat = new HashMap<>();
                 employeeStat.put("employeeId", employee.getEmployeeId());
                 employeeStat.put("employeeName", employee.getName());
@@ -3255,7 +3283,8 @@ public class ApiServer extends NanoHTTPD {
                 employeeStat.put("usedCoupons", usedCoupons);
                 employeeStat.put("totalCashBalance", totalCashBalance);
                 employeeStat.put("totalPointBalance", totalPointBalance);
-                
+                employeeStat.put("transactions", couponTransactions);  // 거래 내역 리스트 추가 (클라이언트에서 계산)
+
                 employeeStats.add(employeeStat);
             }
             

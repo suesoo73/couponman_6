@@ -42,7 +42,11 @@
         <activity android:name=".ServerInfoActivity"
             android:exported="false" />
 
-        <service 
+        <activity android:name=".ParkingWebViewActivity"
+            android:exported="false"
+            android:label="주차등록" />
+
+        <service
             android:name=".ApiServerService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />

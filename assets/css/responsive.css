@@ -1,0 +1,33 @@
+/* Responsive Design Styles */
+
+@media (max-width: 768px) {
+    .header-content {
+        padding: 0 20px;
+    }
+
+    .logo h1 {
+        font-size: 1.4em;
+    }
+
+    .main-container {
+        padding: 20px 15px;
+    }
+
+    .content-area {
+        padding: 20px;
+    }
+
+    .section-header h2 {
+        font-size: 1.4em;
+    }
+
+    .form-row-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .form-row-4 {
+        grid-template-columns: 1fr;
+    }
+}

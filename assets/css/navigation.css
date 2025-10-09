@@ -1,0 +1,125 @@
+/* Navigation Styles - Dropdown and Tabs */
+
+/* Navigation Dropdown */
+.nav-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.nav-button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-button:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.nav-button::after {
+    content: '▼';
+    font-size: 12px;
+    transition: transform 0.3s;
+}
+
+.nav-button.active::after {
+    transform: rotate(180deg);
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background: white;
+    min-width: 280px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    z-index: 1001;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.dropdown-content.show {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+.dropdown-item {
+    display: block;
+    color: #333;
+    padding: 16px 20px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background: #f8f9ff;
+    color: #667eea;
+    padding-left: 24px;
+}
+
+.dropdown-item .icon {
+    margin-right: 10px;
+    font-size: 16px;
+    width: 20px;
+    display: inline-block;
+}
+
+/* Tab Button Styles */
+.management-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-bottom: 3px solid #e0e0e0;
+    color: #666;
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s;
+    border-radius: 8px 8px 0 0;
+}
+
+.tab-button:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.tab-button.active {
+    background: white;
+    color: #667eea;
+    border-bottom: 3px solid #667eea;
+    font-weight: 700;
+}
+
+.management-tab-content {
+    display: none;
+}
+
+.management-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}

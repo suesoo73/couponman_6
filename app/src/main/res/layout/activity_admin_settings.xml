@@ -281,6 +281,50 @@
             android:orientation="vertical"
             android:background="@drawable/card_background"
             android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="주차등록 설정"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🚗 주차등록 URL"
+                android:textSize="14sp"
+                android:textColor="#666"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/etParkingUrl"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="https://example.com/parking"
+                android:inputType="textUri"
+                android:background="@drawable/edittext_background"
+                android:padding="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="메인화면의 주차등록 버튼 클릭 시 열릴 URL을 입력하세요"
+                android:textSize="12sp"
+                android:textColor="#999"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_background"
+            android:padding="16dp"
             android:layout_marginBottom="30dp">
 
             <TextView

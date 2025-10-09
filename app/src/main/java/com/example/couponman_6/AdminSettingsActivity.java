@@ -27,6 +27,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
     private Switch switchKeepScreenOn;
     private EditText etAdminUserId;
     private EditText etAdminPassword;
+    private EditText etParkingUrl;
     private TextView tvServerIpAddress;
     private TextView tvServerPort;
     private TextView tvServerUrl;
@@ -35,6 +36,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
     private Button btnBack;
 
     private SharedPreferences sharedPreferences;
+    private SharedPreferences systemSettings;
     private static final int SERVER_PORT = 8080;
 
     @Override
@@ -55,6 +57,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
         switchKeepScreenOn = findViewById(R.id.switchKeepScreenOn);
         etAdminUserId = findViewById(R.id.etAdminUserId);
         etAdminPassword = findViewById(R.id.etAdminPassword);
+        etParkingUrl = findViewById(R.id.etParkingUrl);
         tvServerIpAddress = findViewById(R.id.tvServerIpAddress);
         tvServerPort = findViewById(R.id.tvServerPort);
         tvServerUrl = findViewById(R.id.tvServerUrl);
@@ -63,6 +66,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
 
         sharedPreferences = getSharedPreferences("AdminSettings", MODE_PRIVATE);
+        systemSettings = getSharedPreferences("SystemSettings", MODE_PRIVATE);
     }
 
     private void loadSettings() {
@@ -71,6 +75,9 @@ public class AdminSettingsActivity extends AppCompatActivity {
         switchKeepScreenOn.setChecked(sharedPreferences.getBoolean("keep_screen_on", true));
         etAdminUserId.setText(sharedPreferences.getString("admin_user_id", "admin"));
         etAdminPassword.setText(sharedPreferences.getString("admin_password", ""));
+
+        // 주차등록 URL 로드
+        etParkingUrl.setText(systemSettings.getString("parking_registration_url", ""));
     }
 
     private void setupClickListeners() {
@@ -107,35 +114,42 @@ public class AdminSettingsActivity extends AppCompatActivity {
 
     private void saveSettings() {
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        
+
         editor.putBoolean("notifications", switchNotifications.isChecked());
         editor.putBoolean("auto_sync", switchAutoSync.isChecked());
         editor.putBoolean("keep_screen_on", switchKeepScreenOn.isChecked());
-        
+
         // API 인증 정보 저장
         String userId = etAdminUserId.getText().toString().trim();
         String password = etAdminPassword.getText().toString().trim();
-        
+
         if (userId.isEmpty()) {
             Toast.makeText(this, "관리자 아이디를 입력해주세요.", Toast.LENGTH_SHORT).show();
             etAdminUserId.requestFocus();
             return;
         }
-        
+
         if (password.isEmpty()) {
             Toast.makeText(this, "관리자 패스워드를 입력해주세요.", Toast.LENGTH_SHORT).show();
             etAdminPassword.requestFocus();
             return;
         }
-        
+
         editor.putString("admin_user_id", userId);
         editor.putString("admin_password", password);
-        
+
         editor.apply();
-        
+
+        // 주차등록 URL 저장 (SystemSettings에 저장)
+        SharedPreferences.Editor systemEditor = systemSettings.edit();
+        String parkingUrl = etParkingUrl.getText().toString().trim();
+        systemEditor.putString("parking_registration_url", parkingUrl);
+        systemEditor.apply();
+
         Log.i(TAG, "[ADMIN-AUTH] 관리자 인증 정보 저장 완료 - 아이디: " + userId);
+        Log.i(TAG, "[PARKING-URL] 주차등록 URL 저장 완료 - URL: " + parkingUrl);
         Toast.makeText(this, "설정이 저장되었습니다.", Toast.LENGTH_SHORT).show();
-        
+
         // 화면 잠김 방지 설정 즉시 적용
         applyKeepScreenOnSetting();
     }
