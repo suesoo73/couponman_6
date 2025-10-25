@@ -95,6 +95,7 @@ public class QRScanActivity extends AppCompatActivity {
         tvLastScanTime = findViewById(R.id.tvLastScanTime);
         tvScanCount = findViewById(R.id.tvScanCount);
         // 쿠폰 잔고 관련 뷰들 제거 (레이아웃에서 삭제됨)
+        
         // tvCashBalance = findViewById(R.id.tvCashBalance);
         // tvPointBalance = findViewById(R.id.tvPointBalance);
         // tvCouponStatus = findViewById(R.id.tvCouponStatus);
@@ -358,28 +359,57 @@ public class QRScanActivity extends AppCompatActivity {
                     
                     Coupon coupon = couponDAO.getCouponByCode(couponCode);
                     if (coupon != null) {
+                        Log.i(TAG, "[COUPON-CHECK] ========== 쿠폰 조회 성공 ==========");
+                        Log.i(TAG, "[COUPON-CHECK] 쿠폰 ID: " + coupon.getCouponId());
+                        Log.i(TAG, "[COUPON-CHECK] 쿠폰 코드: " + coupon.getFullCouponCode());
+
+                        // 결제 타입 상세 로그
+                        String paymentType = coupon.getPaymentType();
+                        Log.i(TAG, "[PAYMENT-TYPE-CHECK] ===== 결제 타입 확인 =====");
+                        Log.i(TAG, "[PAYMENT-TYPE-CHECK] paymentType 값: '" + paymentType + "'");
+                        Log.i(TAG, "[PAYMENT-TYPE-CHECK] paymentType == null? " + (paymentType == null));
+                        if (paymentType != null) {
+                            Log.i(TAG, "[PAYMENT-TYPE-CHECK] paymentType.length(): " + paymentType.length());
+                            Log.i(TAG, "[PAYMENT-TYPE-CHECK] paymentType.trim(): '" + paymentType.trim() + "'");
+                            Log.i(TAG, "[PAYMENT-TYPE-CHECK] paymentType 바이트: " + bytesToHex(paymentType.getBytes()));
+                        }
+                        Log.i(TAG, "[PAYMENT-TYPE-CHECK] PAYMENT_TYPE_CUSTOM 상수: '" + Coupon.PAYMENT_TYPE_CUSTOM + "'");
+                        Log.i(TAG, "[PAYMENT-TYPE-CHECK] PAYMENT_TYPE_PREPAID 상수: '" + Coupon.PAYMENT_TYPE_PREPAID + "'");
+                        Log.i(TAG, "[PAYMENT-TYPE-CHECK] PAYMENT_TYPE_POSTPAID 상수: '" + Coupon.PAYMENT_TYPE_POSTPAID + "'");
+
                         // 직원 정보 조회
                         Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
-                        
+
                         // 회사 정보 조회
                         Corporate corporate = null;
                         if (employee != null) {
                             corporate = corporateDAO.getCorporateById(employee.getCorporateId());
                         }
-                        
+
                         // 상세 정보 로그 출력
                         logCouponDetails(coupon, employee, corporate);
-                        
+
                         // UI에 결과 표시
                         displayCouponInfo(couponCode, coupon, employee, corporate);
 
                         // 결제 유형 확인 - 임의결제(custom)인 경우 금액 입력 대화상자 표시
-                        if (Coupon.PAYMENT_TYPE_CUSTOM.equals(coupon.getPaymentType())) {
-                            Log.i(TAG, "[CUSTOM-PAYMENT] 임의결제 쿠폰 감지 - 금액 입력 대화상자 표시");
+                        Log.i(TAG, "[PAYMENT-TYPE-DECISION] ===== 결제 타입에 따른 분기 시작 =====");
+
+                        // equals() 비교 상세 로그 (대소문자 무시)
+                        boolean isCustomPayment = paymentType != null &&
+                                                 paymentType.equalsIgnoreCase(Coupon.PAYMENT_TYPE_CUSTOM);
+                        Log.i(TAG, "[PAYMENT-TYPE-DECISION] paymentType.equalsIgnoreCase(CUSTOM) = " + isCustomPayment);
+                        Log.i(TAG, "[PAYMENT-TYPE-DECISION] DB 값: '" + paymentType + "', 비교 상수: '" + Coupon.PAYMENT_TYPE_CUSTOM + "'");
+
+                        if (isCustomPayment) {
+                            Log.i(TAG, "[CUSTOM-PAYMENT] ✅ 임의결제 쿠폰 감지! - 금액 입력 대화상자 표시 시작");
                             showCustomAmountDialog(coupon, employee, corporate);
+                            Log.i(TAG, "[CUSTOM-PAYMENT] showCustomAmountDialog() 호출 완료");
                         } else {
+                            Log.i(TAG, "[STANDARD-PAYMENT] 일반 결제(선불/후불) 처리 - paymentType: '" + paymentType + "'");
                             // 가격 설정에 따른 차감 처리 (선불/후불)
                             boolean deductionSuccess = applyPriceDeduction(coupon, employee, corporate);
+                            Log.i(TAG, "[STANDARD-PAYMENT] applyPriceDeduction() 결과: " + deductionSuccess);
                         }
 
                         // 하단 잔고 표시 업데이트
@@ -944,15 +974,32 @@ public class QRScanActivity extends AppCompatActivity {
     }
 
     /**
+     * 바이트 배열을 16진수 문자열로 변환 (디버깅용)
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString().trim();
+    }
+
+    /**
      * 임의결제 쿠폰 - 금액 입력 대화상자 표시
      */
     private void showCustomAmountDialog(final Coupon coupon, final Employee employee, final Corporate corporate) {
+        Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] ===== showCustomAmountDialog() 진입 =====");
+        Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] 쿠폰 ID: " + coupon.getCouponId());
+        Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] 현재 스레드: " + Thread.currentThread().getName());
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] runOnUiThread 내부 실행 시작");
                 AlertDialog.Builder builder = new AlertDialog.Builder(QRScanActivity.this);
                 builder.setTitle("💰 결제 금액 입력");
                 builder.setMessage("차감할 금액을 입력하세요");
+                Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] AlertDialog.Builder 생성 완료");
 
                 // EditText 생성
                 final EditText input = new EditText(QRScanActivity.this);
@@ -964,12 +1011,15 @@ public class QRScanActivity extends AppCompatActivity {
                 input.setPadding(padding, padding, padding, padding);
 
                 builder.setView(input);
+                Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] EditText 설정 완료");
 
                 // 확인 버튼
                 builder.setPositiveButton("확인", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] 확인 버튼 클릭");
                         String amountStr = input.getText().toString().trim();
+                        Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] 입력된 금액: '" + amountStr + "'");
 
                         if (amountStr.isEmpty()) {
                             Toast.makeText(QRScanActivity.this, "금액을 입력해주세요", Toast.LENGTH_SHORT).show();
@@ -1010,12 +1060,20 @@ public class QRScanActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.cancel();
-                        Log.i(TAG, "[CUSTOM-PAYMENT] 사용자가 금액 입력을 취소함");
+                        Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] 사용자가 금액 입력을 취소함");
                     }
                 });
 
-                AlertDialog dialog = builder.create();
-                dialog.show();
+                Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] 버튼 설정 완료 - AlertDialog 생성 중");
+                try {
+                    AlertDialog dialog = builder.create();
+                    Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] AlertDialog 생성 성공");
+                    dialog.show();
+                    Log.i(TAG, "[CUSTOM-PAYMENT-DIALOG] ✅ AlertDialog 표시 완료!");
+                } catch (Exception e) {
+                    Log.e(TAG, "[CUSTOM-PAYMENT-DIALOG] ❌ AlertDialog 생성/표시 중 오류", e);
+                    Toast.makeText(QRScanActivity.this, "대화상자 표시 오류: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
             }
         });
     }

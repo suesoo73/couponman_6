@@ -44,7 +44,12 @@
       "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 forward tcp:8080 tcp:8080)",
       "Bash(gradle:*)",
       "Bash(bash:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s emulator-5554 install -r /c/Users/suesoo/Desktop/project/couponman_6/app/build/outputs/apk/debug/app-debug.apk)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s 20775b18b1c58941f56 install -r /c/Users/suesoo/Desktop/project/couponman_6/app/build/outputs/apk/debug/app-debug.apk)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s 20775b18b1c58941f56 logcat -c)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s 20775b18b1c58941f56 shell am force-stop com.example.couponman_6)",
+      "Bash(\"/c/Users/suesoo/AppData/Local/Android/Sdk/platform-tools/adb.exe\" -s 20775b18b1c58941f56 shell am start -n com.example.couponman_6/.MainActivity)"
     ],
     "deny": [],
     "ask": []

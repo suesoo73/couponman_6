@@ -199,6 +199,9 @@ public class CouponDAO {
      * 쿠폰 코드로 쿠폰 조회
      */
     public Coupon getCouponByCode(String couponCode) {
+        Log.i(TAG, "[GET-COUPON-BY-CODE] ========== 쿠폰 코드로 조회 시작 ==========");
+        Log.i(TAG, "[GET-COUPON-BY-CODE] 검색 쿠폰 코드: '" + couponCode + "'");
+
         Cursor cursor = null;
         try {
             cursor = database.query(
@@ -209,16 +212,22 @@ public class CouponDAO {
                 null, null, null
             );
 
+            Log.i(TAG, "[GET-COUPON-BY-CODE] 쿼리 실행 완료");
+
             if (cursor != null && cursor.moveToFirst()) {
+                Log.i(TAG, "[GET-COUPON-BY-CODE] ✅ 쿠폰 발견! - cursorToCoupon() 변환 시작");
                 Coupon coupon = cursorToCoupon(cursor);
-                Log.d(TAG, "Coupon found by code: " + couponCode);
+                Log.i(TAG, "[GET-COUPON-BY-CODE] 쿠폰 변환 완료");
+                Log.i(TAG, "[GET-COUPON-BY-CODE] 쿠폰 ID: " + coupon.getCouponId());
+                Log.i(TAG, "[GET-COUPON-BY-CODE] 쿠폰 코드: " + coupon.getFullCouponCode());
+                Log.i(TAG, "[GET-COUPON-BY-CODE] paymentType: '" + coupon.getPaymentType() + "'");
                 return coupon;
             }
-            
-            Log.d(TAG, "No coupon found with code: " + couponCode);
+
+            Log.w(TAG, "[GET-COUPON-BY-CODE] ❌ 쿠폰을 찾을 수 없음: " + couponCode);
             return null;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Error getting coupon by code", e);
+            Log.e(TAG, "[GET-COUPON-BY-CODE] ❌ 쿠폰 조회 중 오류", e);
             return null;
         } finally {
             if (cursor != null) {
@@ -534,20 +543,71 @@ public class CouponDAO {
      * Cursor를 Coupon 객체로 변환
      */
     private Coupon cursorToCoupon(Cursor cursor) {
+        Log.i(TAG, "[CURSOR-TO-COUPON] ===== Cursor에서 Coupon 객체 변환 시작 =====");
+
         Coupon coupon = new Coupon();
-        
-        coupon.setCouponId(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_ID)));
-        coupon.setFullCouponCode(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_FULL_CODE)));
+
+        // 쿠폰 ID
+        int couponId = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_ID));
+        coupon.setCouponId(couponId);
+        Log.i(TAG, "[CURSOR-TO-COUPON] 쿠폰 ID: " + couponId);
+
+        // 쿠폰 코드
+        String fullCouponCode = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_FULL_CODE));
+        coupon.setFullCouponCode(fullCouponCode);
+        Log.i(TAG, "[CURSOR-TO-COUPON] 쿠폰 코드: " + fullCouponCode);
+
+        // 직원 ID
         coupon.setEmployeeId(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID)));
+
+        // 잔액
         coupon.setCashBalance(cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_CASH_BALANCE)));
         coupon.setPointBalance(cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_POINT_BALANCE)));
+
+        // 만료일
         coupon.setExpireDate(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_EXPIRE_DATE)));
+
+        // 상태
         coupon.setStatus(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_STATUS)));
-        coupon.setPaymentType(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_PAYMENT_TYPE)));
+
+        // 결제 타입 - 상세 로그
+        Log.i(TAG, "[CURSOR-TO-COUPON] *** 결제 타입 컬럼 읽기 시작 ***");
+        int paymentTypeColumnIndex = cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_PAYMENT_TYPE);
+        Log.i(TAG, "[CURSOR-TO-COUPON] COLUMN_COUPON_PAYMENT_TYPE 컬럼명: '" + DatabaseHelper.COLUMN_COUPON_PAYMENT_TYPE + "'");
+        Log.i(TAG, "[CURSOR-TO-COUPON] paymentType 컬럼 인덱스: " + paymentTypeColumnIndex);
+
+        String paymentTypeFromDB = cursor.getString(paymentTypeColumnIndex);
+        Log.i(TAG, "[CURSOR-TO-COUPON] DB에서 읽은 paymentType 원본: '" + paymentTypeFromDB + "'");
+        Log.i(TAG, "[CURSOR-TO-COUPON] paymentType == null? " + (paymentTypeFromDB == null));
+
+        if (paymentTypeFromDB != null) {
+            Log.i(TAG, "[CURSOR-TO-COUPON] paymentType.length(): " + paymentTypeFromDB.length());
+            Log.i(TAG, "[CURSOR-TO-COUPON] paymentType 바이트: " + bytesToHex(paymentTypeFromDB.getBytes()));
+        }
+
+        coupon.setPaymentType(paymentTypeFromDB);
+        Log.i(TAG, "[CURSOR-TO-COUPON] Coupon 객체에 paymentType 설정 완료");
+
+        // 사용가능요일
         coupon.setAvailableDays(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_AVAILABLE_DAYS)));
+
+        // 생성일
         coupon.setCreatedAt(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_COUPON_CREATED_AT)));
-        
+
+        Log.i(TAG, "[CURSOR-TO-COUPON] ===== Coupon 객체 변환 완료 =====");
+
         return coupon;
+    }
+
+    /**
+     * 바이트 배열을 16진수 문자열로 변환 (디버깅용)
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString().trim();
     }
 
     /**

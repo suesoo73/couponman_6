@@ -358,6 +358,22 @@ public class ApiServer extends NanoHTTPD {
                                 response = handleSaveBusinessSettings(session);
                             }
                         }
+                    } else if (uri.startsWith("/api/transactions")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (uri.equals("/api/transactions/monthly")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetMonthlyTransactions(session);
+                            }
+                        } else if (uri.startsWith("/api/transactions/employee/")) {
+                            String path = uri.substring("/api/transactions/employee/".length());
+                            if (path.contains("/daily")) {
+                                String employeeId = path.substring(0, path.indexOf("/daily"));
+                                if (Method.GET.equals(method)) {
+                                    response = handleGetEmployeeDailyTransactions(employeeId, session);
+                                }
+                            }
+                        }
                     }
                     break;
             }
@@ -3872,13 +3888,332 @@ public class ApiServer extends NanoHTTPD {
             
         } catch (Exception e) {
             Log.e(TAG, "❌ ERROR: Coupon deletion failed", e);
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", false);
             result.put("message", "쿠폰 삭제 중 오류가 발생했습니다: " + e.getMessage());
             result.put("timestamp", new java.util.Date().toString());
-            
+
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
+        }
+    }
+
+    /**
+     * 월간 거래 내역 조회
+     * GET /api/transactions/monthly?year={year}&month={month}&corporateId={corporateId}
+     */
+    private Response handleGetMonthlyTransactions(IHTTPSession session) {
+        Log.i(TAG, "=== MONTHLY TRANSACTIONS START ===");
+
+        try {
+            // 쿼리 파라미터 파싱
+            Map<String, String> params = session.getParms();
+            String year = params.get("year");
+            String month = params.get("month");
+            String corporateIdStr = params.get("corporateId");
+
+            Log.i(TAG, "[MONTHLY-TRANS] Parameters - Year: " + year + ", Month: " + month + ", CorporateId: " + corporateIdStr);
+
+            if (year == null || month == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "year와 month 파라미터가 필요합니다.");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            // 날짜 범위 설정 (해당 월의 1일 ~ 말일)
+            String startDate = year + "-" + month + "-01";
+
+            // 말일 계산
+            int yearInt = Integer.parseInt(year);
+            int monthInt = Integer.parseInt(month);
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.set(yearInt, monthInt - 1, 1);
+            int lastDay = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
+            String endDate = year + "-" + month + "-" + String.format("%02d", lastDay);
+
+            Log.i(TAG, "[MONTHLY-TRANS] Date range: " + startDate + " ~ " + endDate);
+
+            transactionDAO.open();
+            couponDAO.open();
+            employeeDAO.open();
+            corporateDAO.open();
+
+            try {
+                // 거래 내역 조회
+                List<Transaction> transactions = transactionDAO.getTransactionsByDateRange(startDate, endDate);
+                Log.i(TAG, "[MONTHLY-TRANS] Found " + transactions.size() + " transactions");
+
+                // 직원별 통계 계산
+                Map<Integer, Map<String, Object>> employeeStats = new HashMap<>();
+                double totalCashDeducted = 0;
+                double totalPointsDeducted = 0;
+                int totalUsageCount = 0;
+
+                for (Transaction trans : transactions) {
+                    // DEDUCTION 타입만 카운트
+                    if (!"DEDUCTION".equals(trans.getTransactionType())) {
+                        continue;
+                    }
+
+                    Coupon coupon = couponDAO.getCouponById(trans.getCouponId());
+                    if (coupon == null) continue;
+
+                    // 거래처 필터링
+                    Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
+                    if (employee == null) continue;
+
+                    if (corporateIdStr != null && !corporateIdStr.isEmpty()) {
+                        int corporateIdFilter = Integer.parseInt(corporateIdStr);
+                        if (employee.getCorporateId() != corporateIdFilter) {
+                            continue;
+                        }
+                    }
+
+                    int employeeId = employee.getEmployeeId();
+
+                    if (!employeeStats.containsKey(employeeId)) {
+                        Corporate corporate = corporateDAO.getCorporateById(employee.getCorporateId());
+
+                        Map<String, Object> stat = new HashMap<>();
+                        stat.put("employeeId", employeeId);
+                        stat.put("employeeName", employee.getName());
+                        stat.put("corporateName", corporate != null ? corporate.getName() : "N/A");
+                        stat.put("usageCount", 0);
+                        stat.put("cashDeducted", 0.0);
+                        stat.put("pointsDeducted", 0.0);
+                        stat.put("cashBalance", coupon.getCashBalance());
+                        stat.put("pointBalance", coupon.getPointBalance());
+                        employeeStats.put(employeeId, stat);
+                    }
+
+                    Map<String, Object> stat = employeeStats.get(employeeId);
+                    stat.put("usageCount", (int)stat.get("usageCount") + 1);
+
+                    if (Transaction.BALANCE_TYPE_CASH.equals(trans.getBalanceType())) {
+                        double currentCash = (double)stat.get("cashDeducted");
+                        stat.put("cashDeducted", currentCash + trans.getAmount());
+                        totalCashDeducted += trans.getAmount();
+                    } else if (Transaction.BALANCE_TYPE_POINT.equals(trans.getBalanceType())) {
+                        double currentPoints = (double)stat.get("pointsDeducted");
+                        stat.put("pointsDeducted", currentPoints + trans.getAmount());
+                        totalPointsDeducted += trans.getAmount();
+                    }
+
+                    totalUsageCount++;
+                }
+
+                // 현재 잔액 합계 계산
+                double totalCashBalance = 0;
+                double totalPointBalance = 0;
+                List<Coupon> allCoupons = couponDAO.getAllCoupons();
+
+                for (Coupon coupon : allCoupons) {
+                    if (corporateIdStr != null && !corporateIdStr.isEmpty()) {
+                        Employee employee = employeeDAO.getEmployeeById(coupon.getEmployeeId());
+                        if (employee != null) {
+                            int corporateIdFilter = Integer.parseInt(corporateIdStr);
+                            if (employee.getCorporateId() == corporateIdFilter) {
+                                totalCashBalance += coupon.getCashBalance();
+                                totalPointBalance += coupon.getPointBalance();
+                            }
+                        }
+                    } else {
+                        totalCashBalance += coupon.getCashBalance();
+                        totalPointBalance += coupon.getPointBalance();
+                    }
+                }
+
+                // 응답 데이터 구성
+                Map<String, Object> summary = new HashMap<>();
+                summary.put("totalUsageCount", totalUsageCount);
+                summary.put("totalCashDeducted", totalCashDeducted);
+                summary.put("totalPointsDeducted", totalPointsDeducted);
+                summary.put("remainingCashBalance", totalCashBalance);
+                summary.put("remainingPointBalance", totalPointBalance);
+
+                List<Map<String, Object>> employeeDetailsList = new ArrayList<>(employeeStats.values());
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("summary", summary);
+                data.put("employeeDetails", employeeDetailsList);
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("data", data);
+
+                Log.i(TAG, "[MONTHLY-TRANS] Response - Total usage: " + totalUsageCount + ", Employees: " + employeeStats.size());
+                Log.i(TAG, "=== MONTHLY TRANSACTIONS END ===");
+
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+
+            } finally {
+                transactionDAO.close();
+                couponDAO.close();
+                employeeDAO.close();
+                corporateDAO.close();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Monthly transactions query failed", e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "월간 거래 내역 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    /**
+     * 직원별 일자별 거래 내역 조회
+     * GET /api/transactions/employee/{employeeId}/daily?year={year}&month={month}
+     */
+    private Response handleGetEmployeeDailyTransactions(String employeeId, IHTTPSession session) {
+        Log.i(TAG, "=== EMPLOYEE DAILY TRANSACTIONS START ===");
+        Log.i(TAG, "[DAILY-TRANS] Employee ID: " + employeeId);
+
+        try {
+            int employeeIdInt = Integer.parseInt(employeeId);
+
+            // 쿼리 파라미터 파싱
+            Map<String, String> params = session.getParms();
+            String year = params.get("year");
+            String month = params.get("month");
+
+            Log.i(TAG, "[DAILY-TRANS] Parameters - Year: " + year + ", Month: " + month);
+
+            if (year == null || month == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "year와 month 파라미터가 필요합니다.");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            // 날짜 범위 설정
+            String startDate = year + "-" + month + "-01";
+            int yearInt = Integer.parseInt(year);
+            int monthInt = Integer.parseInt(month);
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.set(yearInt, monthInt - 1, 1);
+            int lastDay = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
+            String endDate = year + "-" + month + "-" + String.format("%02d", lastDay);
+
+            transactionDAO.open();
+            couponDAO.open();
+
+            try {
+                // 직원의 쿠폰 조회
+                List<Coupon> employeeCoupons = couponDAO.getCouponsByEmployeeId(employeeIdInt);
+                if (employeeCoupons.isEmpty()) {
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("dailyUsage", new ArrayList<>());
+
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("success", true);
+                    result.put("data", data);
+                    return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+                }
+
+                // 쿠폰 ID 목록
+                List<Integer> couponIds = new ArrayList<>();
+                for (Coupon coupon : employeeCoupons) {
+                    couponIds.add(coupon.getCouponId());
+                }
+
+                // 거래 내역 조회
+                List<Transaction> transactions = new ArrayList<>();
+                for (int couponId : couponIds) {
+                    List<Transaction> couponTrans = transactionDAO.getTransactionsByCouponId(couponId);
+                    for (Transaction trans : couponTrans) {
+                        // 날짜 범위 필터링
+                        if (trans.getTransactionDate() != null) {
+                            String transDate = trans.getTransactionDate().substring(0, 10); // YYYY-MM-DD 부분만 추출
+                            if (transDate.compareTo(startDate) >= 0 && transDate.compareTo(endDate) <= 0) {
+                                if ("DEDUCTION".equals(trans.getTransactionType())) {
+                                    transactions.add(trans);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Log.i(TAG, "[DAILY-TRANS] Found " + transactions.size() + " transactions for employee");
+
+                // 일자별로 그룹화
+                Map<String, Map<String, Object>> dailyMap = new HashMap<>();
+
+                for (Transaction trans : transactions) {
+                    if (trans.getTransactionDate() == null) continue;
+
+                    // 날짜에서 일(day)만 추출
+                    String date = trans.getTransactionDate().substring(0, 10); // YYYY-MM-DD
+                    String day = date.substring(8, 10); // DD
+
+                    // 시간 추출 (HH:mm)
+                    String time = trans.getTransactionDate().substring(11, 16); // HH:mm
+
+                    if (!dailyMap.containsKey(day)) {
+                        Map<String, Object> dayData = new HashMap<>();
+                        dayData.put("day", day);
+                        dayData.put("usageCount", 0);
+                        dayData.put("cashDeducted", 0.0);
+                        dayData.put("pointsDeducted", 0.0);
+                        dayData.put("usageTimes", new ArrayList<String>());
+                        dailyMap.put(day, dayData);
+                    }
+
+                    Map<String, Object> dayData = dailyMap.get(day);
+                    dayData.put("usageCount", (int)dayData.get("usageCount") + 1);
+
+                    if (Transaction.BALANCE_TYPE_CASH.equals(trans.getBalanceType())) {
+                        double currentCash = (double)dayData.get("cashDeducted");
+                        dayData.put("cashDeducted", currentCash + trans.getAmount());
+                    } else if (Transaction.BALANCE_TYPE_POINT.equals(trans.getBalanceType())) {
+                        double currentPoints = (double)dayData.get("pointsDeducted");
+                        dayData.put("pointsDeducted", currentPoints + trans.getAmount());
+                    }
+
+                    @SuppressWarnings("unchecked")
+                    List<String> times = (List<String>)dayData.get("usageTimes");
+                    times.add(time);
+                }
+
+                // 일자별 데이터를 리스트로 변환 (날짜 순 정렬)
+                List<Map<String, Object>> dailyUsageList = new ArrayList<>(dailyMap.values());
+                dailyUsageList.sort((a, b) -> ((String)a.get("day")).compareTo((String)b.get("day")));
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("dailyUsage", dailyUsageList);
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("data", data);
+
+                Log.i(TAG, "[DAILY-TRANS] Response - Days with usage: " + dailyUsageList.size());
+                Log.i(TAG, "=== EMPLOYEE DAILY TRANSACTIONS END ===");
+
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+
+            } finally {
+                transactionDAO.close();
+                couponDAO.close();
+            }
+
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "❌ Invalid employee ID format: " + employeeId, e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "잘못된 직원 ID 형식입니다.");
+            return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Employee daily transactions query failed", e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "직원별 일자별 거래 내역 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }
 }
