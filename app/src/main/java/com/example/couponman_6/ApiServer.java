@@ -44,6 +44,7 @@ public class ApiServer extends NanoHTTPD {
     private CouponDAO couponDAO;
     private CouponDeliveryDAO couponDeliveryDAO;
     private TransactionDAO transactionDAO;
+    private DatabaseHelper databaseHelper;
 
     public ApiServer(int port, Context context) {
         super(port);
@@ -51,6 +52,7 @@ public class ApiServer extends NanoHTTPD {
         gson = new Gson();
         activeTokens = new HashMap<>();
         sharedPreferences = context.getSharedPreferences("AdminSettings", Context.MODE_PRIVATE);
+        databaseHelper = new DatabaseHelper(context);
         corporateDAO = new CorporateDAO(context);
         corporateDAO.open();
         employeeDAO = new EmployeeDAO(context);
@@ -373,6 +375,18 @@ public class ApiServer extends NanoHTTPD {
                                     response = handleGetEmployeeDailyTransactions(employeeId, session);
                                 }
                             }
+                        }
+                    } else if (uri.equals("/api/backup")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (Method.GET.equals(method)) {
+                            response = handleBackupDatabase();
+                        }
+                    } else if (uri.equals("/api/restore")) {
+                        if (!isAuthorized(session)) {
+                            response = createUnauthorizedResponse();
+                        } else if (Method.POST.equals(method)) {
+                            response = handleRestoreDatabase(session);
                         }
                     }
                     break;
@@ -1011,13 +1025,14 @@ public class ApiServer extends NanoHTTPD {
     private Response handleGetCorporates(IHTTPSession session) {
         try {
             Log.i(TAG, "Getting all corporates");
+            corporateDAO.open();
             List<Corporate> corporates = corporateDAO.getAllCorporates();
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("data", corporates);
             result.put("count", corporates.size());
-            
+
             Log.i(TAG, "Retrieved " + corporates.size() + " corporates");
             return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
         } catch (Exception e) {
@@ -1026,19 +1041,22 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "거래처 조회 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            corporateDAO.close();
         }
     }
 
     private Response handleGetCorporate(String corporateId) {
         try {
             int id = Integer.parseInt(corporateId);
+            corporateDAO.open();
             Corporate corporate = corporateDAO.getCorporateById(id);
-            
+
             if (corporate != null) {
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", true);
                 result.put("data", corporate);
-                
+
                 Log.i(TAG, "Retrieved corporate: " + corporate.getName());
                 return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
             } else {
@@ -1058,6 +1076,8 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "거래처 조회 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            corporateDAO.close();
         }
     }
 
@@ -1292,39 +1312,43 @@ public class ApiServer extends NanoHTTPD {
     // 직원 관련 핸들러 메소드들
     private Response handleGetEmployees() {
         try {
+            employeeDAO.open();
             List<Employee> employees = employeeDAO.getAllEmployees();
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("data", employees);
             result.put("count", employees.size());
-            
+
             Log.i(TAG, "Retrieved all employees: " + employees.size());
             return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error getting employees", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "직원 목록 조회 중 오류가 발생했습니다");
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            employeeDAO.close();
         }
     }
 
     private Response handleGetEmployeesByCorporate(String corporateId) {
         try {
             int id = Integer.parseInt(corporateId);
+            employeeDAO.open();
             List<Employee> employees = employeeDAO.getEmployeesByCorporateId(id);
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("data", employees);
             result.put("count", employees.size());
             result.put("corporateId", id);
-            
+
             Log.i(TAG, "Retrieved employees for corporate " + id + ": " + employees.size());
             return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-            
+
         } catch (NumberFormatException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
@@ -1336,11 +1360,17 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "직원 목록 조회 중 오류가 발생했습니다");
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            employeeDAO.close();
         }
     }
 
     private Response handleGetCouponsByCorporate(String corporateId) {
         try {
+            // DAO 열기
+            couponDAO.open();
+            employeeDAO.open();
+
             int id = Integer.parseInt(corporateId);
             List<Coupon> coupons = couponDAO.getCouponsByCorporateId(id);
             
@@ -1388,6 +1418,10 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "쿠폰 목록 조회 중 오류가 발생했습니다");
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            couponDAO.close();
+            employeeDAO.close();
         }
     }
 
@@ -1846,8 +1880,12 @@ public class ApiServer extends NanoHTTPD {
      */
     private Response handleSendCouponEmail(IHTTPSession session) {
         Log.i(TAG, "[EMAIL-SEND] 이메일 발송 요청 시작");
-        
+
         try {
+            // DAO 열기
+            couponDAO.open();
+            couponDeliveryDAO.open();
+
             Map<String, String> body = new HashMap<>();
             session.parseBody(body);
             String postData = body.get("postData");
@@ -2111,6 +2149,10 @@ public class ApiServer extends NanoHTTPD {
             error.put("errorType", e.getClass().getSimpleName());
             error.put("stackTrace", android.util.Log.getStackTraceString(e));
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            couponDAO.close();
+            couponDeliveryDAO.close();
         }
     }
     
@@ -2120,8 +2162,12 @@ public class ApiServer extends NanoHTTPD {
      */
     private Response handleGetDeliveryHistory(IHTTPSession session) {
         Log.i(TAG, "[DELIVERY-HISTORY] 발송 기록 조회 요청 시작");
-        
+
         try {
+            // DAO 열기
+            couponDAO.open();
+            couponDeliveryDAO.open();
+
             Map<String, String> params = session.getParms();
             String couponId = params.get("couponId");
             String deliveryType = params.get("type");
@@ -2235,9 +2281,13 @@ public class ApiServer extends NanoHTTPD {
             error.put("message", "발송 기록 조회 중 오류가 발생했습니다: " + e.getMessage());
             error.put("errorType", e.getClass().getSimpleName());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            couponDAO.close();
+            couponDeliveryDAO.close();
         }
     }
-    
+
     /**
      * 실제 이메일 발송 메서드
      */
@@ -2739,8 +2789,14 @@ public class ApiServer extends NanoHTTPD {
      */
     private Response handleSendCouponSMS(IHTTPSession session) {
         Log.i(TAG, "[SMS-SEND] SMS 발송 요청 시작");
-        
+
         try {
+            // DAO 열기
+            couponDAO.open();
+            employeeDAO.open();
+            couponDeliveryDAO.open();
+            corporateDAO.open();  // sendActualSms에서 사용
+
             Map<String, String> body = new HashMap<>();
             session.parseBody(body);
             String postData = body.get("postData");
@@ -2821,16 +2877,28 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "SMS 발송 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            couponDAO.close();
+            employeeDAO.close();
+            couponDeliveryDAO.close();
+            corporateDAO.close();
         }
     }
-    
+
     /**
      * 카카오톡 발송 핸들러 (기존 메서드 수정)
      */
     private Response handleSendCouponKakao(IHTTPSession session) {
         Log.i(TAG, "[KAKAO-SEND] 카카오톡 발송 요청 시작");
-        
+
         try {
+            // DAO 열기
+            couponDAO.open();
+            employeeDAO.open();
+            couponDeliveryDAO.open();
+            corporateDAO.open();  // sendActualSms에서 사용
+
             Map<String, String> body = new HashMap<>();
             session.parseBody(body);
             String postData = body.get("postData");
@@ -2911,9 +2979,15 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "카카오톡 발송 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            couponDAO.close();
+            employeeDAO.close();
+            couponDeliveryDAO.close();
+            corporateDAO.close();
         }
     }
-    
+
     /**
      * subject에서 문자/숫자와 공백만 남기고 특수문자 제거
      */
@@ -3114,19 +3188,24 @@ public class ApiServer extends NanoHTTPD {
      */
     private Response handleGetCorporateStatistics(IHTTPSession session) {
         Log.i(TAG, "=== GET CORPORATE STATISTICS REQUEST ===");
-        
+
         try {
             // 쿼리 매개변수 가져오기
             Map<String, String> params = session.getParms();
             String startDate = params.get("startDate");
             String endDate = params.get("endDate");
-            
+
             if (startDate == null || endDate == null) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "시작일(startDate)과 종료일(endDate)이 필요합니다");
                 return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
+
+            // DAO 열기
+            corporateDAO.open();
+            employeeDAO.open();
+            couponDAO.open();
 
             // 모든 거래처 조회
             List<Corporate> corporates = corporateDAO.getAllCorporates();
@@ -3203,13 +3282,18 @@ public class ApiServer extends NanoHTTPD {
             
             Log.i(TAG, "Corporate statistics retrieved: " + totalCorporates + " corporates, " + totalIssuedCoupons + " coupons");
             return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error getting corporate statistics", e);
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "통계 조회 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            corporateDAO.close();
+            employeeDAO.close();
+            couponDAO.close();
         }
     }
 
@@ -3218,21 +3302,27 @@ public class ApiServer extends NanoHTTPD {
      */
     private Response handleGetCorporateDetailStatistics(String corporateId, IHTTPSession session) {
         Log.i(TAG, "=== GET CORPORATE DETAIL STATISTICS REQUEST ===");
-        
+
         try {
             int id = Integer.parseInt(corporateId);
-            
+
             // 쿼리 매개변수 가져오기
             Map<String, String> params = session.getParms();
             String startDate = params.get("startDate");
             String endDate = params.get("endDate");
-            
+
             if (startDate == null || endDate == null) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "시작일(startDate)과 종료일(endDate)이 필요합니다");
                 return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
+
+            // DAO 열기
+            corporateDAO.open();
+            employeeDAO.open();
+            couponDAO.open();
+            transactionDAO.open();
 
             // 거래처 정보 조회
             Corporate corporate = corporateDAO.getCorporateById(id);
@@ -3315,7 +3405,7 @@ public class ApiServer extends NanoHTTPD {
             
             Log.i(TAG, "Corporate detail statistics retrieved for: " + corporate.getName());
             return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
-            
+
         } catch (NumberFormatException e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
@@ -3327,6 +3417,12 @@ public class ApiServer extends NanoHTTPD {
             error.put("success", false);
             error.put("message", "상세 통계 조회 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        } finally {
+            // DAO 닫기
+            corporateDAO.close();
+            employeeDAO.close();
+            couponDAO.close();
+            transactionDAO.close();
         }
     }
 
@@ -4213,6 +4309,312 @@ public class ApiServer extends NanoHTTPD {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "직원별 일자별 거래 내역 조회 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    /**
+     * 데이터베이스 전체 백업
+     * GET /api/backup
+     */
+    private Response handleBackupDatabase() {
+        Log.i(TAG, "=== DATABASE BACKUP START ===");
+
+        try {
+            corporateDAO.open();
+            employeeDAO.open();
+            couponDAO.open();
+            transactionDAO.open();
+
+            try {
+                // 백업 데이터 구조
+                Map<String, Object> backupData = new HashMap<>();
+                backupData.put("timestamp", new java.util.Date().toString());
+                backupData.put("version", "1.0");
+
+                // 1. 거래처 데이터
+                List<Corporate> corporates = corporateDAO.getAllCorporates();
+                List<Map<String, Object>> corporateList = new ArrayList<>();
+                for (Corporate corp : corporates) {
+                    Map<String, Object> corpData = new HashMap<>();
+                    corpData.put("customer_id", corp.getCustomerId());
+                    corpData.put("name", corp.getName());
+                    corpData.put("business_number", corp.getBusinessNumber());
+                    corpData.put("representative", corp.getRepresentative());
+                    corpData.put("phone", corp.getPhone());
+                    corpData.put("email", corp.getEmail());
+                    corpData.put("address", corp.getAddress());
+                    corpData.put("created_at", corp.getCreatedAt());
+                    corporateList.add(corpData);
+                }
+                backupData.put("corporates", corporateList);
+                Log.i(TAG, "[BACKUP] Corporates: " + corporateList.size() + " records");
+
+                // 2. 직원 데이터
+                List<Employee> employees = employeeDAO.getAllEmployees();
+                List<Map<String, Object>> employeeList = new ArrayList<>();
+                for (Employee emp : employees) {
+                    Map<String, Object> empData = new HashMap<>();
+                    empData.put("employee_id", emp.getEmployeeId());
+                    empData.put("corporate_id", emp.getCorporateId());
+                    empData.put("name", emp.getName());
+                    empData.put("phone", emp.getPhone());
+                    empData.put("email", emp.getEmail());
+                    empData.put("department", emp.getDepartment());
+                    empData.put("created_at", emp.getCreatedAt());
+                    employeeList.add(empData);
+                }
+                backupData.put("employees", employeeList);
+                Log.i(TAG, "[BACKUP] Employees: " + employeeList.size() + " records");
+
+                // 3. 쿠폰 데이터
+                List<Coupon> coupons = couponDAO.getAllCoupons();
+                List<Map<String, Object>> couponList = new ArrayList<>();
+                for (Coupon coupon : coupons) {
+                    Map<String, Object> couponData = new HashMap<>();
+                    couponData.put("coupon_id", coupon.getCouponId());
+                    couponData.put("full_coupon_code", coupon.getFullCouponCode());
+                    couponData.put("employee_id", coupon.getEmployeeId());
+                    couponData.put("cash_balance", coupon.getCashBalance());
+                    couponData.put("point_balance", coupon.getPointBalance());
+                    couponData.put("expire_date", coupon.getExpireDate());
+                    couponData.put("status", coupon.getStatus());
+                    couponData.put("payment_type", coupon.getPaymentType());
+                    couponData.put("available_days", coupon.getAvailableDays());
+                    couponData.put("created_at", coupon.getCreatedAt());
+                    couponList.add(couponData);
+                }
+                backupData.put("coupons", couponList);
+                Log.i(TAG, "[BACKUP] Coupons: " + couponList.size() + " records");
+
+                // 4. 거래내역 데이터
+                List<Map<String, Object>> transactionList = new ArrayList<>();
+                for (Coupon coupon : coupons) {
+                    List<Transaction> transactions = transactionDAO.getTransactionsByCouponId(coupon.getCouponId());
+                    for (Transaction trans : transactions) {
+                        Map<String, Object> transData = new HashMap<>();
+                        transData.put("transaction_id", trans.getTransactionId());
+                        transData.put("coupon_id", trans.getCouponId());
+                        transData.put("amount", trans.getAmount());
+                        transData.put("transaction_type", trans.getTransactionType());
+                        transData.put("transaction_date", trans.getTransactionDate());
+                        transData.put("balance_type", trans.getBalanceType());
+                        transData.put("balance_before", trans.getBalanceBefore());
+                        transData.put("balance_after", trans.getBalanceAfter());
+                        transData.put("description", trans.getDescription());
+                        transactionList.add(transData);
+                    }
+                }
+                backupData.put("transactions", transactionList);
+                Log.i(TAG, "[BACKUP] Transactions: " + transactionList.size() + " records");
+
+                // 응답 생성
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("data", backupData);
+                result.put("message", "데이터베이스 백업이 완료되었습니다.");
+
+                Log.i(TAG, "=== DATABASE BACKUP END ===");
+
+                String jsonResponse = gson.toJson(result);
+                Response response = newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", jsonResponse);
+
+                // 다운로드 헤더 추가
+                String filename = "couponman_backup_" + System.currentTimeMillis() + ".json";
+                response.addHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+
+                return response;
+
+            } finally {
+                corporateDAO.close();
+                employeeDAO.close();
+                couponDAO.close();
+                transactionDAO.close();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Database backup failed", e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "데이터베이스 백업 중 오류가 발생했습니다: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
+        }
+    }
+
+    /**
+     * 데이터베이스 복구
+     * POST /api/restore
+     */
+    private Response handleRestoreDatabase(IHTTPSession session) {
+        Log.i(TAG, "=== DATABASE RESTORE START ===");
+
+        try {
+            // POST 데이터 파싱
+            Map<String, String> files = new HashMap<>();
+            session.parseBody(files);
+
+            String postData = files.get("postData");
+            if (postData == null || postData.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "백업 데이터가 없습니다.");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            Log.i(TAG, "[RESTORE] Parsing backup data...");
+
+            // JSON 파싱
+            com.google.gson.JsonObject jsonData = gson.fromJson(postData, com.google.gson.JsonObject.class);
+            com.google.gson.JsonObject data = jsonData.getAsJsonObject("data");
+
+            if (data == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "잘못된 백업 데이터 형식입니다.");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
+            }
+
+            corporateDAO.open();
+            employeeDAO.open();
+            couponDAO.open();
+            transactionDAO.close();
+
+            try {
+                // 기존 데이터 삭제 (역순으로)
+                Log.i(TAG, "[RESTORE] Clearing existing data...");
+                transactionDAO.open();
+                // 트랜잭션 삭제는 CASCADE로 자동 처리됨
+                transactionDAO.close();
+
+                // 기존 데이터 삭제 (DAO를 통해서는 CASCADE 처리가 안되므로 직접 SQL 실행)
+                android.database.sqlite.SQLiteDatabase db = databaseHelper.getWritableDatabase();
+                db.execSQL("DELETE FROM coupon_transaction");
+                db.execSQL("DELETE FROM coupon_deliveries");
+                db.execSQL("DELETE FROM coupon");
+                db.execSQL("DELETE FROM employee");
+                db.execSQL("DELETE FROM corporate");
+                Log.i(TAG, "[RESTORE] Existing data cleared");
+
+                int corporateCount = 0, employeeCount = 0, couponCount = 0, transactionCount = 0;
+
+                // 1. 거래처 복구
+                if (data.has("corporates")) {
+                    com.google.gson.JsonArray corporates = data.getAsJsonArray("corporates");
+                    for (com.google.gson.JsonElement elem : corporates) {
+                        com.google.gson.JsonObject corpObj = elem.getAsJsonObject();
+
+                        Corporate corp = new Corporate();
+                        if (corpObj.has("customer_id")) corp.setCustomerId(corpObj.get("customer_id").getAsInt());
+                        if (corpObj.has("name")) corp.setName(corpObj.get("name").getAsString());
+                        if (corpObj.has("business_number")) corp.setBusinessNumber(corpObj.get("business_number").getAsString());
+                        if (corpObj.has("representative")) corp.setRepresentative(corpObj.get("representative").getAsString());
+                        if (corpObj.has("phone")) corp.setPhone(corpObj.get("phone").getAsString());
+                        if (corpObj.has("email")) corp.setEmail(corpObj.get("email").getAsString());
+                        if (corpObj.has("address")) corp.setAddress(corpObj.get("address").getAsString());
+
+                        corporateDAO.insertCorporate(corp);
+                        corporateCount++;
+                    }
+                    Log.i(TAG, "[RESTORE] Corporates restored: " + corporateCount);
+                }
+
+                // 2. 직원 복구
+                if (data.has("employees")) {
+                    com.google.gson.JsonArray employees = data.getAsJsonArray("employees");
+                    for (com.google.gson.JsonElement elem : employees) {
+                        com.google.gson.JsonObject empObj = elem.getAsJsonObject();
+
+                        Employee emp = new Employee();
+                        if (empObj.has("employee_id")) emp.setEmployeeId(empObj.get("employee_id").getAsInt());
+                        if (empObj.has("corporate_id")) emp.setCorporateId(empObj.get("corporate_id").getAsInt());
+                        if (empObj.has("name")) emp.setName(empObj.get("name").getAsString());
+                        if (empObj.has("phone")) emp.setPhone(empObj.get("phone").getAsString());
+                        if (empObj.has("email")) emp.setEmail(empObj.get("email").getAsString());
+                        if (empObj.has("department")) emp.setDepartment(empObj.get("department").getAsString());
+
+                        employeeDAO.insertEmployee(emp);
+                        employeeCount++;
+                    }
+                    Log.i(TAG, "[RESTORE] Employees restored: " + employeeCount);
+                }
+
+                // 3. 쿠폰 복구
+                if (data.has("coupons")) {
+                    com.google.gson.JsonArray coupons = data.getAsJsonArray("coupons");
+                    for (com.google.gson.JsonElement elem : coupons) {
+                        com.google.gson.JsonObject couponObj = elem.getAsJsonObject();
+
+                        Coupon coupon = new Coupon();
+                        if (couponObj.has("coupon_id")) coupon.setCouponId(couponObj.get("coupon_id").getAsInt());
+                        if (couponObj.has("full_coupon_code")) coupon.setFullCouponCode(couponObj.get("full_coupon_code").getAsString());
+                        if (couponObj.has("employee_id")) coupon.setEmployeeId(couponObj.get("employee_id").getAsInt());
+                        if (couponObj.has("cash_balance")) coupon.setCashBalance(couponObj.get("cash_balance").getAsDouble());
+                        if (couponObj.has("point_balance")) coupon.setPointBalance(couponObj.get("point_balance").getAsDouble());
+                        if (couponObj.has("expire_date")) coupon.setExpireDate(couponObj.get("expire_date").getAsString());
+                        if (couponObj.has("status")) coupon.setStatus(couponObj.get("status").getAsString());
+                        if (couponObj.has("payment_type")) coupon.setPaymentType(couponObj.get("payment_type").getAsString());
+                        if (couponObj.has("available_days")) coupon.setAvailableDays(couponObj.get("available_days").getAsString());
+
+                        couponDAO.insertCoupon(coupon);
+                        couponCount++;
+                    }
+                    Log.i(TAG, "[RESTORE] Coupons restored: " + couponCount);
+                }
+
+                // 4. 거래내역 복구
+                if (data.has("transactions")) {
+                    transactionDAO.open();
+                    com.google.gson.JsonArray transactions = data.getAsJsonArray("transactions");
+                    for (com.google.gson.JsonElement elem : transactions) {
+                        com.google.gson.JsonObject transObj = elem.getAsJsonObject();
+
+                        Transaction trans = new Transaction();
+                        if (transObj.has("transaction_id")) trans.setTransactionId(transObj.get("transaction_id").getAsInt());
+                        if (transObj.has("coupon_id")) trans.setCouponId(transObj.get("coupon_id").getAsInt());
+                        if (transObj.has("amount")) trans.setAmount(transObj.get("amount").getAsDouble());
+                        if (transObj.has("transaction_type")) trans.setTransactionType(transObj.get("transaction_type").getAsString());
+                        if (transObj.has("transaction_date")) trans.setTransactionDate(transObj.get("transaction_date").getAsString());
+                        if (transObj.has("balance_type")) trans.setBalanceType(transObj.get("balance_type").getAsString());
+                        if (transObj.has("balance_before")) trans.setBalanceBefore(transObj.get("balance_before").getAsDouble());
+                        if (transObj.has("balance_after")) trans.setBalanceAfter(transObj.get("balance_after").getAsDouble());
+                        if (transObj.has("description")) trans.setDescription(transObj.get("description").getAsString());
+
+                        transactionDAO.insertTransaction(trans);
+                        transactionCount++;
+                    }
+                    transactionDAO.close();
+                    Log.i(TAG, "[RESTORE] Transactions restored: " + transactionCount);
+                }
+
+                // 응답 생성
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+
+                Map<String, Object> stats = new HashMap<>();
+                stats.put("corporates", corporateCount);
+                stats.put("employees", employeeCount);
+                stats.put("coupons", couponCount);
+                stats.put("transactions", transactionCount);
+                result.put("restored", stats);
+                result.put("message", "데이터베이스 복구가 완료되었습니다.");
+
+                Log.i(TAG, "=== DATABASE RESTORE END ===");
+
+                return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
+
+            } finally {
+                corporateDAO.close();
+                employeeDAO.close();
+                couponDAO.close();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "❌ ERROR: Database restore failed", e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "데이터베이스 복구 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
     }

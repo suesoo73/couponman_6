@@ -60,6 +60,9 @@
                     <a class="dropdown-item" onclick="showSection('managementInfo')">
                         <span class="icon">📊</span>경영정보
                     </a>
+                    <a class="dropdown-item" onclick="showSection('backup')">
+                        <span class="icon">💾</span>백업/복구
+                    </a>
                     <div class="dropdown-divider" style="border-top: 1px solid #e0e0e0; margin: 10px 0;"></div>
                     <a class="dropdown-item" onclick="showDeveloperLogin()" id="developerMenuButton" style="color: #dc3545;">
                         <span class="icon">👨‍💻</span>개발자 메뉴
@@ -1134,6 +1137,63 @@
                 </div>
             </div>
 
+            <!-- Backup/Restore Section -->
+            <div id="backupSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">💾</span>
+                    <h2>데이터 백업/복구</h2>
+                </div>
+
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #0066cc;">📦 데이터 백업</h3>
+                    <p style="margin-bottom: 20px; color: #666;">
+                        현재 데이터베이스의 모든 데이터를 JSON 파일로 백업합니다.<br>
+                        백업 데이터에는 거래처, 직원, 쿠폰, 거래내역이 포함됩니다.
+                    </p>
+                    <button onclick="backupDatabase()" class="btn" style="background: #0066cc; color: white;">
+                        💾 전체 데이터 백업
+                    </button>
+                    <div id="backupStatus" style="margin-top: 15px;"></div>
+                </div>
+
+                <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <h3 style="margin-bottom: 15px; color: #856404;">⚠️ 데이터 복구</h3>
+                    <p style="margin-bottom: 20px; color: #856404;">
+                        <strong>주의:</strong> 데이터 복구 시 현재 데이터베이스의 모든 데이터가 삭제되고 백업 파일의 데이터로 교체됩니다.<br>
+                        복구하기 전에 반드시 현재 데이터를 백업하세요!
+                    </p>
+                    <div style="margin-bottom: 15px;">
+                        <label for="restoreFile" style="display: block; margin-bottom: 5px; font-weight: bold;">백업 파일 선택:</label>
+                        <input type="file" id="restoreFile" accept=".json" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-width: 500px;">
+                    </div>
+                    <button onclick="restoreDatabase()" class="btn" style="background: #ffc107; color: #212529;">
+                        ⚠️ 데이터 복구 실행
+                    </button>
+                    <div id="restoreStatus" style="margin-top: 15px;"></div>
+                </div>
+
+                <div class="card" style="background: #d4edda; border-left: 4px solid #28a745;">
+                    <h3 style="margin-bottom: 15px; color: #155724;">💡 백업/복구 가이드</h3>
+                    <ul style="color: #155724; line-height: 1.8;">
+                        <li><strong>백업 시점:</strong> 정기적으로 백업하여 데이터 손실을 방지하세요.</li>
+                        <li><strong>백업 파일 보관:</strong> 백업 파일은 안전한 위치에 보관하세요.</li>
+                        <li><strong>복구 전 확인:</strong> 복구할 백업 파일이 올바른 파일인지 확인하세요.</li>
+                        <li><strong>복구 후 확인:</strong> 복구 후 데이터가 정상적으로 복원되었는지 확인하세요.</li>
+                        <li><strong>백업 파일 형식:</strong> JSON 형식 (.json) 파일만 복구 가능합니다.</li>
+                    </ul>
+                </div>
+
+                <div class="card" style="background: #f8d7da; border-left: 4px solid #dc3545;">
+                    <h3 style="margin-bottom: 15px; color: #721c24;">🚨 중요 안내</h3>
+                    <ul style="color: #721c24; line-height: 1.8;">
+                        <li>복구 작업은 되돌릴 수 없습니다.</li>
+                        <li>복구 중에는 절대로 앱을 종료하거나 새로고침하지 마세요.</li>
+                        <li>백업 파일이 손상된 경우 복구가 실패할 수 있습니다.</li>
+                        <li>복구 실패 시 데이터가 손상될 수 있으므로 주의하세요.</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Developer Section -->
             <div id="developerSection" class="content-section">
                 <div class="section-header">
@@ -1632,8 +1692,9 @@
     <script src="assets/js/modules/email-config.js"></script>
     <script src="assets/js/modules/sms-config.js"></script>
     <script src="assets/js/modules/management-info.js"></script>
+    <script src="assets/js/modules/backup.js"></script>
     <script src="assets/js/modules/developer.js"></script>
-    
+
     <!-- Application Initialization -->
     <script src="assets/js/core/app.js"></script>
 </body>
