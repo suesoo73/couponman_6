@@ -13,6 +13,7 @@ public class ParkingWebViewActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ScreenOrientationHelper.applyOrientation(this);
         setContentView(R.layout.activity_parking_webview);
 
         webView = findViewById(R.id.parkingWebView);
@@ -41,5 +42,11 @@ public class ParkingWebViewActivity extends Activity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ScreenOrientationHelper.applyOrientation(this);
     }
 }

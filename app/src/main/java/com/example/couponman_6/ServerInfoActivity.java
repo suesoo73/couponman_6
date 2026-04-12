@@ -108,6 +108,7 @@ public class ServerInfoActivity extends AppCompatActivity implements WebSocketCl
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ScreenOrientationHelper.applyOrientation(this);
         setContentView(R.layout.activity_server_info);
 
         initializeViews();
@@ -322,6 +323,7 @@ public class ServerInfoActivity extends AppCompatActivity implements WebSocketCl
     @Override
     protected void onResume() {
         super.onResume();
+        ScreenOrientationHelper.applyOrientation(this);
         // Activity가 다시 활성화될 때 서버 상태 재확인
         uiHandler.postDelayed(new Runnable() {
             @Override

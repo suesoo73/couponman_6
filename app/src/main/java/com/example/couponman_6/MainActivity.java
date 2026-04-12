@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ScreenOrientationHelper.applyOrientation(this);
         setContentView(R.layout.activity_main);
         
         // 화면 잠김 방지 설정 적용
@@ -45,9 +46,19 @@ public class MainActivity extends AppCompatActivity {
         registerServerStatusReceiver();
 
         Button btnAdminSettings = findViewById(R.id.btnAdminSettings);
+        Button btnWebDashboard = findViewById(R.id.btnWebDashboard);
         Button btnQRScan = findViewById(R.id.btnQRScan);
         Button btnServerInfo = findViewById(R.id.btnServerInfo);
         Button btnParkingRegistration = findViewById(R.id.btnParkingRegistration);
+        Button btnCouponList = findViewById(R.id.btnCouponList);
+
+        btnWebDashboard.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, WebDashboardActivity.class);
+                startActivity(intent);
+            }
+        });
 
         btnAdminSettings.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -77,6 +88,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 openParkingRegistration();
+            }
+        });
+
+        btnCouponList.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, CouponListActivity.class);
+                startActivity(intent);
             }
         });
     }
@@ -131,12 +150,13 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "[SERVER-AUTO] API 서버 자동 시작 시도 - 포트: " + SERVER_PORT);
             
             // ApiServerService를 통해 서버 시작
+            String dashboardUrl = ServerAddressHelper.getDashboardUrl(this, SERVER_PORT);
             Intent serviceIntent = new Intent(this, ApiServerService.class);
             serviceIntent.setAction("START_SERVER");
             startService(serviceIntent);
             
-            Toast.makeText(this, 
-                "API 서버가 자동으로 시작됩니다\nhttp://localhost:" + SERVER_PORT, 
+            Toast.makeText(this,
+                "외부 PC 접속 주소\n" + dashboardUrl,
                 Toast.LENGTH_LONG).show();
             
         } catch (Exception e) {
@@ -148,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        ScreenOrientationHelper.applyOrientation(this);
         
         // 화면 잠김 방지 설정 재적용 (설정이 변경될 수 있으므로)
         applyKeepScreenOnSetting();

@@ -1,0 +1,3663 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎟️ 쿠폰 매니저 시스템 PC 대시보드</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+
+    <style>
+        /* ===== BASE ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Malgun Gothic', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            font-family: inherit;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+
+        .logo h1 {
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        /* ===== NAV DROPDOWN ===== */
+        .nav-dropdown {
+            position: relative;
+        }
+
+        .nav-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+            z-index: 200;
+            overflow: hidden;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            transition: background 0.15s;
+        }
+
+        .dropdown-item:hover {
+            background: #f5f5f5;
+        }
+
+        .dropdown-item .icon {
+            font-size: 16px;
+        }
+
+        .dropdown-divider {
+            border-top: 1px solid #e0e0e0;
+            margin: 4px 0;
+        }
+
+        /* ===== LAYOUT ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .content-area {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            min-height: 400px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* ===== SECTION HEADER ===== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section-header h2 {
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .section-header .icon {
+            font-size: 1.8em;
+        }
+
+        /* ===== CARD ===== */
+        .card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e8ecef;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 9px 18px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+
+        .btn:hover {
+            opacity: 0.88;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #48bb78;
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #718096;
+        }
+
+        .success-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 9px 18px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            background: #48bb78;
+            transition: opacity 0.15s;
+        }
+
+        .success-button:hover {
+            opacity: 0.88;
+        }
+
+        /* ===== FORMS ===== */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea,
+        .form-row>div input,
+        .form-row>div select,
+        .status-card input,
+        .status-card select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-row input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        .form-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .setting-item {
+            margin-bottom: 22px;
+            padding-bottom: 22px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        /* ===== DASHBOARD QUICK LINKS ===== */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .quick-link-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+
+        .quick-link-card .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .quick-link-card h3 {
+            color: #333;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
+
+        .quick-link-card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .grid-table th,
+        .grid-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex !important;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h3 {
+            font-size: 1.1em;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        /* ===== MANAGEMENT TABS ===== */
+        .management-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #718096;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.15s;
+        }
+
+        .tab-button:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .management-tab-content {
+            display: none;
+        }
+
+        .management-tab-content.active {
+            display: block;
+        }
+
+        /* ===== MISC ===== */
+        .sms-config {}
+
+        .stat-item {}
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-links {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header-content {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .main-container {
+                padding: 12px;
+            }
+
+            .content-area {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span style="font-size: 1.5em;">🎟️</span>
+                <h1>쿠폰 매니저 PC 대시보드</h1>
+            </div>
+
+            <div class="nav-dropdown">
+                <button class="nav-button" onclick="toggleDropdown()">
+                    <span>📋 메뉴</span>
+                </button>
+                <div class="dropdown-content" id="navDropdown">
+                    <a class="dropdown-item" onclick="showSection('welcome')">
+                        <span class="icon">🏠</span>대시보드 홈
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('corporate')">
+                        <span class="icon">🏢</span>거래처 관리
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('couponManagement')">
+                        <span class="icon">📋</span>쿠폰 관리
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('send')">
+                        <span class="icon">📤</span>쿠폰 발송
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('deliveryHistory')">
+                        <span class="icon">📋</span>발송 기록
+                    </a>
+                    <a class="dropdown-item" id="emailConfigMenu" onclick="showSection('emailConfig')"
+                        style="display: none;">
+                        <span class="icon">📧</span>이메일 설정
+                    </a>
+                    <a class="dropdown-item" id="smsConfigMenu" onclick="showSection('smsConfig')"
+                        style="display: none;">
+                        <span class="icon">📱</span>SMS 설정
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('systemSettings')">
+                        <span class="icon">💰</span>가격 설정
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('managementInfo')">
+                        <span class="icon">📊</span>경영정보
+                    </a>
+                    <a class="dropdown-item" onclick="showSection('backup')">
+                        <span class="icon">💾</span>백업/복구
+                    </a>
+                    <div class="dropdown-divider" style="border-top: 1px solid #e0e0e0; margin: 10px 0;"></div>
+                    <a class="dropdown-item" onclick="showDeveloperLogin()" id="developerMenuButton"
+                        style="color: #dc3545;">
+                        <span class="icon">👨‍💻</span>개발자 메뉴
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Server Status Card -->
+        <div class="status-card">
+            <div class="status-grid">
+                <div>
+                    <h3 style="margin-bottom: 15px;">🔧 서버 설정</h3>
+                    <div class="form-row">
+                        <div>
+                            <label for="serverUrl">API 서버 주소</label>
+                            <input type="url" id="serverUrl" value=""
+                                placeholder="http://192.168.x.x:8080">
+                        </div>
+                        <div style="display: flex; align-items: end;">
+                            <button onclick="checkServerStatus()" class="btn">서버 상태 확인</button>
+                        </div>
+                    </div>
+                    <div id="serverStatus"></div>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 15px;">🔐 로그인</h3>
+                    <div class="form-row">
+                        <div>
+                            <label for="userId">사용자 ID</label>
+                            <input type="text" id="userId" value="" placeholder="사용자 ID를 입력하세요">
+                        </div>
+                        <div>
+                            <label for="password">패스워드</label>
+                            <input type="password" id="password" value="" placeholder="패스워드를 입력하세요">
+                        </div>
+                    </div>
+                    <button onclick="login()" class="btn btn-success">로그인</button>
+                    <button onclick="clearToken()" class="btn btn-danger">토큰 삭제</button>
+
+                    <div id="loginResult"></div>
+                    <div id="tokenDisplay" style="display: none; margin-top: 15px;">
+                        <label style="margin-bottom: 10px;">액세스 토큰:</label>
+                        <div style="background: #2d3748; color: #68d391; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; word-break: break-all; font-size: 14px;"
+                            id="accessToken"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Welcome Section -->
+            <div id="welcomeSection" class="content-section active">
+                <div class="section-header">
+                    <span class="icon">🖥️</span>
+                    <h2>PC 대시보드 홈</h2>
+                </div>
+
+                <div class="quick-links">
+                    <div class="quick-link-card" onclick="showSection('corporate')">
+                        <span class="icon">🏢</span>
+                        <h3>고객 관리</h3>
+                        <p>거래처 및 직원 정보 등록/수정/삭제</p>
+                    </div>
+                    <div class="quick-link-card" onclick="showSection('couponManagement')">
+                        <span class="icon">🎟️</span>
+                        <h3>쿠폰 관리</h3>
+                        <p>신규 쿠폰 발행, 기존 쿠폰 충전, 프리셋 관리</p>
+                    </div>
+                    <div class="quick-link-card" onclick="showSection('managementInfo')">
+                        <span class="icon">📊</span>
+                        <h3>경영 정보</h3>
+                        <p>거래처별 월간 정산 보고서 및 사용 내역 통계</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Corporate Management Section -->
+            <div id="corporateSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">🏢</span>
+                    <h2>거래처 관리</h2>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-success" onclick="showCreateCorporateForm()">+ 새 거래처 추가</button>
+                </div>
+                <div class="card">
+                    <h3>🔍 검색</h3>
+                    <div class="form-row">
+                        <div>
+                            <input type="text" id="searchInput" placeholder="회사명으로 검색...">
+                        </div>
+                        <div>
+                            <button onclick="searchCorporates()" class="btn">검색</button>
+                            <button onclick="loadAllCorporates()" class="btn btn-success">전체 목록</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="corporateList">
+                    <p style="text-align: center; color: #666; padding: 40px;">로그인 후 '전체 목록' 버튼을 클릭하여 거래처 목록을 불러오세요.</p>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div id="systemSettingsSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">💰</span>
+                    <h2>가격 설정</h2>
+                </div>
+
+                <!-- 기본 가격 설정 (항상 표시되는 기본 설정) -->
+                <div class="card">
+                    <h3>🕒 기본 가격 설정</h3>
+                    <div class="setting-item">
+                        <div class="form-row">
+                            <div>
+                                <label>기본 현금 차감 (원)</label>
+                                <input type="number" id="defaultCashDeduction" value="1000" min="0">
+                            </div>
+                            <div>
+                                <label>포인트 차감 방식</label>
+                                <select id="pointDeductionMethod" onchange="showPointMethodWarning()">
+                                    <option value="후순위" selected>포인트 후순위 차감</option>
+                                    <option value="비례">포인트 비례 차감</option>
+                                </select>
+                            </div>
+                        </div>
+                        <small style="color: #666;" id="defaultSettingsDescription">
+                            시간대별 차감이 비활성화된 경우 이 값들이 사용됩니다
+                        </small>
+                        <div
+                            style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #495057;">
+                            <strong>💡 포인트 차감 방식 설명:</strong><br>
+                            • <strong>후순위 차감:</strong> 현금 먼저 차감 후 부족분을 포인트로 차감<br>
+                            • <strong>비례 차감:</strong> 현금과 포인트를 일정 비율로 동시 차감
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>⏰ 시간대별 차감 설정</h3>
+
+                    <div class="setting-item">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="enableTimeBasedDeduction" onchange="toggleTimeBasedControls()">
+                            <label for="enableTimeBasedDeduction" style="margin: 0; font-weight: bold;">시간대별 차감 기능
+                                활성화</label>
+                        </div>
+                        <small style="color: #666;">체크하면 시간대에 따라 다른 금액이 차감됩니다</small>
+                    </div>
+
+                    <!-- 시간대별 가격 설정 컨트롤들 -->
+                    <div id="timeBasedControls" style="opacity: 0.5; pointer-events: none;">
+                        <div class="setting-item">
+                            <h4>🌅 아침 설정</h4>
+                            <div class="form-row">
+                                <div>
+                                    <label>시작 시간</label>
+                                    <input type="time" id="breakfastStartTime" value="06:00">
+                                </div>
+                                <div>
+                                    <label>종료 시간</label>
+                                    <input type="time" id="breakfastEndTime" value="10:59">
+                                </div>
+                                <div>
+                                    <label>현금 차감 (원)</label>
+                                    <input type="number" id="breakfastCashDeduction" value="3000" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <h4>🌞 점심 설정</h4>
+                            <div class="form-row">
+                                <div>
+                                    <label>시작 시간</label>
+                                    <input type="time" id="lunchStartTime" value="11:00">
+                                </div>
+                                <div>
+                                    <label>종료 시간</label>
+                                    <input type="time" id="lunchEndTime" value="14:59">
+                                </div>
+                                <div>
+                                    <label>현금 차감 (원)</label>
+                                    <input type="number" id="lunchCashDeduction" value="5000" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <h4>🌙 저녁 설정</h4>
+                            <div class="form-row">
+                                <div>
+                                    <label>시작 시간</label>
+                                    <input type="time" id="dinnerStartTime" value="15:00">
+                                </div>
+                                <div>
+                                    <label>종료 시간</label>
+                                    <input type="time" id="dinnerEndTime" value="21:59">
+                                </div>
+                                <div>
+                                    <label>현금 차감 (원)</label>
+                                    <input type="number" id="dinnerCashDeduction" value="7000" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div> <!-- timeBasedControls 컨테이너 종료 -->
+                </div>
+
+                <div class="card">
+                    <h3>🔧 기타 설정</h3>
+                    <div class="setting-item">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="allowNegativeBalance">
+                            <label for="allowNegativeBalance" style="margin: 0; font-weight: bold;">마이너스 잔고 허용</label>
+                        </div>
+                        <small style="color: #666;">체크하면 잔고가 부족해도 QR 스캔을 허용합니다</small>
+                    </div>
+
+                    <div class="setting-item" style="margin-top: 20px;">
+                        <label for="parkingRegistrationUrl">🚗 주차등록 URL</label>
+                        <input type="url" id="parkingRegistrationUrl" placeholder="https://example.com/parking"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="color: #666;">안드로이드 앱의 주차등록 버튼 클릭 시 열릴 URL을 입력하세요</small>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button onclick="loadSystemSettings()" class="btn btn-secondary">🔄 설정 불러오기</button>
+                    <button onclick="saveSystemSettings()" class="btn btn-success">💾 설정 저장</button>
+                    <button onclick="testCurrentDeduction()" class="btn"
+                        style="background: #17a2b8; color: white; margin-left: 10px;">🧮 현재 차감액 테스트</button>
+                </div>
+
+                <div id="settingsPreview"
+                    style="background: #e6f3ff; padding: 15px; border-radius: 8px; margin-top: 20px; display: none;">
+                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">📋 현재 설정 미리보기</h4>
+                    <div id="previewContent"></div>
+                </div>
+            </div>
+
+            <!-- Employee Management Section -->
+            <div id="employeeSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">👤</span>
+                    <h2>직원 관리</h2>
+                </div>
+
+                <div class="card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>직원 관리</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="corporateSelectForEmployee"
+                                style="min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="">거래처를 선택하세요</option>
+                            </select>
+                            <button class="btn btn-success" onclick="showCreateEmployeeForm()" id="addEmployeeBtn"
+                                disabled>+ 새 직원 추가</button>
+                            <button class="btn btn-success" onclick="showBulkImportForm()" id="bulkImportBtn" disabled
+                                style="background: #38a169;">📊 Excel 붙여넣기</button>
+                        </div>
+                    </div>
+
+                    <!-- 직원 목록 -->
+                    <div id="employeeList" style="margin-top: 20px;">
+                        <p style="text-align: center; color: #666;">거래처를 선택하면 직원 목록이 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coupon Management Section -->
+            <div id="couponManagementSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📋</span>
+                    <h2>쿠폰 통합 관리</h2>
+                </div>
+
+                <!-- Management Tabs -->
+                <div class="management-tabs">
+                    <button class="tab-button active" onclick="switchCouponTab('issue')">✨ 신규 발급 / 기존 충전</button>
+                    <button class="tab-button" onclick="switchCouponTab('list')">📋 전체 쿠폰 조회</button>
+                </div>
+
+                <!-- TAB 1: 신규 발급 / 기존 충전 -->
+                <div id="couponIssueTab" class="management-tab-content active">
+                    <div class="card">
+                        <div class="form-row">
+                            <div>
+                                <label>거래처 선택:</label>
+                                <select id="issueCorporateSelect" onchange="loadEmployeesForGrid()">
+                                    <option value="">거래처를 선택하세요</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>직원 프리셋 불러오기:</label>
+                                <select id="presetSelect" onchange="loadPreset()">
+                                    <option value="">프리셋 선택 안함</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div
+                            style="background: white; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0;">👥 발급 대상 직원 그리드</h4>
+                            <div style="max-height: 250px; overflow-y: auto;">
+                                <table class="grid-table" id="employeeGridTable">
+                                    <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                        <tr>
+                                            <th width="50"><input type="checkbox" id="checkAllEmployees"
+                                                    onchange="toggleAllEmployeesGrid()"></th>
+                                            <th>사번</th>
+                                            <th>이름</th>
+                                            <th>사용한도(원)</th>
+                                            <th>최근 쿠폰 상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employeeGridBody">
+                                        <tr>
+                                            <td colspan="5">거래처를 선택하면 직원이 표시됩니다.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="margin-top: 10px; text-align: right;">
+                                <button onclick="savePreset()" class="btn btn-secondary" style="font-size: 13px;">💾 현재
+                                    선택항목 프리셋으로 저장</button>
+                            </div>
+                        </div>
+
+                        <!-- 발급/충전 공통 설정 -->
+                        <div
+                            style="background: #e6f3ff; border: 1px solid #b3d4fc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0; color: #2c5aa0;">⚙️ 발급 및 충전 설정</h4>
+                            <div class="form-row-4">
+                                <div>
+                                    <label>사용한도 (금액):</label>
+                                    <input type="text" id="chargeLimitAmount" placeholder="예: 50,000" style="text-align:right;" oninput="formatLimitInput(this); distributeLimit(this);" onblur="formatLimitInput(this); distributeLimit(this);">
+                                </div>
+                                <div>
+                                    <label>만료일:</label>
+                                    <input type="date" id="chargeExpireDate">
+                                </div>
+                                <div style="grid-column: span 2;">
+                                    <label>사용 가능 요일:</label>
+                                    <div style="display: flex; gap: 8px; padding-top: 8px;">
+                                        <label><input type="checkbox" class="charge-day" value="mon" checked> 월</label>
+                                        <label><input type="checkbox" class="charge-day" value="tue" checked> 화</label>
+                                        <label><input type="checkbox" class="charge-day" value="wed" checked> 수</label>
+                                        <label><input type="checkbox" class="charge-day" value="thu" checked> 목</label>
+                                        <label><input type="checkbox" class="charge-day" value="fri" checked> 금</label>
+                                        <label><input type="checkbox" class="charge-day" value="sat"> 토</label>
+                                        <label><input type="checkbox" class="charge-day" value="sun"> 일</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="border-top: 1px dashed #b3d4fc; margin-top: 15px; padding-top: 15px;">
+                                <strong style="display: block; margin-bottom: 10px;">기존 쿠폰 충전 시 규칙 선택:</strong>
+                                <label style="margin-right: 20px;"><input type="radio" name="chargeRule" value="reset"
+                                        checked> 🔄 기존 잔액 0원 초기화 후 충전</label>
+                                <label style="margin-right: 20px;"><input type="radio" name="chargeRule" value="add"> ➕
+                                    기존 잔액에 한도 합산</label>
+                                <br>
+                                <label style="margin-top: 10px; display: inline-block; color: #e53e3e;">
+                                    <input type="checkbox" id="extendExpiredOption"> ⚠️ 만료된 쿠폰도 활성화하여 만료일 연장 후 충전 허용
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <button onclick="executeCouponAction('issue')" class="btn btn-success"
+                                style="font-size: 16px; padding: 12px 30px;">✨ 신규 발급 실행</button>
+                            <button onclick="executeCouponAction('charge')" class="btn"
+                                style="background: #ed8936; color: white; font-size: 16px; padding: 12px 30px;">🔋 기존 쿠폰
+                                충전 실행</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: 전체 쿠폰 조회 -->
+                <div id="couponListTab" class="management-tab-content">
+                    <div class="card">
+                        <h3>🔍 쿠폰 검색 및 필터</h3>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div>
+                                <label for="couponSearchCorporate">거래처:</label>
+                                <select id="couponSearchCorporate"
+                                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"
+                                    onchange="searchCoupons()">
+                                    <option value="">전체 거래처</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="couponSearchStatus">상태:</label>
+                                <select id="couponSearchStatus"
+                                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"
+                                    onchange="searchCoupons()">
+                                    <option value="">전체 상태</option>
+                                    <option value="ACTIVE">사용 가능</option>
+                                    <option value="USED">사용됨</option>
+                                    <option value="EXPIRED">만료됨</option>
+                                    <option value="SUSPENDED">일시 중지</option>
+                                    <option value="TERMINATED">해지됨</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="couponSearchCode">쿠폰 코드:</label>
+                                <input type="text" id="couponSearchCode" placeholder="쿠폰 코드 검색..."
+                                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"
+                                    onchange="searchCoupons()">
+                            </div>
+                            <div>
+                                <label for="couponSearchEmployee">직원명/전화번호:</label>
+                                <input type="text" id="couponSearchEmployee" placeholder="직원명 또는 전화번호"
+                                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"
+                                    onchange="searchCoupons()">
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <button onclick="searchCoupons()" class="btn">🔍 검색</button>
+                            <button onclick="loadAllCoupons()" class="btn btn-success">📋 전체 목록</button>
+                            <button onclick="refreshCouponList()" class="btn"
+                                style="background: #4299e1; color: white;">🔄 새로고침</button>
+                        </div>
+                    </div>
+
+                    <!-- 통계 요약 -->
+                    <div id="couponStats" class="card" style="margin-bottom: 20px;">
+                        <h3>📊 쿠폰 통계</h3>
+                        <div id="couponStatsContent"
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 2em; font-weight: bold; color: #667eea;" id="totalCoupons">0
+                                </div>
+                                <div style="color: #666; font-size: 14px;">총 쿠폰</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 2em; font-weight: bold; color: #48bb78;" id="activeCoupons">0
+                                </div>
+                                <div style="color: #666; font-size: 14px;">사용 가능</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 2em; font-weight: bold; color: #ed8936;" id="usedCoupons">0</div>
+                                <div style="color: #666; font-size: 14px;">사용됨</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 2em; font-weight: bold; color: #e53e3e;" id="expiredCoupons">0
+                                </div>
+                                <div style="color: #666; font-size: 14px;">만료됨</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 쿠폰 목록 -->
+                    <div class="card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3>📋 쿠폰 목록</h3>
+                            <div id="couponListActions" style="display: flex; gap: 10px;">
+                                <button onclick="exportCouponData()" class="btn"
+                                    style="background: #38a169; color: white;">📊 데이터 내보내기</button>
+                                <button onclick="bulkStatusUpdate()" class="btn"
+                                    style="background: #ed8936; color: white;">🔄 일괄 상태변경</button>
+                                <button onclick="bulkDeleteCoupons()" class="btn"
+                                    style="background: #e53e3e; color: white;">🗑️ 일괄 삭제</button>
+                            </div>
+                        </div>
+
+                        <div id="couponListContainer"
+                            style="max-height: 600px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <table id="couponListTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                    <tr>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 40px;">
+                                            <input type="checkbox" id="selectAllCoupons"
+                                                onchange="toggleSelectAllCoupons()">
+                                        </th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 180px;">
+                                            쿠폰 코드</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">
+                                            거래처</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 100px;">
+                                            직원명</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">
+                                            전화번호</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: right; width: 100px;">
+                                            현금잔고</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: right; width: 100px;">
+                                            포인트잔고</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 80px;">
+                                            상태</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 100px;">
+                                            만료일</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 120px;">
+                                            생성일</th>
+                                        <th
+                                            style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 180px;">
+                                            액션</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="couponListBody">
+                                    <tr>
+                                        <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
+                                            로그인 후 '전체 목록' 버튼을 클릭하여 쿠폰 목록을 불러오세요.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 쿠폰 관리 안내 -->
+                    <div class="card" style="background: #f0f8ff; border-left: 4px solid #4299e1; margin-top: 20px;">
+                        <h4 style="margin: 0 0 15px 0; color: #2c5aa0;">📋 쿠폰 관리 기능</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #2c5aa0;">
+                            <li style="margin: 8px 0;"><strong>조회:</strong> 거래처, 상태, 쿠폰코드, 직원정보로 검색 가능</li>
+                            <li style="margin: 8px 0;"><strong>수정:</strong> 개별 쿠폰의 잔액, 상태, 만료일 수정 가능</li>
+                            <li style="margin: 8px 0;"><strong>삭제:</strong> 필요시 쿠폰을 완전 삭제 (주의 필요)</li>
+                            <li style="margin: 8px 0;"><strong>일괄 작업:</strong> 여러 쿠폰을 선택하여 상태 일괄 변경</li>
+                            <li style="margin: 8px 0;"><strong>데이터 내보내기:</strong> Excel 호환 형식으로 데이터 다운로드</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sendSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📤</span>
+                    <h2>쿠폰 발송</h2>
+                </div>
+
+                <!-- 거래처 선택 -->
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label for="sendCorporateSelect">발송할 거래처 선택:</label>
+                    <select id="sendCorporateSelect" style="width: 100%; max-width: 400px; padding: 16px;"
+                        onchange="loadCouponsForSend()">
+                        <option value="">거래처를 선택하세요</option>
+                    </select>
+                </div>
+
+                <!-- 쿠폰 목록 및 발송 현황 -->
+                <div id="couponSendPanel" style="display: none;">
+                    <h4 style="margin: 0 0 15px 0; color: #667eea;">🎫 쿠폰 발송 현황</h4>
+
+                    <!-- 발송 요약 정보 -->
+                    <div id="sendSummary"
+                        style="background: #e6f3ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4299e1;">
+                    </div>
+
+                    <!-- 일괄 발송 버튼 -->
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                        <button onclick="sendAllEmails()" class="success-button" style="background: #e53e3e;">📧 전체 이메일
+                            발송</button>
+                        <button onclick="sendAllSMS()" class="success-button" style="background: #48bb78;">📱 전체 SMS
+                            발송</button>
+                        <button onclick="sendAllKakao()" class="success-button" style="background: #f6ad55;">💬 전체 카카오톡
+                            발송</button>
+                    </div>
+
+                    <!-- 쿠폰 목록 테이블 -->
+                    <div style="max-height: 500px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                        <table id="couponSendTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                <tr>
+                                    <th
+                                        style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">
+                                        쿠폰번호</th>
+                                    <th
+                                        style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 100px;">
+                                        이름</th>
+                                    <th
+                                        style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">
+                                        전화번호</th>
+                                    <th
+                                        style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 180px;">
+                                        이메일주소</th>
+                                    <th
+                                        style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 80px;">
+                                        발송여부</th>
+                                    <th
+                                        style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 250px;">
+                                        발송 액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="couponSendBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 쿠폰 발송 안내 -->
+                <div id="sendInstructions"
+                    style="background: #f0f8ff; padding: 20px; border-radius: 8px; border-left: 4px solid #4299e1;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5aa0;">📋 쿠폰 발송 방법</h4>
+                    <ol style="margin: 0; padding-left: 20px; color: #2c5aa0;">
+                        <li style="margin: 8px 0;">발송할 거래처를 선택하세요</li>
+                        <li style="margin: 8px 0;">해당 거래처의 쿠폰 목록이 자동으로 로드됩니다</li>
+                        <li style="margin: 8px 0;">개별 발송: 각 쿠폰별로 이메일/SMS/카카오톡 버튼 클릭</li>
+                        <li style="margin: 8px 0;">일괄 발송: 상단의 전체 발송 버튼 클릭</li>
+                        <li style="margin: 8px 0;">발송 상태는 실시간으로 업데이트됩니다</li>
+                    </ol>
+                    <div
+                        style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: 4px; border-left: 3px solid #28a745;">
+                        <strong>✅ 상태:</strong> 쿠폰 발송 기능이 활성화되었습니다. 발송 시 데이터베이스에 기록됩니다.
+                    </div>
+                </div>
+            </div>
+
+            <div id="deliveryHistorySection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📋</span>
+                    <h2>발송 기록</h2>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>📊 쿠폰 발송 기록</h3>
+                    <button onclick="loadDeliveryHistory()"
+                        style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🔄
+                        새로고침</button>
+                </div>
+
+                <!-- 검색 및 필터 -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                        <div>
+                            <label for="deliverySearchType">검색 유형:</label>
+                            <select id="deliverySearchType"
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="">전체</option>
+                                <option value="email">이메일</option>
+                                <option value="sms">SMS</option>
+                                <option value="kakao">카카오톡</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="deliverySearchStatus">발송 상태:</label>
+                            <select id="deliverySearchStatus"
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="">전체</option>
+                                <option value="pending">대기</option>
+                                <option value="sent">발송됨</option>
+                                <option value="failed">실패</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="deliverySearchDate">발송일:</label>
+                            <input type="date" id="deliverySearchDate"
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <button onclick="filterDeliveryHistory()"
+                            style="background: #48bb78; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🔍
+                            필터</button>
+                    </div>
+                </div>
+
+                <!-- 통계 요약 -->
+                <div id="deliveryStats"
+                    style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <!-- 통계 카드들이 여기에 동적으로 생성됩니다 -->
+                </div>
+
+                <!-- 발송 기록 테이블 -->
+                <div style="max-height: 600px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                    <table id="deliveryHistoryTable" style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                            <tr>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 80px;">ID
+                                </th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">
+                                    쿠폰번호</th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 80px;">
+                                    발송유형</th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 120px;">
+                                    수신자</th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 180px;">제목
+                                </th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 80px;">상태
+                                </th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left; width: 150px;">
+                                    발송일시</th>
+                                <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center; width: 80px;">
+                                    액션</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 발송 기록 데이터가 여기에 동적으로 생성됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 페이지네이션 -->
+                <div id="deliveryPagination" style="margin-top: 20px; text-align: center;">
+                    <!-- 페이지네이션 버튼들이 여기에 동적으로 생성됩니다 -->
+                </div>
+            </div>
+
+            <div id="emailConfigSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📧</span>
+                    <h2>이메일 설정</h2>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>📧 이메일 서버 설정</h3>
+                    <button onclick="testEmailConnection()"
+                        style="background: #38a169; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">연결
+                        테스트</button>
+                </div>
+
+                <!-- 프로바이더 프리셋 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #667eea;">⚡ 빠른 설정 (프로바이더 프리셋)</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="applyGmailPreset()" class="btn"
+                            style="background: #ea4335; color: white;">Gmail</button>
+                        <button onclick="applyOutlookPreset()" class="btn"
+                            style="background: #0078d4; color: white;">Outlook</button>
+                        <button onclick="applyYahooPreset()" class="btn"
+                            style="background: #720e9e; color: white;">Yahoo</button>
+                        <button onclick="applyNaverPreset()" class="btn"
+                            style="background: #03c75a; color: white;">Naver</button>
+                        <button onclick="applyEcountPreset()" class="btn"
+                            style="background: #f39c12; color: white;">Ecount</button>
+                    </div>
+                </div>
+
+                <!-- SMTP 서버 설정 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #667eea;">🔧 SMTP 서버 설정</h4>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="smtpHost">SMTP 호스트 *</label>
+                            <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
+                        </div>
+                        <div>
+                            <label for="smtpPort">SMTP 포트 *</label>
+                            <input type="number" id="smtpPort" placeholder="587">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>보안 설정</label>
+                        <div style="display: flex; gap: 20px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; margin: 0;">
+                                <input type="radio" name="security" value="none" style="margin-right: 5px;">
+                                보안 없음
+                            </label>
+                            <label style="display: flex; align-items: center; margin: 0;">
+                                <input type="radio" name="security" value="tls" checked style="margin-right: 5px;">
+                                TLS
+                            </label>
+                            <label style="display: flex; align-items: center; margin: 0;">
+                                <input type="radio" name="security" value="ssl" style="margin-right: 5px;">
+                                SSL
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 인증 정보 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #667eea;">🔐 인증 정보</h4>
+
+                    <div class="form-group">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="useAuth" checked>
+                            <label for="useAuth" style="margin: 0;">SMTP 인증 사용</label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="smtpUsername">사용자명/이메일 *</label>
+                            <input type="email" id="smtpUsername" placeholder="your-email@gmail.com">
+                        </div>
+                        <div>
+                            <label for="smtpPassword">비밀번호 *</label>
+                            <input type="password" id="smtpPassword" placeholder="앱 비밀번호 사용 권장">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 발송자 정보 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #667eea;">👤 발송자 정보</h4>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="senderName">발송자 이름</label>
+                            <input type="text" id="senderName" placeholder="쿠폰관리시스템">
+                        </div>
+                        <div>
+                            <label for="senderEmail">발송자 이메일</label>
+                            <input type="email" id="senderEmail" placeholder="noreply@company.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 이메일 템플릿 설정 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #667eea;">📝 이메일 템플릿 설정</h4>
+
+                    <div class="form-group">
+                        <label for="emailSubject">이메일 제목</label>
+                        <input type="text" id="emailSubject" placeholder="[쿠폰 발송] {{이름}}님의 쿠폰이 발급되었습니다">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="emailTemplate">이메일 내용 템플릿</label>
+                        <textarea id="emailTemplate"
+                            style="width: 100%; height: 200px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-family: inherit; resize: vertical;"
+                            placeholder="안녕하세요 {{이름}}님,&#10;&#10;{{회사명}}에서 쿠폰이 발급되었습니다.&#10;&#10;쿠폰 코드: {{쿠폰코드}}&#10;충전 금액: {{충전금액}}원&#10;포인트: {{포인트}}P&#10;유효기간: {{유효기간}}&#10;&#10;감사합니다."></textarea>
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            사용 가능한 변수: {{이름}}, {{회사명}}, {{쿠폰코드}}, {{충전금액}}, {{포인트}}, {{유효기간}}
+                        </small>
+                    </div>
+                </div>
+
+                <!-- 저장 버튼 -->
+                <div style="text-align: center; margin-top: 30px;">
+                    <button onclick="saveEmailConfig()" class="btn btn-success"
+                        style="padding: 15px 30px; font-size: 16px;">💾 설정 저장</button>
+                </div>
+
+                <!-- 도움말 -->
+                <div
+                    style="background: #f0f8ff; padding: 20px; border-radius: 8px; border-left: 4px solid #4299e1; margin-top: 30px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c5aa0;">💡 설정 도움말</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #2c5aa0;">
+                        <li style="margin: 8px 0;">Gmail 사용 시 2단계 인증 설정 후 앱 비밀번호를 사용하세요</li>
+                        <li style="margin: 8px 0;">대부분의 SMTP 서버는 TLS 보안을 사용합니다 (포트 587)</li>
+                        <li style="margin: 8px 0;">설정 완료 후 '연결 테스트' 버튼으로 동작을 확인하세요</li>
+                        <li style="margin: 8px 0;">이메일 템플릿의 변수는 실제 발송 시 자동으로 치환됩니다</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="smsConfigSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📱</span>
+                    <h2>SMS 설정</h2>
+                </div>
+
+                <div class="sms-config">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>📱 SMS/카카오톡 발송 설정</h3>
+                        <button onclick="testSmsConnection()"
+                            style="background: #38a169; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">연결
+                            테스트</button>
+                    </div>
+
+                    <!-- nusome.co.kr API 설정 폼 -->
+                    <div class="form-container"
+                        style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- API 기본 설정 -->
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; color: #667eea;">🔧 API 기본 설정</h4>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label>사업자등록번호:</label>
+                                    <div
+                                        style="padding: 12px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; color: #666;">
+                                        <span id="displayBusinessNumber">관리자 기본설정에서 가져옵니다</span>
+                                    </div>
+                                    <small style="color: #666; font-size: 12px;">💡 '관리자 기본설정' → '사업자 정보설정'에서 설정한 번호를
+                                        자동으로 사용합니다</small>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smsApiUrl">API URL:</label>
+                                    <input type="text" id="smsApiUrl"
+                                        value="https://www.nusome.co.kr/api/request_qr_sms"
+                                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;"
+                                        readonly>
+                                    <small style="color: #666; font-size: 12px;">nusome QR SMS API 엔드포인트</small>
+                                </div>
+                            </div>
+
+                            <!-- 발송자 정보 -->
+                            <div>
+                                <h4 style="margin: 0 0 15px 0; color: #667eea;">👤 발송자 정보</h4>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smsSenderNumber">발송자 번호:</label>
+                                    <input type="text" id="smsSenderNumber" placeholder="01012345678 (하이픈 없이)"
+                                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="smsSenderName">발송자 이름:</label>
+                                    <input type="text" id="smsSenderName" placeholder="쿠폰관리시스템"
+                                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label>
+                                        <input type="checkbox" id="smsTestMode" style="margin-right: 8px;">
+                                        테스트 모드 (실제 발송 안함)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 저장 버튼 -->
+                        <div style="margin-top: 25px; text-align: center;">
+                            <button onclick="saveSmsConfig()"
+                                style="background: #4299e1; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-right: 10px;">💾
+                                설정 저장</button>
+                            <button onclick="loadSmsConfig()"
+                                style="background: #718096; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-size: 16px;">🔄
+                                설정 불러오기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="managementInfoSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">📊</span>
+                    <h2>경영정보</h2>
+                </div>
+
+                <!-- 탭 메뉴 -->
+                <div class="management-tabs" style="margin-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                    <button class="tab-button active" onclick="showManagementTab('statistics')">📊 거래처별 통계</button>
+                    <button class="tab-button" onclick="showManagementTab('monthlyReport')">📋 월간정산보고서</button>
+                </div>
+
+                <!-- 거래처별 통계 탭 -->
+                <div id="statisticsTab" class="management-tab-content active">
+                    <h3 style="margin-bottom: 20px;">📊 거래처별 쿠폰 발행 및 사용 통계</h3>
+
+                    <!-- 기간 선택 -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">📅 조회 기간 설정</h4>
+                        <div class="form-row">
+                            <div>
+                                <label for="statsStartDate">시작일:</label>
+                                <input type="date" id="statsStartDate">
+                            </div>
+                            <div>
+                                <label for="statsEndDate">종료일:</label>
+                                <input type="date" id="statsEndDate">
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <button onclick="loadManagementStats()" class="btn btn-success">🔍 통계 조회</button>
+                            <button onclick="exportStatsToExcel()" class="btn"
+                                style="background: #52c41a; color: white;">📥 엑셀 다운로드</button>
+                        </div>
+                    </div>
+
+                    <!-- 전체 요약 통계 -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">📈 전체 요약</h4>
+                        <div id="summaryStats"
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="stat-item"
+                                style="background: #e6f7ff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 거래처 수</div>
+                                <div id="totalCorporates" style="font-size: 24px; font-weight: bold; color: #1890ff;">-
+                                </div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #f6ffed; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">발행된 쿠폰 수</div>
+                                <div id="totalIssuedCoupons"
+                                    style="font-size: 24px; font-weight: bold; color: #52c41a;">-</div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #fff7e6; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">사용된 쿠폰 수</div>
+                                <div id="totalUsedCoupons" style="font-size: 24px; font-weight: bold; color: #fa8c16;">-
+                                </div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #fff1f0; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">전체 사용률</div>
+                                <div id="totalUsageRate" style="font-size: 24px; font-weight: bold; color: #f5222d;">-
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 거래처별 상세 통계 테이블 -->
+                    <div class="card">
+                        <h4 style="margin-bottom: 15px;">📋 거래처별 상세 통계</h4>
+                        <div
+                            style="max-height: 500px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <table id="corporateStatsTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left;">거래처명
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">직원 수
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">발행 쿠폰
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">사용 쿠폰
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">미사용 쿠폰
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">사용률
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">총 현금
+                                            가치</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">총 포인트
+                                            가치</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">상세보기
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corporateStatsBody">
+                                    <tr>
+                                        <td colspan="9"
+                                            style="text-align: center; padding: 20px; border: 1px solid #e0e0e0;">
+                                            조회 버튼을 클릭하여 통계를 확인하세요.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 월간정산보고서 탭 -->
+                <div id="monthlyReportTab" class="management-tab-content">
+                    <h3 style="margin-bottom: 20px;">📋 월간정산보고서</h3>
+
+                    <!-- 조회 조건 -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">🔍 조회 조건</h4>
+                        <div class="form-row">
+                            <div>
+                                <label for="monthlyReportYear">년도:</label>
+                                <select id="monthlyReportYear">
+                                    <option value="2025">2025년</option>
+                                    <option value="2024">2024년</option>
+                                    <option value="2023">2023년</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="monthlyReportMonth">월:</label>
+                                <select id="monthlyReportMonth">
+                                    <option value="01">1월</option>
+                                    <option value="02">2월</option>
+                                    <option value="03">3월</option>
+                                    <option value="04">4월</option>
+                                    <option value="05">5월</option>
+                                    <option value="06">6월</option>
+                                    <option value="07">7월</option>
+                                    <option value="08">8월</option>
+                                    <option value="09">9월</option>
+                                    <option value="10">10월</option>
+                                    <option value="11">11월</option>
+                                    <option value="12">12월</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="monthlyReportCorporate">거래처:</label>
+                                <select id="monthlyReportCorporate">
+                                    <option value="">전체</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <button onclick="loadMonthlyReport()" class="btn btn-success">📊 월간보고서 조회</button>
+                            <button onclick="exportMonthlyReportToExcel()" class="btn"
+                                style="background: #52c41a; color: white;">📥 엑셀 다운로드</button>
+                        </div>
+                    </div>
+
+                    <!-- 월간 요약 정보 -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px;">📈 월간 요약</h4>
+                        <div id="monthlySummary"
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                            <div class="stat-item"
+                                style="background: #e6f7ff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 사용 횟수</div>
+                                <div id="monthlyTotalUsage" style="font-size: 24px; font-weight: bold; color: #1890ff;">
+                                    -</div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #f6ffed; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 차감 현금</div>
+                                <div id="monthlyTotalCash" style="font-size: 20px; font-weight: bold; color: #52c41a;">-
+                                </div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #fff7e6; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">총 차감 포인트</div>
+                                <div id="monthlyTotalPoints"
+                                    style="font-size: 20px; font-weight: bold; color: #fa8c16;">-</div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #f0f5ff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">현금 잔액</div>
+                                <div id="monthlyCashBalance"
+                                    style="font-size: 20px; font-weight: bold; color: #722ed1;">-</div>
+                            </div>
+                            <div class="stat-item"
+                                style="background: #fff0f6; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 14px; color: #666;">포인트 잔액</div>
+                                <div id="monthlyPointBalance"
+                                    style="font-size: 20px; font-weight: bold; color: #eb2f96;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 직원별 상세 내역 -->
+                    <div class="card">
+                        <h4 style="margin-bottom: 15px;">👥 직원별 상세 내역</h4>
+                        <div
+                            style="max-height: 500px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <table id="monthlyReportTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left;">거래처명
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: left;">직원명</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">사용 횟수
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">차감 현금
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">차감 포인트
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">현금 잔액
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: right;">포인트 잔액
+                                        </th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">상세보기
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthlyReportBody">
+                                    <tr>
+                                        <td colspan="8"
+                                            style="text-align: center; padding: 20px; border: 1px solid #e0e0e0;">
+                                            조회 버튼을 클릭하여 월간보고서를 확인하세요.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup/Restore Section -->
+            <div id="backupSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">💾</span>
+                    <h2>데이터 백업/복구</h2>
+                </div>
+
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #0066cc;">📦 데이터 백업</h3>
+                    <p style="margin-bottom: 20px; color: #666;">
+                        현재 데이터베이스의 모든 데이터를 JSON 파일로 백업합니다.<br>
+                        백업 데이터에는 거래처, 직원, 쿠폰, 거래내역이 포함됩니다.
+                    </p>
+                    <button onclick="backupDatabase()" class="btn" style="background: #0066cc; color: white;">
+                        💾 전체 데이터 백업
+                    </button>
+                    <div id="backupStatus" style="margin-top: 15px;"></div>
+                </div>
+
+                <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <h3 style="margin-bottom: 15px; color: #856404;">⚠️ 데이터 복구</h3>
+                    <p style="margin-bottom: 20px; color: #856404;">
+                        <strong>주의:</strong> 데이터 복구 시 현재 데이터베이스의 모든 데이터가 삭제되고 백업 파일의 데이터로 교체됩니다.<br>
+                        복구하기 전에 반드시 현재 데이터를 백업하세요!
+                    </p>
+                    <div style="margin-bottom: 15px;">
+                        <label for="restoreFile" style="display: block; margin-bottom: 5px; font-weight: bold;">백업 파일
+                            선택:</label>
+                        <input type="file" id="restoreFile" accept=".json"
+                            style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-width: 500px;">
+                    </div>
+                    <button onclick="restoreDatabase()" class="btn" style="background: #ffc107; color: #212529;">
+                        ⚠️ 데이터 복구 실행
+                    </button>
+                    <div id="restoreStatus" style="margin-top: 15px;"></div>
+                </div>
+
+                <div class="card" style="background: #d4edda; border-left: 4px solid #28a745;">
+                    <h3 style="margin-bottom: 15px; color: #155724;">💡 백업/복구 가이드</h3>
+                    <ul style="color: #155724; line-height: 1.8;">
+                        <li><strong>백업 시점:</strong> 정기적으로 백업하여 데이터 손실을 방지하세요.</li>
+                        <li><strong>백업 파일 보관:</strong> 백업 파일은 안전한 위치에 보관하세요.</li>
+                        <li><strong>복구 전 확인:</strong> 복구할 백업 파일이 올바른 파일인지 확인하세요.</li>
+                        <li><strong>복구 후 확인:</strong> 복구 후 데이터가 정상적으로 복원되었는지 확인하세요.</li>
+                        <li><strong>백업 파일 형식:</strong> JSON 형식 (.json) 파일만 복구 가능합니다.</li>
+                    </ul>
+                </div>
+
+                <div class="card" style="background: #f8d7da; border-left: 4px solid #dc3545;">
+                    <h3 style="margin-bottom: 15px; color: #721c24;">🚨 중요 안내</h3>
+                    <ul style="color: #721c24; line-height: 1.8;">
+                        <li>복구 작업은 되돌릴 수 없습니다.</li>
+                        <li>복구 중에는 절대로 앱을 종료하거나 새로고침하지 마세요.</li>
+                        <li>백업 파일이 손상된 경우 복구가 실패할 수 있습니다.</li>
+                        <li>복구 실패 시 데이터가 손상될 수 있으므로 주의하세요.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Developer Section -->
+            <div id="developerSection" class="content-section">
+                <div class="section-header">
+                    <span class="icon">👨‍💻</span>
+                    <h2>개발자 정보</h2>
+                </div>
+
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #dc3545;">🔒 개발자 전용 메뉴</h3>
+                    <p style="margin-bottom: 20px; color: #666;">이 섹션은 시스템 개발자만 접근할 수 있습니다.</p>
+
+                    <!-- 시스템 정보 -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px; color: #495057;">📋 시스템 정보</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <strong>시스템 버전:</strong> v2.0.0<br>
+                                <strong>빌드 날짜:</strong> <span id="buildDate">2025-01-27</span><br>
+                                <strong>개발자:</strong> nusome<br>
+                            </div>
+                            <div>
+                                <strong>브라우저:</strong> <span id="browserInfo">로딩 중...</span><br>
+                                <strong>화면 해상도:</strong> <span id="screenRes">로딩 중...</span><br>
+                                <strong>사용자 에이전트:</strong> <span id="userAgent" style="font-size: 12px;">로딩 중...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 개발자 도구 -->
+                    <div
+                        style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                        <h4 style="margin-bottom: 15px; color: #856404;">🛠️ 개발자 도구</h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                            <button onclick="insertSampleData()" class="btn"
+                                style="background: #2d6a4f; color: white; font-weight: bold;">📦 샘플 거래처/직원 데이터 삽입</button>
+                        </div>
+                        <div id="sampleDataStatus" style="display:none; margin-bottom: 12px; padding: 12px; border-radius: 8px; font-size: 13px;"></div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="clearAllLocalStorage()" class="btn"
+                                style="background: #ffc107; color: #212529;">🗑️ 로컬스토리지 클리어</button>
+                            <button onclick="exportSystemLogs()" class="btn"
+                                style="background: #17a2b8; color: white;">📄 시스템 로그 내보내기</button>
+                            <button onclick="showDebugInfo()" class="btn" style="background: #6c757d; color: white;">🐛
+                                디버그 정보</button>
+                            <button onclick="testAllAPIs()" class="btn" style="background: #28a745; color: white;">🔍 전체
+                                API 테스트</button>
+                        </div>
+                    </div>
+
+                    <!-- 데이터베이스 정보 -->
+                    <div
+                        style="background: #f8d7da; padding: 20px; border-radius: 8px; border-left: 4px solid #dc3545;">
+                        <h4 style="margin-bottom: 15px; color: #721c24;">💾 데이터베이스 정보</h4>
+                        <div id="dbInfo"
+                            style="font-family: monospace; background: #000; color: #00ff00; padding: 15px; border-radius: 4px;">
+                            연결 상태를 확인 중...
+                        </div>
+                        <button onclick="checkDatabaseStatus()" class="btn"
+                            style="background: #dc3545; color: white; margin-top: 10px;">🔄 DB 상태 새로고침</button>
+                    </div>
+                </div>
+
+                <!-- 사업자 설정 -->
+                <div class="card">
+                    <h3>🏢 사업자 설정</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label for="businessNumber">사업자등록번호 (10자리):</label>
+                        <input type="text" id="businessNumber" maxlength="10" pattern="[0-9]{10}"
+                            placeholder="1234567890"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)">
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            숫자 10자리만 입력하세요. 쿠폰 코드에 사용됩니다.
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="companyName">회사명:</label>
+                        <input type="text" id="companyName" placeholder="회사명을 입력하세요"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="representativeName">대표자명:</label>
+                        <input type="text" id="representativeName" placeholder="대표자명을 입력하세요"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label for="businessPhone">전화번호:</label>
+                        <input type="text" id="businessPhone" placeholder="02-1234-5678"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label for="businessAddress">주소:</label>
+                        <textarea id="businessAddress" placeholder="회사 주소를 입력하세요"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; height: 60px; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button onclick="loadBusinessSettings()" class="btn btn-secondary">🔄 설정 불러오기</button>
+                        <button onclick="saveBusinessSettings()" class="btn btn-success">💾 설정 저장</button>
+                    </div>
+
+                    <div
+                        style="background: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4299e1;">
+                        <h4 style="margin: 0 0 10px 0; color: #2c5aa0;">💡 사업자등록번호 설정 안내</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #2c5aa0; font-size: 14px;">
+                            <li style="margin: 5px 0;">사업자등록번호는 쿠폰 코드의 첫 번째 부분에 사용됩니다</li>
+                            <li style="margin: 5px 0;">현재: <span id="currentBusinessNumber"
+                                    style="font-weight: bold; color: #dc3545;">0000000000</span></li>
+                            <li style="margin: 5px 0;">쿠폰 코드 예시: <code
+                                    style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">1234567890-1111100-0000000005-1-615</code>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 로그아웃 -->
+                <div class="card" style="text-align: center;">
+                    <button onclick="developerLogout()" class="btn btn-danger">🚪 개발자 모드 종료</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Developer Login Modal -->
+    <div id="developerLoginModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>👨‍💻 개발자 인증</h3>
+                <button onclick="closeDeveloperLoginModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p style="color: #dc3545; font-weight: bold;">⚠️ 개발자 전용 영역입니다</p>
+                    <p style="color: #666; font-size: 14px;">이 메뉴는 시스템 개발자만 접근할 수 있습니다.</p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="devUserId">개발자 ID:</label>
+                    <input type="text" id="devUserId" placeholder="개발자 ID를 입력하세요"
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="devPassword">비밀번호:</label>
+                    <input type="password" id="devPassword" placeholder="비밀번호를 입력하세요"
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div style="text-align: center;">
+                    <button onclick="authenticateDeveloper()" class="btn"
+                        style="background: #dc3545; color: white; padding: 12px 30px;">🔐 인증</button>
+                    <button onclick="closeDeveloperLoginModal()" class="btn"
+                        style="background: #6c757d; color: white; padding: 12px 30px; margin-left: 10px;">취소</button>
+                </div>
+
+                <div id="devAuthResult" style="margin-top: 15px; text-align: center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Corporate Detail Modal -->
+    <div id="corporateDetailModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 80%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="detailModalTitle">거래처 상세 통계</h3>
+                <span onclick="closeCorporateDetailModal()"
+                    style="font-size: 24px; cursor: pointer; color: #999;">&times;</span>
+            </div>
+            <div id="detailModalContent">
+                <!-- 동적으로 내용이 추가됨 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Daily Usage Modal -->
+    <div id="employeeUsageModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="employeeUsageModalTitle" style="color: #667eea;">직원별 일자별 식권 사용 내역</h3>
+                <span onclick="closeEmployeeUsageModal()"
+                    style="font-size: 28px; cursor: pointer; color: #999; font-weight: bold; line-height: 1;">&times;</span>
+            </div>
+            <div id="employeeUsageModalContent">
+                <!-- 동적으로 내용이 추가됨 -->
+            </div>
+            <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                <button onclick="closeEmployeeUsageModal()" class="btn btn-secondary">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Modal -->
+    <div id="employeeModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+            <h3 id="employeeModalTitle">새 직원 추가</h3>
+            <form id="employeeForm" onsubmit="submitEmployeeForm(event)">
+                <input type="hidden" id="employeeId" value="">
+                <input type="hidden" id="employeeCorporateId" value="">
+
+                <div class="form-group">
+                    <label for="employeeCorporateName">소속 거래처</label>
+                    <input type="text" id="employeeCorporateName" readonly style="background: #f0f0f0;">
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeName">이름 *</label>
+                    <input type="text" id="employeeName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="employeePhone">핸드폰 번호 *</label>
+                    <input type="text" id="employeePhone" placeholder="010-0000-0000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeEmail">이메일</label>
+                    <input type="email" id="employeeEmail" placeholder="employee@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeDepartment">부서</label>
+                    <input type="text" id="employeeDepartment" placeholder="예: 개발팀, 영업팀">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="closeEmployeeModal()" class="btn btn-secondary">취소</button>
+                    <button type="submit" class="btn btn-success">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Excel Data Bulk Import Modal -->
+    <div id="bulkImportModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <h3 style="margin-bottom: 20px;">📊 Excel 데이터 일괄 등록</h3>
+
+            <!-- 사용법 안내 -->
+            <div
+                style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4299e1;">
+                <h4 style="margin: 0 0 10px 0; color: #2c5aa0;">사용 방법:</h4>
+                <p style="margin: 5px 0; font-size: 14px;">1. Excel에서 직원 데이터를 선택하여 복사 (Ctrl+C)</p>
+                <p style="margin: 5px 0; font-size: 14px;">2. 아래 텍스트 박스에 붙여넣기 (Ctrl+V)</p>
+                <p style="margin: 5px 0; font-size: 14px;">3. '데이터 미리보기' 버튼을 클릭하여 확인</p>
+                <p style="margin: 5px 0; font-size: 14px;">4. '일괄 등록' 버튼을 클릭하여 저장</p>
+            </div>
+
+            <!-- 데이터 형식 안내 -->
+            <div
+                style="background: #fff8dc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f6ad55;">
+                <h4 style="margin: 0 0 10px 0; color: #c05621;">데이터 형식 (열 순서):</h4>
+                <p style="margin: 5px 0; font-size: 14px; font-family: 'Courier New', monospace;"><strong>이름 | 핸드폰번호* |
+                        이메일 | 부서</strong></p>
+                <p style="margin: 5px 0; font-size: 14px; font-family: 'Courier New', monospace;">또는 <strong>핸드폰번호* |
+                        이메일 | 부서</strong></p>
+                <p style="margin: 5px 0; font-size: 12px; color: #666;">예1: 김철수 010-1234-5678 kim@company.com 개발팀</p>
+                <p style="margin: 5px 0; font-size: 12px; color: #666;">예2: 010-1234-5678 kim@company.com 개발팀</p>
+                <p style="margin: 5px 0; font-size: 12px; color: #e53e3e;">* 핸드폰번호만 필수입니다 (이름 생략 가능)</p>
+            </div>
+
+            <div class="form-group">
+                <label for="bulkDataInput">Excel 데이터 붙여넣기:</label>
+                <textarea id="bulkDataInput" placeholder="Excel에서 복사한 데이터를 여기에 붙여넣으세요..."
+                    style="width: 100%; height: 200px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; resize: vertical;">
+                </textarea>
+            </div>
+
+            <!-- 미리보기 영역 -->
+            <div id="dataPreview" style="display: none; margin-top: 20px;">
+                <h4 style="color: #667eea; margin-bottom: 10px;">데이터 미리보기:</h4>
+                <div id="previewTable"
+                    style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                <div id="previewSummary"
+                    style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" onclick="closeBulkImportModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="previewBulkData()" class="btn"
+                    style="background: #4299e1; color: white;">데이터 미리보기</button>
+                <button type="button" onclick="processBulkImport()" class="btn btn-success" id="bulkImportSubmitBtn"
+                    disabled>일괄 등록</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Corporate Modal -->
+    <div id="corporateModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+            <h3 id="modalTitle">새 거래처 추가</h3>
+            <form id="corporateForm" onsubmit="submitCorporateForm(event)">
+                <input type="hidden" id="corporateId" value="">
+
+                <div class="form-group">
+                    <label for="corporateName">회사명 *</label>
+                    <input type="text" id="corporateName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="businessNumber">사업자등록번호</label>
+                    <input type="text" id="businessNumber" placeholder="0000000000 (10자리)">
+                </div>
+
+                <div class="form-group">
+                    <label for="representative">대표자명</label>
+                    <input type="text" id="representative">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">연락처</label>
+                    <input type="text" id="phone" placeholder="02-0000-0000">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">이메일</label>
+                    <input type="email" id="email" placeholder="company@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="address">주소</label>
+                    <input type="text" id="address" placeholder="서울특별시 강남구...">
+                </div>
+
+                <div style="text-align: right; margin-top: 30px;">
+                    <button type="button" onclick="closeCorporateModal()" class="btn btn-danger">취소</button>
+                    <button type="submit" class="btn btn-success" style="margin-left: 10px;">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Coupon Edit Modal -->
+    <div id="couponEditModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>✏️ 쿠폰 정보 수정</h3>
+                <button class="close-btn" onclick="closeCouponEditModal()">×</button>
+            </div>
+
+            <form id="couponEditForm" onsubmit="submitCouponEdit(event)">
+                <input type="hidden" id="editCouponId" value="">
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>쿠폰 코드</label>
+                        <input type="text" id="editCouponCode" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>직원명</label>
+                        <input type="text" id="editEmployeeName" readonly style="background: #f5f5f5;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="editCashBalance">현금 잔고 (원)</label>
+                        <input type="number" id="editCashBalance" min="0" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPointBalance">포인트 잔고</label>
+                        <input type="number" id="editPointBalance" min="0" step="10">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="editCouponStatus">상태</label>
+                        <select id="editCouponStatus">
+                            <option value="ACTIVE">사용 가능</option>
+                            <option value="SUSPENDED">일시 중지</option>
+                            <option value="TERMINATED">해지됨</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editExpireDate">만료일</label>
+                        <input type="date" id="editExpireDate">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="editAvailableDays">사용 가능 요일</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="sun"> 일
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="mon"> 월
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="tue"> 화
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="wed"> 수
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="thu"> 목
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="fri"> 금
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal;">
+                            <input type="checkbox" class="edit-available-day" value="sat"> 토
+                        </label>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 30px;">
+                    <button type="button" onclick="closeCouponEditModal()" class="btn btn-secondary">취소</button>
+                    <button type="submit" class="btn btn-success" style="margin-left: 10px;">💾 저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Coupon Delete Confirmation Modal -->
+    <div id="couponDeleteModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #e53e3e;">🗑️ 쿠폰 삭제 확인</h3>
+                <button class="close-btn" onclick="closeCouponDeleteModal()">×</button>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <div
+                    style="background: #fee; padding: 15px; border-radius: 8px; border-left: 4px solid #e53e3e; margin-bottom: 20px;">
+                    <strong>⚠️ 경고:</strong> 이 작업은 되돌릴 수 없습니다.
+                </div>
+
+                <p style="margin-bottom: 15px;">다음 쿠폰을 완전히 삭제하시겠습니까?</p>
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace;">
+                    <div><strong>쿠폰 코드:</strong> <span id="deleteCouponCode"></span></div>
+                    <div><strong>직원:</strong> <span id="deleteEmployeeName"></span></div>
+                    <div><strong>현금 잔고:</strong> <span id="deleteCashBalance"></span>원</div>
+                    <div><strong>포인트 잔고:</strong> <span id="deletePointBalance"></span>P</div>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <button type="button" onclick="closeCouponDeleteModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="confirmCouponDelete()" class="btn btn-danger"
+                    style="margin-left: 10px;">🗑️ 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Status Update Modal -->
+    <div id="bulkStatusModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>🔄 일괄 상태 변경</h3>
+                <button class="close-btn" onclick="closeBulkStatusModal()">×</button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <p><strong>선택된 쿠폰:</strong> <span id="selectedCouponCount">0</span>개</p>
+
+                <div class="form-group">
+                    <label for="bulkNewStatus">변경할 상태:</label>
+                    <select id="bulkNewStatus"
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="ACTIVE">사용 가능</option>
+                        <option value="SUSPENDED">일시 중지</option>
+                        <option value="TERMINATED">해지됨</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <button type="button" onclick="closeBulkStatusModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="confirmBulkStatusUpdate()" class="btn btn-success"
+                    style="margin-left: 10px;">🔄 일괄 변경</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Modal -->
+    <div id="bulkDeleteModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #e53e3e;">🗑️ 쿠폰 일괄 삭제 확인</h3>
+                <button class="close-btn" onclick="closeBulkDeleteModal()">×</button>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <div
+                    style="background: #fee; padding: 15px; border-radius: 8px; border-left: 4px solid #e53e3e; margin-bottom: 20px;">
+                    <strong>⚠️ 경고:</strong> 이 작업은 되돌릴 수 없습니다.
+                </div>
+
+                <p style="margin-bottom: 15px;"><strong>선택된 쿠폰 <span id="bulkDeleteCouponCount">0</span>개를 모두
+                        삭제하시겠습니까?</strong></p>
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div>• 모든 선택된 쿠폰이 완전히 삭제됩니다.</div>
+                    <div>• 삭제된 쿠폰의 잔액은 복구할 수 없습니다.</div>
+                    <div>• 이 작업은 되돌릴 수 없습니다.</div>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <button type="button" onclick="closeBulkDeleteModal()" class="btn btn-secondary">취소</button>
+                <button type="button" onclick="confirmBulkDelete()" class="btn"
+                    style="background: #e53e3e; color: white; margin-left: 10px;">🗑️ 삭제</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // ============================================================
+        // GLOBAL STATE
+        // ============================================================
+        let serverUrl = localStorage.getItem('serverUrl') || window.location.origin;
+        let authToken = localStorage.getItem('authToken') || null;
+        let corporates = [];
+        let employees = [];
+        let allCoupons = [];
+        let presets = [];
+        let couponEmployees = [];
+        let sendCoupons = [];
+        let selectedCouponIds = new Set();
+        let couponIdToDelete = null;
+        let currentEmployeeCorporateId = null;
+        let bulkImportData = [];
+        let isDeveloper = false;
+
+        // ============================================================
+        // UTILITIES
+        // ============================================================
+        function formatCurrency(n) {
+            return new Intl.NumberFormat('ko-KR').format(n || 0);
+        }
+
+        function showNotification(msg, type = 'info') {
+            const div = document.createElement('div');
+            const colors = { success: '#48bb78', error: '#e53e3e', info: '#667eea' };
+            div.style.cssText = `position:fixed;top:20px;right:20px;z-index:9999;padding:14px 20px;border-radius:8px;color:white;font-weight:600;max-width:400px;box-shadow:0 4px 16px rgba(0,0,0,0.25);font-size:14px;`;
+            div.style.background = colors[type] || colors.info;
+            div.textContent = msg;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 3500);
+        }
+
+        async function apiCall(method, path, body = null, rawResponse = false) {
+            const url = serverUrl + path;
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {})
+                }
+            };
+            if (body) options.body = JSON.stringify(body);
+            const resp = await fetch(url, options);
+            if (rawResponse) return resp;
+            const text = await resp.text();
+            try { return JSON.parse(text); } catch { return text; }
+        }
+
+        // ============================================================
+        // AUTH
+        // ============================================================
+        async function checkServerStatus() {
+            const url = document.getElementById('serverUrl').value.trim();
+            serverUrl = url;
+            localStorage.setItem('serverUrl', url);
+            const statusDiv = document.getElementById('serverStatus');
+            try {
+                const data = await apiCall('GET', '/api/server/status');
+                statusDiv.innerHTML = `<div style="color:green;margin-top:10px;">✅ 서버 연결 성공</div>`;
+            } catch (e) {
+                statusDiv.innerHTML = `<div style="color:red;margin-top:10px;">❌ 서버 연결 실패: ${e.message}</div>`;
+            }
+        }
+
+        async function login() {
+            const url = document.getElementById('serverUrl').value.trim();
+            serverUrl = url;
+            localStorage.setItem('serverUrl', url);
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            try {
+                const data = await apiCall('POST', '/api/login', { userId, password });
+                if (data && (data.token || data.accessToken)) {
+                    authToken = data.token || data.accessToken;
+                    localStorage.setItem('authToken', authToken);
+                    document.getElementById('tokenDisplay').style.display = 'block';
+                    document.getElementById('accessToken').textContent = authToken;
+                    resultDiv.innerHTML = `<div style="color:green;margin-top:10px;">✅ 로그인 성공</div>`;
+                    loadAllCorporatesForSelects();
+                } else {
+                    const msg = (data && data.message) ? data.message : '아이디 또는 패스워드를 확인하세요';
+                    resultDiv.innerHTML = `<div style="color:red;margin-top:10px;">❌ 로그인 실패: ${msg}</div>`;
+                }
+            } catch (e) {
+                resultDiv.innerHTML = `<div style="color:red;margin-top:10px;">❌ 오류: ${e.message}</div>`;
+            }
+        }
+
+        function clearToken() {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            document.getElementById('tokenDisplay').style.display = 'none';
+            document.getElementById('loginResult').innerHTML = '<div style="color:orange;margin-top:10px;">토큰이 삭제되었습니다.</div>';
+        }
+
+        // ============================================================
+        // NAVIGATION
+        // ============================================================
+        function toggleDropdown() {
+            document.getElementById('navDropdown').classList.toggle('show');
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.nav-dropdown')) {
+                const dd = document.getElementById('navDropdown');
+                if (dd) dd.classList.remove('show');
+            }
+        });
+
+        function showSection(name) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            const el = document.getElementById(name + 'Section');
+            if (el) el.classList.add('active');
+            const dd = document.getElementById('navDropdown');
+            if (dd) dd.classList.remove('show');
+        }
+
+        // ============================================================
+        // CORPORATE MANAGEMENT
+        // ============================================================
+        async function loadAllCorporates() {
+            try {
+                const data = await apiCall('GET', '/api/corporates');
+                corporates = (data && data.data) || [];
+                renderCorporateList(corporates);
+            } catch (e) {
+                showNotification('거래처 로드 실패: ' + e.message, 'error');
+            }
+        }
+
+        function renderCorporateList(list) {
+            const container = document.getElementById('corporateList');
+            if (!list || !list.length) {
+                container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">거래처가 없습니다.</p>';
+                return;
+            }
+            container.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8f9fa;">
+                <tr>
+                    <th style="border:1px solid #e0e0e0;padding:12px;text-align:left;">회사명</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;text-align:left;">사업자번호</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;text-align:left;">대표자</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;text-align:left;">연락처</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;text-align:center;">액션</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(c => `<tr>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${c.name || c.companyName || ''}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${c.businessNumber || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${c.representative || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${c.phone || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">
+                        <button onclick="editCorporate(${c.customerId})" class="btn" style="padding:5px 10px;font-size:12px;margin:2px;">✏️ 수정</button>
+                        <button onclick="deleteCorporate(${c.customerId})" class="btn btn-danger" style="padding:5px 10px;font-size:12px;margin:2px;">🗑️ 삭제</button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`;
+        }
+
+        async function searchCorporates() {
+            const q = document.getElementById('searchInput').value.trim();
+            if (!q) { loadAllCorporates(); return; }
+            try {
+                const data = await apiCall('GET', `/api/corporates/search?name=${encodeURIComponent(q)}`);
+                renderCorporateList((data && data.data) || []);
+            } catch (e) { showNotification('검색 실패: ' + e.message, 'error'); }
+        }
+
+        function showCreateCorporateForm() {
+            document.getElementById('modalTitle').textContent = '새 거래처 추가';
+            document.getElementById('corporateId').value = '';
+            document.getElementById('corporateForm').reset();
+            document.getElementById('corporateModal').style.display = 'block';
+        }
+
+        function editCorporate(id) {
+            const c = corporates.find(x => x.customerId == id);
+            if (!c) return;
+            document.getElementById('modalTitle').textContent = '거래처 수정';
+            document.getElementById('corporateId').value = c.customerId;
+            document.getElementById('corporateName').value = c.name || c.companyName || '';
+            document.getElementById('businessNumber').value = c.businessNumber || '';
+            document.getElementById('representative').value = c.representative || '';
+            document.getElementById('phone').value = c.phone || '';
+            document.getElementById('email').value = c.email || '';
+            document.getElementById('address').value = c.address || '';
+            document.getElementById('corporateModal').style.display = 'block';
+        }
+
+        async function deleteCorporate(id) {
+            if (!confirm('이 거래처를 삭제하시겠습니까?')) return;
+            try {
+                await apiCall('DELETE', `/api/corporates/${id}`);
+                showNotification('거래처가 삭제되었습니다.', 'success');
+                loadAllCorporates();
+            } catch (e) { showNotification('삭제 실패: ' + e.message, 'error'); }
+        }
+
+        function closeCorporateModal() {
+            document.getElementById('corporateModal').style.display = 'none';
+        }
+
+        async function submitCorporateForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('corporateId').value;
+            const body = {
+                name: document.getElementById('corporateName').value,
+                businessNumber: document.getElementById('businessNumber').value,
+                representative: document.getElementById('representative').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value
+            };
+            try {
+                if (id) {
+                    await apiCall('PUT', `/api/corporates/${id}`, body);
+                    showNotification('거래처가 수정되었습니다.', 'success');
+                } else {
+                    await apiCall('POST', '/api/corporates', body);
+                    showNotification('거래처가 추가되었습니다.', 'success');
+                }
+                closeCorporateModal();
+                loadAllCorporates();
+                loadAllCorporatesForSelects();
+            } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
+        }
+
+        function closeCorporateDetailModal() {
+            document.getElementById('corporateDetailModal').style.display = 'none';
+        }
+
+        // ============================================================
+        // EMPLOYEE MANAGEMENT
+        // ============================================================
+        async function loadEmployeesByCorporate(corporateId) {
+            if (!corporateId) return;
+            currentEmployeeCorporateId = corporateId;
+            document.getElementById('addEmployeeBtn').disabled = false;
+            document.getElementById('bulkImportBtn').disabled = false;
+            try {
+                const data = await apiCall('GET', `/api/corporates/${corporateId}/employees`);
+                employees = (data && data.data) || [];
+                renderEmployeeList(employees);
+            } catch (e) { showNotification('직원 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function renderEmployeeList(list) {
+            const container = document.getElementById('employeeList');
+            if (!list || !list.length) {
+                container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">직원이 없습니다.</p>';
+                return;
+            }
+            container.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8f9fa;">
+                <tr>
+                    <th style="border:1px solid #e0e0e0;padding:12px;">이름</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;">전화번호</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;">이메일</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;">부서</th>
+                    <th style="border:1px solid #e0e0e0;padding:12px;text-align:center;">액션</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(emp => `<tr>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${emp.name || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${emp.phone || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${emp.email || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;">${emp.department || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">
+                        <button onclick="editEmployee(${emp.employeeId})" class="btn" style="padding:5px 10px;font-size:12px;margin:2px;">✏️ 수정</button>
+                        <button onclick="deleteEmployee(${emp.employeeId})" class="btn btn-danger" style="padding:5px 10px;font-size:12px;margin:2px;">🗑️ 삭제</button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`;
+        }
+
+        function showCreateEmployeeForm() {
+            document.getElementById('employeeModalTitle').textContent = '새 직원 추가';
+            document.getElementById('employeeId').value = '';
+            document.getElementById('employeeCorporateId').value = currentEmployeeCorporateId || '';
+            document.getElementById('employeeForm').reset();
+            const c = corporates.find(x => x.customerId == currentEmployeeCorporateId);
+            document.getElementById('employeeCorporateName').value = c ? (c.name || c.companyName) : '';
+            document.getElementById('employeeModal').style.display = 'block';
+        }
+
+        function editEmployee(id) {
+            const emp = employees.find(x => x.employeeId == id);
+            if (!emp) return;
+            document.getElementById('employeeModalTitle').textContent = '직원 수정';
+            document.getElementById('employeeId').value = emp.employeeId;
+            document.getElementById('employeeCorporateId').value = emp.corporateId;
+            document.getElementById('employeeName').value = emp.name || '';
+            document.getElementById('employeePhone').value = emp.phone || '';
+            document.getElementById('employeeEmail').value = emp.email || '';
+            document.getElementById('employeeDepartment').value = emp.department || '';
+            const c = corporates.find(x => x.customerId == emp.corporateId);
+            document.getElementById('employeeCorporateName').value = c ? (c.name || c.companyName) : '';
+            document.getElementById('employeeModal').style.display = 'block';
+        }
+
+        async function deleteEmployee(id) {
+            if (!confirm('이 직원을 삭제하시겠습니까?')) return;
+            try {
+                await apiCall('DELETE', `/api/employees/${id}`);
+                showNotification('직원이 삭제되었습니다.', 'success');
+                loadEmployeesByCorporate(currentEmployeeCorporateId);
+            } catch (e) { showNotification('삭제 실패: ' + e.message, 'error'); }
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').style.display = 'none';
+        }
+
+        async function submitEmployeeForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('employeeId').value;
+            const corporateId = document.getElementById('employeeCorporateId').value;
+            const body = {
+                name: document.getElementById('employeeName').value,
+                phone: document.getElementById('employeePhone').value,
+                email: document.getElementById('employeeEmail').value,
+                department: document.getElementById('employeeDepartment').value,
+                corporateId: parseInt(corporateId)
+            };
+            try {
+                if (id) {
+                    await apiCall('PUT', `/api/employees/${id}`, body);
+                    showNotification('직원이 수정되었습니다.', 'success');
+                } else {
+                    await apiCall('POST', '/api/employees', body);
+                    showNotification('직원이 추가되었습니다.', 'success');
+                }
+                closeEmployeeModal();
+                loadEmployeesByCorporate(corporateId);
+            } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
+        }
+
+        function showBulkImportForm() {
+            document.getElementById('bulkDataInput').value = '';
+            document.getElementById('dataPreview').style.display = 'none';
+            document.getElementById('bulkImportSubmitBtn').disabled = true;
+            document.getElementById('bulkImportModal').style.display = 'block';
+        }
+
+        function closeBulkImportModal() {
+            document.getElementById('bulkImportModal').style.display = 'none';
+        }
+
+        function previewBulkData() {
+            const raw = document.getElementById('bulkDataInput').value.trim();
+            if (!raw) { showNotification('데이터를 입력하세요.', 'error'); return; }
+            const lines = raw.split('\n').filter(l => l.trim());
+            bulkImportData = lines.map(line => {
+                const cols = line.split('\t').map(c => c.trim());
+                const isPhone = /^0[0-9]{8,10}$/.test(cols[0].replace(/-/g, ''));
+                if (isPhone) return { name: '', phone: cols[0], email: cols[1] || '', department: cols[2] || '' };
+                return { name: cols[0], phone: cols[1] || '', email: cols[2] || '', department: cols[3] || '' };
+            }).filter(e => e.phone);
+
+            document.getElementById('previewTable').innerHTML = `<table style="width:100%;border-collapse:collapse;">
+            <thead style="background:#f8f9fa;"><tr>
+                <th style="border:1px solid #e0e0e0;padding:8px;">이름</th>
+                <th style="border:1px solid #e0e0e0;padding:8px;">전화번호</th>
+                <th style="border:1px solid #e0e0e0;padding:8px;">이메일</th>
+                <th style="border:1px solid #e0e0e0;padding:8px;">부서</th>
+            </tr></thead>
+            <tbody>${bulkImportData.map(e => `<tr>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${e.name || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${e.phone}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${e.email || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${e.department || '-'}</td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+            document.getElementById('previewSummary').textContent = `총 ${bulkImportData.length}명 확인됨`;
+            document.getElementById('dataPreview').style.display = 'block';
+            document.getElementById('bulkImportSubmitBtn').disabled = bulkImportData.length === 0;
+        }
+
+        async function processBulkImport() {
+            if (!bulkImportData.length || !currentEmployeeCorporateId) return;
+            let success = 0, failed = 0;
+            for (const emp of bulkImportData) {
+                try { await apiCall('POST', '/api/employees', { ...emp, corporateId: parseInt(currentEmployeeCorporateId) }); success++; }
+                catch (e) { failed++; }
+            }
+            showNotification(`완료: 성공 ${success}명, 실패 ${failed}명`, success > 0 ? 'success' : 'error');
+            closeBulkImportModal();
+            loadEmployeesByCorporate(currentEmployeeCorporateId);
+        }
+
+        function closeEmployeeUsageModal() {
+            document.getElementById('employeeUsageModal').style.display = 'none';
+        }
+
+        // ============================================================
+        // COUPON ISSUE
+        // ============================================================
+        function switchCouponTab(tabName) {
+            document.querySelectorAll('#couponManagementSection .management-tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#couponManagementSection .tab-button').forEach(el => el.classList.remove('active'));
+            if (tabName === 'issue') {
+                document.getElementById('couponIssueTab').classList.add('active');
+                event.currentTarget.classList.add('active');
+            } else {
+                document.getElementById('couponListTab').classList.add('active');
+                event.currentTarget.classList.add('active');
+                loadAllCoupons();
+            }
+        }
+
+        async function loadEmployeesForGrid() {
+            const corpId = document.getElementById('issueCorporateSelect').value;
+            if (!corpId) { document.getElementById('employeeGridBody').innerHTML = '<tr><td colspan="5">거래처를 선택하세요.</td></tr>'; return; }
+            try {
+                // 실제 API에서는 직원의 사번(employee_number)과 가장 최근 쿠폰 정보를 조인해서 가져와야 함
+                const data = await apiCall('GET', `/api/corporates/${corpId}/employees`);
+                couponEmployees = (data && data.data) || [];
+
+                couponEmployees = couponEmployees.map(e => ({
+                    ...e,
+                    empNumber: e.employeeCode || e.employeeNumber || '사번없음',
+                    recentCouponStatus: '신규 발급 필요'
+                }));
+
+                document.getElementById('employeeGridBody').innerHTML = couponEmployees.map(emp => `<tr>
+                <td><input type="checkbox" class="grid-emp-cb" value="${emp.employeeId}" checked></td>
+                <td>${emp.empNumber}</td>
+                <td>${emp.name || '-'}</td>
+                <td><input type="text" id="limit_${emp.employeeId}" class="grid-limit-input" value="100,000" style="width:90px; padding:4px; text-align:right;" oninput="formatLimitInput(this)" onblur="formatLimitInput(this)"></td>
+                <td style="color:gray">${emp.recentCouponStatus}</td>
+            </tr>`).join('');
+
+                // 프리셋 목록도 로드
+                loadPresetDropdown(corpId);
+            } catch (e) { showNotification('직원 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function formatLimitInput(input) {
+            const raw = input.value.replace(/,/g, '').replace(/[^0-9]/g, '');
+            if (raw === '') { input.value = ''; return; }
+            input.value = parseInt(raw, 10).toLocaleString('ko-KR');
+        }
+
+        function getLimitValue(empId) {
+            const input = document.getElementById('limit_' + empId);
+            if (!input) return 0;
+            return parseInt(input.value.replace(/,/g, ''), 10) || 0;
+        }
+
+        function distributeLimit(input) {
+            const total = parseInt(input.value.replace(/,/g, ''), 10);
+            if (!total || total <= 0) return;
+            const rows = document.querySelectorAll('.grid-emp-cb');
+            if (rows.length === 0) return;
+            const perPerson = Math.floor(total / rows.length);
+            rows.forEach(cb => {
+                const limitInput = document.getElementById('limit_' + cb.value);
+                if (limitInput) limitInput.value = perPerson.toLocaleString('ko-KR');
+            });
+        }
+
+        function toggleAllEmployeesGrid() {
+            const checked = document.getElementById('checkAllEmployees').checked;
+            document.querySelectorAll('.grid-emp-cb').forEach(cb => cb.checked = checked);
+        }
+
+        function loadPresetDropdown(corpId) {
+            // Mock preset logic
+            presets = [{ id: 1, name: '영업팀 프리셋', ids: [1, 2] }];
+            const select = document.getElementById('presetSelect');
+            select.innerHTML = '<option value="">프리셋 선택 안함</option>' + presets.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+
+        function savePreset() {
+            const checked = document.querySelectorAll('.grid-emp-cb:checked');
+            if (checked.length === 0) { showNotification('선택된 직원이 없습니다.', 'error'); return; }
+            const name = prompt("저장할 프리셋 이름을 입력하세요:");
+            if (name) showNotification(`프리셋 '${name}' 저장 기능은 백엔드 구현이 필요합니다.`, 'info');
+        }
+
+        async function executeCouponAction(actionType) {
+            const selected = Array.from(document.querySelectorAll('.grid-emp-cb:checked')).map(cb => cb.value);
+            if (selected.length === 0) { showNotification('직원을 선택하세요.', 'error'); return; }
+
+            const limit = document.getElementById('chargeLimitAmount').value.replace(/,/g, '');
+            const expireDate = document.getElementById('chargeExpireDate').value;
+            if (!limit || !expireDate) { showNotification('사용한도와 만료일을 입력하세요.', 'error'); return; }
+
+            const isReset = document.querySelector('input[name="chargeRule"]:checked').value === 'reset';
+            const extendExpired = document.getElementById('extendExpiredOption').checked;
+
+            const msg = actionType === 'issue' ? '신규 발급' : '충전';
+            if (!confirm(`선택한 ${selected.length}명의 직원에게 쿠폰을 ${msg}하시겠습니까?\n규칙: ${isReset ? '잔액 초기화 후 충전' : '기존 잔액 합산'}`)) return;
+
+            // Mock Logic: Since backend payload is not finalized for new DB schema, show info
+            showNotification(`[모의실행] ${msg} 처리가 완료되었습니다. (백엔드 API 연결 필요)`, 'success');
+
+            /* Actual API call structure:
+            const payload = {
+                employeeIds: selected,
+                usageLimit: parseInt(limit),
+                expireDate: expireDate,
+                availableDays: Array.from(document.querySelectorAll('.charge-day:checked')).map(cb=>cb.value).join(','),
+                chargeRule: isReset ? 'RESET' : 'ADD',
+                extendExpired: extendExpired
+            };
+            await apiCall('POST', actionType === 'issue' ? '/api/coupons/bulk-issue' : '/api/coupons/bulk-charge', payload);
+            */
+        }
+
+        // ============================================================
+        // COUPON MANAGEMENT
+        // ============================================================
+        async function loadAllCoupons() {
+            try {
+                const data = await apiCall('GET', '/api/coupons');
+                allCoupons = data || [];
+                updateCouponStats(allCoupons);
+                renderCouponList(allCoupons);
+            } catch (e) { showNotification('쿠폰 로드 실패: ' + e.message, 'error'); }
+        }
+
+        async function searchCoupons() {
+            const corporate = document.getElementById('couponSearchCorporate').value;
+            const status = document.getElementById('couponSearchStatus').value;
+            const code = document.getElementById('couponSearchCode').value.toLowerCase();
+            const empSearch = document.getElementById('couponSearchEmployee').value.toLowerCase();
+            let filtered = allCoupons;
+            if (corporate) filtered = filtered.filter(c => c.corporateId == corporate);
+            if (status) filtered = filtered.filter(c => c.status === status);
+            if (code) filtered = filtered.filter(c => (c.couponCode || '').toLowerCase().includes(code));
+            if (empSearch) filtered = filtered.filter(c =>
+                (c.employeeName || '').toLowerCase().includes(empSearch) || (c.employeePhone || '').includes(empSearch));
+            renderCouponList(filtered);
+        }
+
+        async function refreshCouponList() { await loadAllCoupons(); }
+
+        function updateCouponStats(list) {
+            document.getElementById('totalCoupons').textContent = list.length;
+            document.getElementById('activeCoupons').textContent = list.filter(c => c.status === 'ACTIVE').length;
+            document.getElementById('usedCoupons').textContent = list.filter(c => c.status === 'USED').length;
+            document.getElementById('expiredCoupons').textContent = list.filter(c => c.status === 'EXPIRED').length;
+        }
+
+        function statusLabel(s) {
+            return s === 'ACTIVE' ? '사용가능' : s === 'USED' ? '사용됨' : s === 'EXPIRED' ? '만료됨' : s === 'SUSPENDED' ? '일시중지' : '해지됨';
+        }
+        function statusColor(s) {
+            return s === 'ACTIVE' ? '#d4edda' : s === 'USED' ? '#fff3cd' : s === 'EXPIRED' ? '#f8d7da' : '#e2e3e5';
+        }
+        function statusTextColor(s) {
+            return s === 'ACTIVE' ? '#155724' : s === 'USED' ? '#856404' : s === 'EXPIRED' ? '#721c24' : '#495057';
+        }
+
+        function renderCouponList(list) {
+            const tbody = document.getElementById('couponListBody');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#666;">쿠폰이 없습니다.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(c => `<tr>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
+                <input type="checkbox" onchange="toggleCouponSelect(${c.id}, this.checked)">
+            </td>
+            <td style="border:1px solid #e0e0e0;padding:8px;font-size:12px;">${c.couponCode || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;">${c.corporateName || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;">${c.employeeName || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;">${c.employeePhone || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;">${formatCurrency(c.cashBalance)}원</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;">${formatCurrency(c.pointBalance)}P</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
+                <span style="padding:3px 8px;border-radius:4px;font-size:12px;background:${statusColor(c.status)};color:${statusTextColor(c.status)};">${statusLabel(c.status)}</span>
+            </td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;font-size:12px;">${c.expireDate || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;font-size:12px;">${c.createdAt ? new Date(c.createdAt).toLocaleDateString('ko-KR') : '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
+                <button onclick="openCouponEdit(${c.id})" class="btn" style="padding:4px 8px;font-size:11px;margin:2px;">✏️</button>
+                <button onclick="openCouponDelete(${c.id})" class="btn btn-danger" style="padding:4px 8px;font-size:11px;margin:2px;">🗑️</button>
+            </td>
+        </tr>`).join('');
+        }
+
+        function toggleCouponSelect(id, checked) {
+            if (checked) selectedCouponIds.add(id); else selectedCouponIds.delete(id);
+        }
+
+        function toggleSelectAllCoupons() {
+            const checked = document.getElementById('selectAllCoupons').checked;
+            document.querySelectorAll('#couponListBody input[type=checkbox]').forEach(cb => { cb.checked = checked; });
+            if (checked) allCoupons.forEach(c => selectedCouponIds.add(c.id)); else selectedCouponIds.clear();
+        }
+
+        function openCouponEdit(id) {
+            const c = allCoupons.find(x => x.id == id);
+            if (!c) return;
+            document.getElementById('editCouponId').value = c.id;
+            document.getElementById('editCouponCode').value = c.couponCode || '';
+            document.getElementById('editEmployeeName').value = c.employeeName || '';
+            document.getElementById('editCashBalance').value = c.cashBalance || 0;
+            document.getElementById('editPointBalance').value = c.pointBalance || 0;
+            document.getElementById('editCouponStatus').value = c.status || 'ACTIVE';
+            document.getElementById('editExpireDate').value = c.expireDate || '';
+            const days = (c.availableDays || '').split(',');
+            document.querySelectorAll('.edit-available-day').forEach(cb => { cb.checked = days.includes(cb.value); });
+            document.getElementById('couponEditModal').style.display = 'block';
+        }
+
+        function closeCouponEditModal() { document.getElementById('couponEditModal').style.display = 'none'; }
+
+        async function submitCouponEdit(e) {
+            e.preventDefault();
+            const id = document.getElementById('editCouponId').value;
+            const body = {
+                cashBalance: parseInt(document.getElementById('editCashBalance').value),
+                pointBalance: parseInt(document.getElementById('editPointBalance').value),
+                status: document.getElementById('editCouponStatus').value,
+                expireDate: document.getElementById('editExpireDate').value,
+                availableDays: Array.from(document.querySelectorAll('.edit-available-day:checked')).map(cb => cb.value).join(',')
+            };
+            try {
+                await apiCall('PUT', `/api/coupons/${id}`, body);
+                showNotification('쿠폰이 수정되었습니다.', 'success');
+                closeCouponEditModal();
+                loadAllCoupons();
+            } catch (e) { showNotification('수정 실패: ' + e.message, 'error'); }
+        }
+
+        function openCouponDelete(id) {
+            const c = allCoupons.find(x => x.id == id);
+            if (!c) return;
+            couponIdToDelete = id;
+            document.getElementById('deleteCouponCode').textContent = c.couponCode || '';
+            document.getElementById('deleteEmployeeName').textContent = c.employeeName || '';
+            document.getElementById('deleteCashBalance').textContent = formatCurrency(c.cashBalance);
+            document.getElementById('deletePointBalance').textContent = formatCurrency(c.pointBalance);
+            document.getElementById('couponDeleteModal').style.display = 'block';
+        }
+
+        function closeCouponDeleteModal() { document.getElementById('couponDeleteModal').style.display = 'none'; couponIdToDelete = null; }
+
+        async function confirmCouponDelete() {
+            if (!couponIdToDelete) return;
+            try {
+                await apiCall('DELETE', `/api/coupons/${couponIdToDelete}`);
+                showNotification('쿠폰이 삭제되었습니다.', 'success');
+                closeCouponDeleteModal();
+                loadAllCoupons();
+            } catch (e) { showNotification('삭제 실패: ' + e.message, 'error'); }
+        }
+
+        function bulkStatusUpdate() {
+            if (!selectedCouponIds.size) { showNotification('쿠폰을 선택하세요.', 'error'); return; }
+            document.getElementById('selectedCouponCount').textContent = selectedCouponIds.size;
+            document.getElementById('bulkStatusModal').style.display = 'block';
+        }
+
+        function closeBulkStatusModal() { document.getElementById('bulkStatusModal').style.display = 'none'; }
+
+        async function confirmBulkStatusUpdate() {
+            const newStatus = document.getElementById('bulkNewStatus').value;
+            let success = 0, failed = 0;
+            for (const id of selectedCouponIds) {
+                try { await apiCall('PUT', `/api/coupons/${id}`, { status: newStatus }); success++; }
+                catch (e) { failed++; }
+            }
+            showNotification(`상태 변경: 성공 ${success}개, 실패 ${failed}개`, success > 0 ? 'success' : 'error');
+            closeBulkStatusModal();
+            selectedCouponIds.clear();
+            loadAllCoupons();
+        }
+
+        function bulkDeleteCoupons() {
+            if (!selectedCouponIds.size) { showNotification('쿠폰을 선택하세요.', 'error'); return; }
+            document.getElementById('bulkDeleteCouponCount').textContent = selectedCouponIds.size;
+            document.getElementById('bulkDeleteModal').style.display = 'block';
+        }
+
+        function closeBulkDeleteModal() { document.getElementById('bulkDeleteModal').style.display = 'none'; }
+
+        async function confirmBulkDelete() {
+            let success = 0, failed = 0;
+            for (const id of selectedCouponIds) {
+                try { await apiCall('DELETE', `/api/coupons/${id}`); success++; }
+                catch (e) { failed++; }
+            }
+            showNotification(`삭제 완료: 성공 ${success}개, 실패 ${failed}개`, success > 0 ? 'success' : 'error');
+            closeBulkDeleteModal();
+            selectedCouponIds.clear();
+            loadAllCoupons();
+        }
+
+        function exportCouponData() {
+            if (!allCoupons.length) { showNotification('데이터가 없습니다.', 'error'); return; }
+            const headers = ['쿠폰코드', '거래처', '직원명', '전화번호', '현금잔고', '포인트잔고', '상태', '만료일', '생성일'];
+            const rows = allCoupons.map(c => [c.couponCode, c.corporateName, c.employeeName, c.employeePhone, c.cashBalance, c.pointBalance, c.status, c.expireDate, c.createdAt]);
+            const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'coupons.csv' });
+            a.click(); URL.revokeObjectURL(a.href);
+        }
+
+        // ============================================================
+        // COUPON SEND
+        // ============================================================
+        async function loadCouponsForSend() {
+            const corporateId = document.getElementById('sendCorporateSelect').value;
+            if (!corporateId) return;
+            try {
+                const data = await apiCall('GET', `/api/corporates/${corporateId}/coupons`);
+                sendCoupons = (data || []).filter(c => c.status === 'ACTIVE');
+                renderCouponSendTable(sendCoupons);
+                document.getElementById('couponSendPanel').style.display = 'block';
+                document.getElementById('sendInstructions').style.display = 'none';
+                document.getElementById('sendSummary').innerHTML = `총 ${sendCoupons.length}개 쿠폰 (ACTIVE)`;
+            } catch (e) { showNotification('쿠폰 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function renderCouponSendTable(list) {
+            document.getElementById('couponSendBody').innerHTML = list.map(c => `<tr>
+            <td style="border:1px solid #e0e0e0;padding:8px;font-size:12px;">${c.couponCode || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;">${c.employeeName || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;">${c.employeePhone || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;">${c.employeeEmail || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;" id="sendStat_${c.id}">미발송</td>
+            <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
+                <button onclick="sendSingleEmail(${c.id})" class="btn" style="padding:4px 8px;font-size:11px;background:#ea4335;">📧</button>
+                <button onclick="sendSingleSMS(${c.id})" class="btn" style="padding:4px 8px;font-size:11px;background:#48bb78;">📱</button>
+            </td>
+        </tr>`).join('');
+        }
+
+        async function sendSingleEmail(couponId) {
+            try {
+                await apiCall('POST', `/api/coupon-send/${couponId}/email`);
+                const el = document.getElementById(`sendStat_${couponId}`);
+                if (el) el.textContent = '이메일 발송됨';
+                showNotification('이메일이 발송되었습니다.', 'success');
+            } catch (e) { showNotification('발송 실패: ' + e.message, 'error'); }
+        }
+
+        async function sendSingleSMS(couponId) {
+            try {
+                await apiCall('POST', `/api/coupon-send/${couponId}/sms`);
+                const el = document.getElementById(`sendStat_${couponId}`);
+                if (el) el.textContent = 'SMS 발송됨';
+                showNotification('SMS가 발송되었습니다.', 'success');
+            } catch (e) { showNotification('발송 실패: ' + e.message, 'error'); }
+        }
+
+        async function sendAllEmails() { for (const c of sendCoupons) await sendSingleEmail(c.id); }
+        async function sendAllSMS() { for (const c of sendCoupons) await sendSingleSMS(c.id); }
+        function sendAllKakao() { showNotification('카카오톡 발송 기능은 준비 중입니다.', 'info'); }
+
+        // ============================================================
+        // DELIVERY HISTORY
+        // ============================================================
+        async function loadDeliveryHistory() {
+            try {
+                const data = await apiCall('GET', '/api/coupon-send');
+                const list = data || [];
+                const tbody = document.querySelector('#deliveryHistoryTable tbody');
+                tbody.innerHTML = list.length ? list.map(d => `<tr>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${d.id || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;font-size:12px;">${d.couponCode || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${d.type || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${d.recipient || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${d.subject || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;">${d.status || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;font-size:12px;">${d.sentAt || '-'}</td>
+                <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
+                    <button onclick="resendDelivery(${d.id})" class="btn" style="padding:4px 8px;font-size:11px;">재발송</button>
+                </td>
+            </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:40px;color:#666;">발송 기록이 없습니다.</td></tr>';
+            } catch (e) { showNotification('발송 기록 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function filterDeliveryHistory() { loadDeliveryHistory(); }
+
+        async function resendDelivery(id) {
+            try {
+                await apiCall('POST', `/api/coupon-send/${id}/resend`);
+                showNotification('재발송 요청됨', 'success');
+                loadDeliveryHistory();
+            } catch (e) { showNotification('재발송 실패: ' + e.message, 'error'); }
+        }
+
+        // ============================================================
+        // EMAIL CONFIG
+        // ============================================================
+        async function saveEmailConfig() {
+            const body = {
+                smtpHost: document.getElementById('smtpHost').value,
+                smtpPort: parseInt(document.getElementById('smtpPort').value),
+                security: document.querySelector('input[name="security"]:checked')?.value || 'tls',
+                useAuth: document.getElementById('useAuth').checked,
+                username: document.getElementById('smtpUsername').value,
+                password: document.getElementById('smtpPassword').value,
+                senderName: document.getElementById('senderName').value,
+                senderEmail: document.getElementById('senderEmail').value,
+                subject: document.getElementById('emailSubject').value,
+                template: document.getElementById('emailTemplate').value
+            };
+            try {
+                await apiCall('POST', '/api/email-config', body);
+                showNotification('이메일 설정이 저장되었습니다.', 'success');
+            } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
+        }
+
+        async function testEmailConnection() {
+            try {
+                const data = await apiCall('POST', '/api/email-config/test');
+                showNotification('연결 성공: ' + JSON.stringify(data), 'success');
+            } catch (e) { showNotification('연결 실패: ' + e.message, 'error'); }
+        }
+
+        function applyGmailPreset() { document.getElementById('smtpHost').value = 'smtp.gmail.com'; document.getElementById('smtpPort').value = 587; }
+        function applyOutlookPreset() { document.getElementById('smtpHost').value = 'smtp.office365.com'; document.getElementById('smtpPort').value = 587; }
+        function applyYahooPreset() { document.getElementById('smtpHost').value = 'smtp.mail.yahoo.com'; document.getElementById('smtpPort').value = 587; }
+        function applyNaverPreset() { document.getElementById('smtpHost').value = 'smtp.naver.com'; document.getElementById('smtpPort').value = 587; }
+        function applyEcountPreset() { document.getElementById('smtpHost').value = 'smtp.ecount.com'; document.getElementById('smtpPort').value = 587; }
+
+        // ============================================================
+        // SMS CONFIG
+        // ============================================================
+        async function saveSmsConfig() {
+            const body = {
+                senderNumber: document.getElementById('smsSenderNumber').value,
+                senderName: document.getElementById('smsSenderName').value,
+                testMode: document.getElementById('smsTestMode').checked
+            };
+            try {
+                await apiCall('POST', '/api/sms-config', body);
+                showNotification('SMS 설정이 저장되었습니다.', 'success');
+            } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
+        }
+
+        async function loadSmsConfig() {
+            try {
+                const data = await apiCall('GET', '/api/sms-config');
+                if (data) {
+                    if (data.senderNumber) document.getElementById('smsSenderNumber').value = data.senderNumber;
+                    if (data.senderName) document.getElementById('smsSenderName').value = data.senderName;
+                    document.getElementById('smsTestMode').checked = data.testMode || false;
+                }
+            } catch (e) { showNotification('설정 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function testSmsConnection() { showNotification('SMS 연결 테스트 기능은 준비 중입니다.', 'info'); }
+
+        // ============================================================
+        // MANAGEMENT INFO
+        // ============================================================
+        function showManagementTab(name) {
+            document.querySelectorAll('.management-tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            const tab = document.getElementById(name + 'Tab');
+            if (tab) tab.classList.add('active');
+            if (event && event.currentTarget) event.currentTarget.classList.add('active');
+        }
+
+        async function loadManagementStats() {
+            const start = document.getElementById('statsStartDate').value;
+            const end = document.getElementById('statsEndDate').value;
+            try {
+                const data = await apiCall('GET', `/api/statistics/summary?startDate=${start}&endDate=${end}`);
+                if (data) {
+                    document.getElementById('totalCorporates').textContent = data.totalCorporates || 0;
+                    document.getElementById('totalIssuedCoupons').textContent = data.totalIssuedCoupons || 0;
+                    document.getElementById('totalUsedCoupons').textContent = data.totalUsedCoupons || 0;
+                    const rate = data.totalIssuedCoupons > 0 ? ((data.totalUsedCoupons / data.totalIssuedCoupons) * 100).toFixed(1) + '%' : '0%';
+                    document.getElementById('totalUsageRate').textContent = rate;
+                }
+                const corpData = await apiCall('GET', `/api/statistics/corporate?startDate=${start}&endDate=${end}`);
+                renderCorporateStats(corpData || []);
+            } catch (e) { showNotification('통계 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function renderCorporateStats(list) {
+            document.getElementById('corporateStatsBody').innerHTML = list.length ? list.map(s => `<tr>
+            <td style="border:1px solid #e0e0e0;padding:12px;">${s.corporateName || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${s.employeeCount || 0}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${s.issuedCoupons || 0}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${s.usedCoupons || 0}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${(s.issuedCoupons || 0) - (s.usedCoupons || 0)}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${s.usageRate || '0%'}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${formatCurrency(s.totalCashValue)}원</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${formatCurrency(s.totalPointValue)}P</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">
+                <button onclick="showCorporateDetail(${s.corporateId})" class="btn" style="padding:5px 10px;font-size:12px;">상세보기</button>
+            </td>
+        </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px;border:1px solid #e0e0e0;">데이터가 없습니다.</td></tr>';
+        }
+
+        async function showCorporateDetail(corporateId) {
+            try {
+                const data = await apiCall('GET', `/api/statistics/corporate/${corporateId}`);
+                document.getElementById('detailModalTitle').textContent = '거래처 상세 통계';
+                document.getElementById('detailModalContent').innerHTML = '<pre style="overflow:auto;max-height:400px;font-size:13px;">' + JSON.stringify(data, null, 2) + '</pre>';
+                document.getElementById('corporateDetailModal').style.display = 'block';
+            } catch (e) { showNotification('상세 로드 실패: ' + e.message, 'error'); }
+        }
+
+        async function loadMonthlyReport() {
+            const year = document.getElementById('monthlyReportYear').value;
+            const month = document.getElementById('monthlyReportMonth').value;
+            const corporate = document.getElementById('monthlyReportCorporate').value;
+            try {
+                const params = new URLSearchParams({ year, month, ...(corporate ? { corporateId: corporate } : {}) });
+                const data = await apiCall('GET', `/api/transactions/monthly?${params}`);
+                if (data) {
+                    document.getElementById('monthlyTotalUsage').textContent = data.totalUsage || 0;
+                    document.getElementById('monthlyTotalCash').textContent = formatCurrency(data.totalCash) + '원';
+                    document.getElementById('monthlyTotalPoints').textContent = formatCurrency(data.totalPoints) + 'P';
+                    document.getElementById('monthlyCashBalance').textContent = formatCurrency(data.cashBalance) + '원';
+                    document.getElementById('monthlyPointBalance').textContent = formatCurrency(data.pointBalance) + 'P';
+                    renderMonthlyReport(data.details || []);
+                }
+            } catch (e) { showNotification('월간보고서 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function renderMonthlyReport(list) {
+            document.getElementById('monthlyReportBody').innerHTML = list.length ? list.map(r => `<tr>
+            <td style="border:1px solid #e0e0e0;padding:12px;">${r.corporateName || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;">${r.employeeName || '-'}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${r.usageCount || 0}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:right;">${formatCurrency(r.cashUsed)}원</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:right;">${formatCurrency(r.pointsUsed)}P</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:right;">${formatCurrency(r.cashBalance)}원</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:right;">${formatCurrency(r.pointBalance)}P</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">
+                <button onclick="showEmployeeUsage(${r.employeeId}, '${r.employeeName}')" class="btn" style="padding:4px 8px;font-size:11px;">상세</button>
+            </td>
+        </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;border:1px solid #e0e0e0;">데이터가 없습니다.</td></tr>';
+        }
+
+        async function showEmployeeUsage(employeeId, name) {
+            try {
+                const data = await apiCall('GET', `/api/transactions/employee/${employeeId}/daily`);
+                document.getElementById('employeeUsageModalTitle').textContent = `${name} - 일자별 사용 내역`;
+                document.getElementById('employeeUsageModalContent').innerHTML = '<pre style="overflow:auto;max-height:400px;font-size:13px;">' + JSON.stringify(data, null, 2) + '</pre>';
+                document.getElementById('employeeUsageModal').style.display = 'block';
+            } catch (e) { showNotification('상세 로드 실패: ' + e.message, 'error'); }
+        }
+
+        function exportStatsToExcel() { showNotification('엑셀 다운로드 기능은 준비 중입니다.', 'info'); }
+        function exportMonthlyReportToExcel() { showNotification('엑셀 다운로드 기능은 준비 중입니다.', 'info'); }
+
+        // ============================================================
+        // SYSTEM SETTINGS
+        // ============================================================
+        async function loadSystemSettings() {
+            try {
+                const data = await apiCall('GET', '/api/price-settings');
+                if (data) {
+                    if (data.defaultCashDeduction !== undefined) document.getElementById('defaultCashDeduction').value = data.defaultCashDeduction;
+                    if (data.pointDeductionMethod) document.getElementById('pointDeductionMethod').value = data.pointDeductionMethod;
+                    document.getElementById('enableTimeBasedDeduction').checked = !!data.enableTimeBased;
+                    toggleTimeBasedControls();
+                    document.getElementById('allowNegativeBalance').checked = !!data.allowNegativeBalance;
+                    if (data.parkingRegistrationUrl) document.getElementById('parkingRegistrationUrl').value = data.parkingRegistrationUrl;
+                    ['breakfast', 'lunch', 'dinner'].forEach(m => {
+                        if (data[m + 'StartTime']) document.getElementById(m + 'StartTime').value = data[m + 'StartTime'];
+                        if (data[m + 'EndTime']) document.getElementById(m + 'EndTime').value = data[m + 'EndTime'];
+                        if (data[m + 'CashDeduction']) document.getElementById(m + 'CashDeduction').value = data[m + 'CashDeduction'];
+                    });
+                }
+                showNotification('설정을 불러왔습니다.', 'success');
+            } catch (e) { showNotification('설정 로드 실패: ' + e.message, 'error'); }
+        }
+
+        async function saveSystemSettings() {
+            const body = {
+                defaultCashDeduction: parseInt(document.getElementById('defaultCashDeduction').value),
+                pointDeductionMethod: document.getElementById('pointDeductionMethod').value,
+                enableTimeBased: document.getElementById('enableTimeBasedDeduction').checked,
+                allowNegativeBalance: document.getElementById('allowNegativeBalance').checked,
+                parkingRegistrationUrl: document.getElementById('parkingRegistrationUrl').value
+            };
+            ['breakfast', 'lunch', 'dinner'].forEach(m => {
+                body[m + 'StartTime'] = document.getElementById(m + 'StartTime').value;
+                body[m + 'EndTime'] = document.getElementById(m + 'EndTime').value;
+                body[m + 'CashDeduction'] = parseInt(document.getElementById(m + 'CashDeduction').value);
+            });
+            try {
+                await apiCall('POST', '/api/price-settings', body);
+                showNotification('설정이 저장되었습니다.', 'success');
+            } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
+        }
+
+        function testCurrentDeduction() {
+            const enabled = document.getElementById('enableTimeBasedDeduction').checked;
+            const def = parseInt(document.getElementById('defaultCashDeduction').value);
+            const now = new Date();
+            const time = now.getHours() * 60 + now.getMinutes();
+            function tm(id) { const v = document.getElementById(id).value; if (!v) return 0; const [h, m] = v.split(':').map(Number); return h * 60 + m; }
+            let deduction = def;
+            if (enabled) {
+                if (time >= tm('breakfastStartTime') && time <= tm('breakfastEndTime')) deduction = parseInt(document.getElementById('breakfastCashDeduction').value);
+                else if (time >= tm('lunchStartTime') && time <= tm('lunchEndTime')) deduction = parseInt(document.getElementById('lunchCashDeduction').value);
+                else if (time >= tm('dinnerStartTime') && time <= tm('dinnerEndTime')) deduction = parseInt(document.getElementById('dinnerCashDeduction').value);
+            }
+            document.getElementById('previewContent').textContent = `현재 시각: ${now.toTimeString().substring(0, 5)} / 현재 차감액: ${formatCurrency(deduction)}원`;
+            document.getElementById('settingsPreview').style.display = 'block';
+        }
+
+        function toggleTimeBasedControls() {
+            const enabled = document.getElementById('enableTimeBasedDeduction').checked;
+            const ctrl = document.getElementById('timeBasedControls');
+            ctrl.style.opacity = enabled ? '1' : '0.5';
+            ctrl.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+
+        function showPointMethodWarning() { showNotification('포인트 차감 방식이 변경되었습니다. 저장하면 즉시 적용됩니다.', 'info'); }
+
+        // ============================================================
+        // BACKUP
+        // ============================================================
+        async function backupDatabase() {
+            try {
+                const resp = await apiCall('GET', '/api/backup', null, true);
+                const blob = await resp.blob();
+                const a = Object.assign(document.createElement('a'), {
+                    href: URL.createObjectURL(blob),
+                    download: 'couponman_backup_' + new Date().toISOString().slice(0, 10) + '.json'
+                });
+                a.click(); URL.revokeObjectURL(a.href);
+                document.getElementById('backupStatus').innerHTML = '<div style="color:green;">✅ 백업 파일이 다운로드되었습니다.</div>';
+                showNotification('백업이 완료되었습니다.', 'success');
+            } catch (e) {
+                document.getElementById('backupStatus').innerHTML = '<div style="color:red;">❌ 백업 실패: ' + e.message + '</div>';
+                showNotification('백업 실패: ' + e.message, 'error');
+            }
+        }
+
+        async function restoreDatabase() {
+            const file = document.getElementById('restoreFile').files[0];
+            if (!file) { showNotification('복구 파일을 선택하세요.', 'error'); return; }
+            if (!confirm('⚠️ 경고: 현재 데이터가 모두 삭제됩니다. 계속하시겠습니까?')) return;
+            try {
+                const text = await file.text();
+                await apiCall('POST', '/api/restore', JSON.parse(text));
+                document.getElementById('restoreStatus').innerHTML = '<div style="color:green;">✅ 복구가 완료되었습니다.</div>';
+                showNotification('복구가 완료되었습니다.', 'success');
+            } catch (e) {
+                document.getElementById('restoreStatus').innerHTML = '<div style="color:red;">❌ 복구 실패: ' + e.message + '</div>';
+                showNotification('복구 실패: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================
+        // DEVELOPER
+        // ============================================================
+        function showDeveloperLogin() {
+            document.getElementById('developerLoginModal').style.display = 'flex';
+        }
+
+        function closeDeveloperLoginModal() {
+            document.getElementById('developerLoginModal').style.display = 'none';
+        }
+
+        async function authenticateDeveloper() {
+            const id = document.getElementById('devUserId').value;
+            const pw = document.getElementById('devPassword').value;
+            try {
+                const data = await apiCall('POST', '/api/login', { userId: id, password: pw });
+                if (data && (data.token || data.accessToken)) {
+                    isDeveloper = true;
+                    closeDeveloperLoginModal();
+                    showSection('developer');
+                    ['emailConfigMenu', 'smsConfigMenu'].forEach(m => {
+                        const el = document.getElementById(m);
+                        if (el) el.style.display = 'flex';
+                    });
+                    document.getElementById('browserInfo').textContent = navigator.userAgent.substring(0, 60);
+                    document.getElementById('screenRes').textContent = screen.width + 'x' + screen.height;
+                    document.getElementById('userAgent').textContent = navigator.userAgent;
+                } else {
+                    document.getElementById('devAuthResult').innerHTML = '<div style="color:red;">❌ 인증 실패</div>';
+                }
+            } catch (e) {
+                document.getElementById('devAuthResult').innerHTML = '<div style="color:red;">❌ 오류: ' + e.message + '</div>';
+            }
+        }
+
+        function developerLogout() { isDeveloper = false; showSection('welcome'); }
+
+        async function insertSampleData() {
+            if (!authToken) { showNotification('먼저 로그인하세요.', 'error'); return; }
+            if (!confirm('샘플 거래처 6개와 직원 30명을 DB에 삽입합니다.\n이미 같은 사업자번호가 있으면 해당 거래처는 건너뜁니다.\n계속하시겠습니까?')) return;
+
+            const statusEl = document.getElementById('sampleDataStatus');
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#e8f4fd';
+            statusEl.style.border = '1px solid #bee3f8';
+            statusEl.innerHTML = '⏳ 샘플 데이터 삽입 중...';
+
+            const SAMPLE_CORPORATES = [
+                { name: '(주)한국식품', businessNumber: '1234567891', representative: '김대표', phone: '031-123-4567', email: 'info@kfood.co.kr', address: '경기도 수원시 영통구 삼성로 129' },
+                { name: '(주)서울테크', businessNumber: '2345678902', representative: '이사장', phone: '02-234-5678',   email: 'contact@stech.co.kr', address: '서울특별시 강남구 테헤란로 521' },
+                { name: '(주)부산물산', businessNumber: '3456789013', representative: '박사장', phone: '051-345-6789', email: 'info@bsmul.co.kr',  address: '부산광역시 해운대구 센텀중앙로 55' },
+                { name: '(주)대구기업', businessNumber: '4567890124', representative: '최대표', phone: '053-456-7890', email: 'admin@dgcorp.co.kr', address: '대구광역시 중구 달구벌대로 2077' },
+                { name: '(주)인천건설', businessNumber: '5678901235', representative: '정대표', phone: '032-567-8901', email: 'info@iccon.co.kr',  address: '인천광역시 남동구 인주대로 604' },
+                { name: '(주)광주산업', businessNumber: '6789012346', representative: '강대표', phone: '062-678-9012', email: 'info@gjind.co.kr',  address: '광주광역시 서구 상무중앙로 110' }
+            ];
+
+            // 거래처별 직원 5명씩 (index 0~5 순서에 맞춤)
+            const SAMPLE_EMPLOYEES = [
+                // (주)한국식품
+                [
+                    { name: '김민준', employeeCode: '010-1111-1001', department: '생산팀' },
+                    { name: '이서연', employeeCode: '010-1111-1002', department: '영업팀' },
+                    { name: '박지훈', employeeCode: '010-1111-1003', department: '기획팀' },
+                    { name: '최유나', employeeCode: '010-1111-1004', department: '총무팀' },
+                    { name: '정민호', employeeCode: '010-1111-1005', department: '개발팀' }
+                ],
+                // (주)서울테크
+                [
+                    { name: '강지수', employeeCode: '010-2222-2001', department: '개발팀' },
+                    { name: '윤수현', employeeCode: '010-2222-2002', department: '디자인팀' },
+                    { name: '임재원', employeeCode: '010-2222-2003', department: '영업팀' },
+                    { name: '한소희', employeeCode: '010-2222-2004', department: '인사팀' },
+                    { name: '오동현', employeeCode: '010-2222-2005', department: '기획팀' }
+                ],
+                // (주)부산물산
+                [
+                    { name: '신미래', employeeCode: '010-3333-3001', department: '물류팀' },
+                    { name: '류성민', employeeCode: '010-3333-3002', department: '영업팀' },
+                    { name: '권지영', employeeCode: '010-3333-3003', department: '총무팀' },
+                    { name: '남재혁', employeeCode: '010-3333-3004', department: '기획팀' },
+                    { name: '조아라', employeeCode: '010-3333-3005', department: '마케팅팀' }
+                ],
+                // (주)대구기업
+                [
+                    { name: '황준서', employeeCode: '010-4444-4001', department: '생산팀' },
+                    { name: '문채원', employeeCode: '010-4444-4002', department: '품질팀' },
+                    { name: '배성준', employeeCode: '010-4444-4003', department: '영업팀' },
+                    { name: '노지민', employeeCode: '010-4444-4004', department: '인사팀' },
+                    { name: '마승현', employeeCode: '010-4444-4005', department: '개발팀' }
+                ],
+                // (주)인천건설
+                [
+                    { name: '구민성', employeeCode: '010-5555-5001', department: '시공팀' },
+                    { name: '진하은', employeeCode: '010-5555-5002', department: '설계팀' },
+                    { name: '방준혁', employeeCode: '010-5555-5003', department: '영업팀' },
+                    { name: '엄소영', employeeCode: '010-5555-5004', department: '총무팀' },
+                    { name: '석민재', employeeCode: '010-5555-5005', department: '안전팀' }
+                ],
+                // (주)광주산업
+                [
+                    { name: '태현우', employeeCode: '010-6666-6001', department: '생산팀' },
+                    { name: '변수진', employeeCode: '010-6666-6002', department: '관리팀' },
+                    { name: '도재현', employeeCode: '010-6666-6003', department: '영업팀' },
+                    { name: '표지현', employeeCode: '010-6666-6004', department: '마케팅팀' },
+                    { name: '견미리', employeeCode: '010-6666-6005', department: '인사팀' }
+                ]
+            ];
+
+            let log = [];
+            let corpOk = 0, corpSkip = 0, empOk = 0, empFail = 0;
+
+            for (let i = 0; i < SAMPLE_CORPORATES.length; i++) {
+                const corp = SAMPLE_CORPORATES[i];
+                statusEl.innerHTML = `⏳ [${i+1}/${SAMPLE_CORPORATES.length}] 거래처 삽입 중: ${corp.name}`;
+
+                let corpId = null;
+                try {
+                    const res = await apiCall('POST', '/api/corporates', corp);
+                    if (res && res.success && res.data && res.data.customerId) {
+                        corpId = res.data.customerId;
+                        corpOk++;
+                        log.push(`✅ 거래처: ${corp.name} (ID: ${corpId})`);
+                    } else if (res && res.message && res.message.includes('이미 등록')) {
+                        // 이미 있으면 기존 ID 조회
+                        const existing = await apiCall('GET', `/api/corporates/search?name=${encodeURIComponent(corp.name)}`);
+                        if (existing && existing.length > 0) {
+                            corpId = existing[0].customerId || existing[0].id;
+                        }
+                        corpSkip++;
+                        log.push(`⏭️ 거래처 중복 건너뜀: ${corp.name} (ID: ${corpId})`);
+                    } else {
+                        log.push(`❌ 거래처 실패: ${corp.name} - ${res && res.message ? res.message : '알 수 없는 오류'}`);
+                        continue;
+                    }
+                } catch(e) {
+                    log.push(`❌ 거래처 오류: ${corp.name} - ${e.message}`);
+                    continue;
+                }
+
+                if (!corpId) { log.push(`⚠️ 거래처 ID 획득 실패: ${corp.name}`); continue; }
+
+                // 해당 거래처의 직원 삽입
+                const emps = SAMPLE_EMPLOYEES[i];
+                for (const emp of emps) {
+                    try {
+                        const res = await apiCall('POST', '/api/employees', { ...emp, corporateId: corpId });
+                        if (res && res.success) {
+                            empOk++;
+                        } else {
+                            empFail++;
+                            log.push(`  ❌ 직원 실패: ${emp.name} - ${res && res.message ? res.message : '오류'}`);
+                        }
+                    } catch(e) {
+                        empFail++;
+                        log.push(`  ❌ 직원 오류: ${emp.name} - ${e.message}`);
+                    }
+                }
+            }
+
+            const summary = `✅ 완료 — 거래처: 신규 ${corpOk}개 / 중복 ${corpSkip}개 | 직원: 성공 ${empOk}명 / 실패 ${empFail}명`;
+            statusEl.style.background = empFail === 0 ? '#d4edda' : '#fff3cd';
+            statusEl.style.border = empFail === 0 ? '1px solid #c3e6cb' : '1px solid #ffeeba';
+            statusEl.innerHTML = `<strong>${summary}</strong><br><br>
+                <details><summary style="cursor:pointer;color:#555;">상세 로그 보기 (${log.length}건)</summary>
+                <pre style="margin-top:8px;font-size:12px;line-height:1.6;">${log.join('\n')}</pre>
+                </details>`;
+
+            showNotification(summary, empFail === 0 ? 'success' : 'info');
+            loadAllCorporatesForSelects();
+        }
+
+        function clearAllLocalStorage() {
+            if (confirm('모든 로컬스토리지를 삭제하시겠습니까?')) {
+                localStorage.clear();
+                showNotification('로컬스토리지가 삭제되었습니다.', 'success');
+            }
+        }
+
+        function exportSystemLogs() { showNotification('로그 내보내기 기능은 준비 중입니다.', 'info'); }
+        function showDebugInfo() { alert('Token: ' + (authToken ? authToken.substring(0, 30) + '...' : 'none') + '\nServer: ' + serverUrl + '\nScreen: ' + screen.width + 'x' + screen.height); }
+
+        async function testAllAPIs() {
+            const eps = ['/api/server/status', '/api/coupons', '/api/corporates', '/api/employees'];
+            let res = '';
+            for (const ep of eps) {
+                try { await apiCall('GET', ep); res += '✅ ' + ep + '\n'; }
+                catch (e) { res += '❌ ' + ep + ': ' + e.message + '\n'; }
+            }
+            alert(res);
+        }
+
+        async function checkDatabaseStatus() {
+            try {
+                const data = await apiCall('GET', '/api/server/status');
+                document.getElementById('dbInfo').textContent = JSON.stringify(data, null, 2);
+            } catch (e) { document.getElementById('dbInfo').textContent = '연결 실패: ' + e.message; }
+        }
+
+        async function loadBusinessSettings() {
+            try {
+                const data = await apiCall('GET', '/api/business-settings');
+                if (data) {
+                    ['businessNumber', 'companyName', 'representativeName', 'businessPhone', 'businessAddress'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && data[id] !== undefined) el.value = data[id];
+                    });
+                    const cur = document.getElementById('currentBusinessNumber');
+                    if (cur) cur.textContent = data.businessNumber || '0000000000';
+                }
+                showNotification('설정을 불러왔습니다.', 'success');
+            } catch (e) { showNotification('로드 실패: ' + e.message, 'error'); }
+        }
+
+        async function saveBusinessSettings() {
+            const body = {};
+            ['businessNumber', 'companyName', 'representativeName', 'businessPhone', 'businessAddress'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) body[id] = el.value;
+            });
+            try {
+                await apiCall('POST', '/api/business-settings', body);
+                const cur = document.getElementById('currentBusinessNumber');
+                if (cur) cur.textContent = body.businessNumber;
+                showNotification('설정이 저장되었습니다.', 'success');
+            } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
+        }
+
+        // ============================================================
+        // CORPORATE SELECT WATCHER (Employee tab)
+        // ============================================================
+        document.addEventListener('change', function (e) {
+            if (e.target && e.target.id === 'corporateSelectForEmployee') {
+                loadEmployeesByCorporate(e.target.value);
+            }
+        });
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        async function loadAllCorporatesForSelects() {
+            try {
+                const data = await apiCall('GET', '/api/corporates');
+                corporates = (data && data.data) || [];
+                const selects = ['corporateSelectForEmployee', 'issueCorporateSelect', 'sendCorporateSelect', 'couponSearchCorporate', 'monthlyReportCorporate'];
+                selects.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const first = el.options[0];
+                    el.innerHTML = '';
+                    if (first) el.appendChild(first);
+                    corporates.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.customerId;
+                        opt.textContent = c.name || c.companyName || '';
+                        el.appendChild(opt);
+                    });
+                });
+            } catch (e) { /* silent - not logged in yet */ }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedUrl = localStorage.getItem('serverUrl') || window.location.origin;
+            serverUrl = savedUrl;
+            document.getElementById('serverUrl').value = savedUrl;
+
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                authToken = savedToken;
+                document.getElementById('tokenDisplay').style.display = 'block';
+                document.getElementById('accessToken').textContent = authToken;
+                loadAllCorporatesForSelects();
+            }
+
+            showSection('welcome');
+
+            const today = new Date().toISOString().split('T')[0];
+            const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            const sd = document.getElementById('statsStartDate');
+            const ed = document.getElementById('statsEndDate');
+            if (sd) sd.value = firstDay;
+            if (ed) ed.value = today;
+        });
+    </script>
+</body>
+
+</html>

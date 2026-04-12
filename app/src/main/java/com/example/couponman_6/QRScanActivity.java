@@ -80,6 +80,7 @@ public class QRScanActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ScreenOrientationHelper.applyOrientation(this);
         setContentView(R.layout.activity_qr_scan);
 
         initializeViews();
@@ -857,6 +858,7 @@ public class QRScanActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        ScreenOrientationHelper.applyOrientation(this);
         if (isScanning) {
             barcodeView.resume();
         }

@@ -26,6 +26,7 @@ public class CouponDAO {
      * 데이터베이스 연결 열기 (쓰기용)
      */
     public void open() {
+        if (database != null && database.isOpen()) return;
         try {
             database = dbHelper.getWritableDatabase();
             Log.d(TAG, "Database connection opened");
@@ -36,9 +37,16 @@ public class CouponDAO {
     }
 
     /**
-     * 데이터베이스 연결 닫기
+     * 데이터베이스 연결 닫기 (no-op: 서버 핸들러에서 호출해도 연결 유지)
      */
     public void close() {
+        // no-op: SQLiteOpenHelper 연결 유지. shutdown()으로만 실제 닫기.
+    }
+
+    /**
+     * 실제 데이터베이스 연결 닫기 (서비스 종료 시에만 호출)
+     */
+    public void shutdown() {
         if (database != null && database.isOpen()) {
             database.close();
             Log.d(TAG, "Database connection closed");
@@ -331,8 +339,7 @@ public class CouponDAO {
                         "c." + DatabaseHelper.COLUMN_COUPON_AVAILABLE_DAYS + ", " +
                         "c." + DatabaseHelper.COLUMN_COUPON_CREATED_AT + ", " +
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_NAME + " AS employee_name, " +
-                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_PHONE + " AS employee_phone, " +
-                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_EMAIL + " AS employee_email, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_CODE + " AS employee_code, " +
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT + " AS employee_department, " +
                         "corp." + DatabaseHelper.COLUMN_NAME + " AS corporate_name, " +
                         "corp." + DatabaseHelper.COLUMN_BUSINESS_NUMBER + " AS corporate_business_number, " +
@@ -379,7 +386,11 @@ public class CouponDAO {
             }
             
             // 쿠폰 테이블과 직원 테이블을 조인하여 거래처 ID로 필터링
-            String sql = "SELECT c.* FROM " + DatabaseHelper.TABLE_COUPON + " c " +
+            String sql = "SELECT c.*, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_NAME + " AS employee_name, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_CODE + " AS employee_code, " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT + " AS employee_department " +
+                        "FROM " + DatabaseHelper.TABLE_COUPON + " c " +
                         "JOIN " + DatabaseHelper.TABLE_EMPLOYEE + " e ON c." + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + " = e." + DatabaseHelper.COLUMN_EMPLOYEE_ID + " " +
                         "WHERE e." + DatabaseHelper.COLUMN_EMPLOYEE_CORPORATE_ID + " = ? " +
                         "ORDER BY c." + DatabaseHelper.COLUMN_COUPON_CREATED_AT + " DESC";
@@ -388,7 +399,7 @@ public class CouponDAO {
 
             if (cursor != null && cursor.moveToFirst()) {
                 do {
-                    Coupon coupon = cursorToCoupon(cursor);
+                    Coupon coupon = cursorToCouponWithJoinedData(cursor);
                     coupons.add(coupon);
                 } while (cursor.moveToNext());
             }
@@ -610,6 +621,48 @@ public class CouponDAO {
         return sb.toString().trim();
     }
 
+    public Coupon getLatestRechargeableCouponByEmployeeId(int employeeId) {
+        Cursor cursor = null;
+        try {
+            String sql = "SELECT * FROM " + DatabaseHelper.TABLE_COUPON +
+                    " WHERE " + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + " = ?" +
+                    " AND date(" + DatabaseHelper.COLUMN_COUPON_EXPIRE_DATE + ") >= date('now')" +
+                    " ORDER BY " + DatabaseHelper.COLUMN_COUPON_CREATED_AT + " DESC LIMIT 1";
+            cursor = database.rawQuery(sql, new String[]{String.valueOf(employeeId)});
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursorToCoupon(cursor);
+            }
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Error getting latest rechargeable coupon", e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    public boolean updateCouponRechargeState(int couponId, double cashBalance, String expireDate,
+                                             String availableDays, String status) {
+        ContentValues values = new ContentValues();
+        values.put(DatabaseHelper.COLUMN_COUPON_CASH_BALANCE, cashBalance);
+        values.put(DatabaseHelper.COLUMN_COUPON_POINT_BALANCE, 0.0);
+        values.put(DatabaseHelper.COLUMN_COUPON_EXPIRE_DATE, expireDate);
+        values.put(DatabaseHelper.COLUMN_COUPON_AVAILABLE_DAYS, availableDays);
+        values.put(DatabaseHelper.COLUMN_COUPON_STATUS, status);
+        try {
+            return database.update(
+                    DatabaseHelper.TABLE_COUPON,
+                    values,
+                    DatabaseHelper.COLUMN_COUPON_ID + " = ?",
+                    new String[]{String.valueOf(couponId)}
+            ) > 0;
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Error updating coupon recharge state", e);
+            return false;
+        }
+    }
+
     /**
      * Cursor를 Coupon 객체로 변환 (JOIN된 직원 및 거래처 정보 포함)
      */
@@ -631,18 +684,17 @@ public class CouponDAO {
         // 직원 정보 설정 (JOIN된 데이터에서)
         try {
             String employeeName = cursor.getString(cursor.getColumnIndex("employee_name"));
-            String employeePhone = cursor.getString(cursor.getColumnIndex("employee_phone"));
-            String employeeEmail = cursor.getString(cursor.getColumnIndex("employee_email"));
+            String employeeCode = cursor.getString(cursor.getColumnIndex("employee_code"));
             String employeeDepartment = cursor.getString(cursor.getColumnIndex("employee_department"));
             
             // 직원 정보를 Coupon 객체에 저장 (수신자 정보 필드 활용)
             if (employeeName != null) {
                 coupon.setRecipientName(employeeName);
-                coupon.setRecipientPhone(employeePhone);
-                coupon.setRecipientEmail(employeeEmail);
+                coupon.setRecipientPhone(employeeCode);
+                coupon.setRecipientEmail("");
                 coupon.setEmployeeDepartment(employeeDepartment);
                 Log.d(TAG, "Coupon ID " + coupon.getCouponId() + " - Employee: " + employeeName + 
-                          " (" + employeeDepartment + "), Phone: " + employeePhone);
+                          " (" + employeeDepartment + "), Code: " + employeeCode);
             }
         } catch (Exception e) {
             Log.w(TAG, "Employee data not available for coupon " + coupon.getCouponId());

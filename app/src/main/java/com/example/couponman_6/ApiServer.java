@@ -46,8 +46,8 @@ public class ApiServer extends NanoHTTPD {
     private TransactionDAO transactionDAO;
     private DatabaseHelper databaseHelper;
 
-    public ApiServer(int port, Context context) {
-        super(port);
+    public ApiServer(String hostname, int port, Context context) {
+        super(hostname, port);
         this.context = context;
         gson = new Gson();
         activeTokens = new HashMap<>();
@@ -70,19 +70,19 @@ public class ApiServer extends NanoHTTPD {
     public void stop() {
         super.stop();
         if (corporateDAO != null) {
-            corporateDAO.close();
+            corporateDAO.shutdown();
         }
         if (employeeDAO != null) {
-            employeeDAO.close();
+            employeeDAO.shutdown();
         }
         if (couponDAO != null) {
-            couponDAO.close();
+            couponDAO.shutdown();
         }
         if (couponDeliveryDAO != null) {
-            couponDeliveryDAO.close();
+            couponDeliveryDAO.shutdown();
         }
         if (transactionDAO != null) {
-            transactionDAO.close();
+            transactionDAO.shutdown();
         }
         Log.i(TAG, "API Server stopped and database connection closed");
     }
@@ -145,6 +145,9 @@ public class ApiServer extends NanoHTTPD {
 
         try {
             switch (uri) {
+                case "/dashboard":
+                    response = handleDashboardRequest();
+                    break;
                 case "/":
                 case "/api":
                     response = handleApiInfo();
@@ -406,6 +409,22 @@ public class ApiServer extends NanoHTTPD {
         Log.i(TAG, String.format("API Response: %s %s -> %s", method, uri, response.getStatus()));
         
         return response;
+    }
+
+    private Response handleDashboardRequest() {
+        try {
+            android.content.res.AssetManager assetManager = context.getAssets();
+            java.io.InputStream is = assetManager.open("web/external_dashboard.html");
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            String html = new String(buffer, "UTF-8");
+            return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", html);
+        } catch (IOException e) {
+            Log.e(TAG, "Error serving dashboard", e);
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "Error serving dashboard: " + e.getMessage());
+        }
     }
 
     private Response handleApiInfo() {
@@ -756,10 +775,17 @@ public class ApiServer extends NanoHTTPD {
 
             Log.i(TAG, "Login attempt for user: " + userId);
 
-            String savedUserId = sharedPreferences.getString("admin_user_id", "admin");
-            String savedPassword = sharedPreferences.getString("admin_password", "admin123");
-            
+            String savedUserId = sharedPreferences.getString("admin_user_id", "");
+            String savedPassword = sharedPreferences.getString("admin_password", "");
+
             Log.i(TAG, "Saved credentials - ID: " + savedUserId);
+
+            if (savedUserId.isEmpty() || savedPassword.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "관리자 설정에서 아이디/패스워드를 먼저 설정해주세요");
+                return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json; charset=utf-8", gson.toJson(error));
+            }
 
             if (savedUserId.equals(userId) && savedPassword.equals(password)) {
                 String token = generateAccessToken();
@@ -845,23 +871,30 @@ public class ApiServer extends NanoHTTPD {
 
     /**
      * HTTP 요청의 body에서 JSON 데이터를 추출하는 유틸리티 메소드
+     * InputStream을 직접 UTF-8로 읽어 한글 깨짐 방지
      */
     private String extractRequestBody(IHTTPSession session) {
         try {
-            // HTTP 메소드 및 헤더 확인
-            Method method = session.getMethod();
             Map<String, String> headers = session.getHeaders();
-            String contentType = headers.get("content-type");
-            
-            Log.i(TAG, "Request method: " + method);
-            Log.i(TAG, "Content-Type: " + contentType);
-            
-            // JSON Content-Type 감지 로깅
-            if (contentType != null && contentType.toLowerCase().contains("application/json; charset=utf-8")) {
-                Log.i(TAG, "Detected JSON content type: " + contentType);
+            String contentLengthStr = headers.get("content-length");
+            if (contentLengthStr != null) {
+                int contentLength = Integer.parseInt(contentLengthStr.trim());
+                if (contentLength > 0) {
+                    byte[] buffer = new byte[contentLength];
+                    int totalRead = 0;
+                    java.io.InputStream is = session.getInputStream();
+                    while (totalRead < contentLength) {
+                        int read = is.read(buffer, totalRead, contentLength - totalRead);
+                        if (read == -1) break;
+                        totalRead += read;
+                    }
+                    String bodyStr = new String(buffer, 0, totalRead, java.nio.charset.StandardCharsets.UTF_8);
+                    Log.i(TAG, "extractRequestBody (UTF-8 stream): " + bodyStr);
+                    return bodyStr;
+                }
             }
-            
-            // 방법 1: NanoHTTPD의 기본 parseBody 방식
+
+            // content-length 없는 경우 parseBody fallback
             Map<String, String> body = new HashMap<>();
             session.parseBody(body);
             

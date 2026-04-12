@@ -25,6 +25,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
     private Switch switchNotifications;
     private Switch switchAutoSync;
     private Switch switchKeepScreenOn;
+    private Switch switchForceRotation;
     private EditText etAdminUserId;
     private EditText etAdminPassword;
     private EditText etParkingUrl;
@@ -47,6 +48,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
         initializeViews();
         loadSettings();
         setupClickListeners();
+        ScreenOrientationHelper.applyOrientation(this);
         applyKeepScreenOnSetting();
         loadServerInfo();
     }
@@ -55,6 +57,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
         switchNotifications = findViewById(R.id.switchNotifications);
         switchAutoSync = findViewById(R.id.switchAutoSync);
         switchKeepScreenOn = findViewById(R.id.switchKeepScreenOn);
+        switchForceRotation = findViewById(R.id.switchForceRotation);
         etAdminUserId = findViewById(R.id.etAdminUserId);
         etAdminPassword = findViewById(R.id.etAdminPassword);
         etParkingUrl = findViewById(R.id.etParkingUrl);
@@ -73,7 +76,8 @@ public class AdminSettingsActivity extends AppCompatActivity {
         switchNotifications.setChecked(sharedPreferences.getBoolean("notifications", true));
         switchAutoSync.setChecked(sharedPreferences.getBoolean("auto_sync", false));
         switchKeepScreenOn.setChecked(sharedPreferences.getBoolean("keep_screen_on", true));
-        etAdminUserId.setText(sharedPreferences.getString("admin_user_id", "admin"));
+        switchForceRotation.setChecked(sharedPreferences.getBoolean("force_rotation", false));
+        etAdminUserId.setText(sharedPreferences.getString("admin_user_id", ""));
         etAdminPassword.setText(sharedPreferences.getString("admin_password", ""));
 
         // 주차등록 URL 로드
@@ -118,6 +122,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
         editor.putBoolean("notifications", switchNotifications.isChecked());
         editor.putBoolean("auto_sync", switchAutoSync.isChecked());
         editor.putBoolean("keep_screen_on", switchKeepScreenOn.isChecked());
+        editor.putBoolean("force_rotation", switchForceRotation.isChecked());
 
         // API 인증 정보 저장
         String userId = etAdminUserId.getText().toString().trim();
@@ -151,6 +156,7 @@ public class AdminSettingsActivity extends AppCompatActivity {
         Toast.makeText(this, "설정이 저장되었습니다.", Toast.LENGTH_SHORT).show();
 
         // 화면 잠김 방지 설정 즉시 적용
+        ScreenOrientationHelper.applyOrientation(this);
         applyKeepScreenOnSetting();
     }
     
@@ -176,6 +182,12 @@ public class AdminSettingsActivity extends AppCompatActivity {
     /**
      * 서버 정보 로드 및 표시
      */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ScreenOrientationHelper.applyOrientation(this);
+    }
+
     private void loadServerInfo() {
         // 백그라운드 스레드에서 IP 주소 가져오기
         new Thread(new Runnable() {
@@ -195,16 +207,14 @@ public class AdminSettingsActivity extends AppCompatActivity {
                             tvServerPort.setText(String.valueOf(SERVER_PORT));
                             
                             // 서버 URL 표시
-                            String serverUrl = ipAddress != null ? 
-                                "http://" + ipAddress + ":" + SERVER_PORT : 
-                                "http://localhost:" + SERVER_PORT;
+                            String serverUrl = ServerAddressHelper.getDashboardUrl(AdminSettingsActivity.this, SERVER_PORT);
                             tvServerUrl.setText(serverUrl);
                             
                             Log.i(TAG, "[SERVER-INFO] 서버 정보 로드 완료 - IP: " + ipAddress + ", Port: " + SERVER_PORT);
                         } catch (Exception e) {
                             Log.e(TAG, "[SERVER-INFO] 서버 정보 표시 중 오류", e);
                             tvServerIpAddress.setText("오류 발생");
-                            tvServerUrl.setText("http://localhost:" + SERVER_PORT);
+                            tvServerUrl.setText(ServerAddressHelper.getDashboardUrl(AdminSettingsActivity.this, SERVER_PORT));
                         }
                     }
                 });

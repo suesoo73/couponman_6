@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쿠폰관리 PC 대쉬보드</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --panel-2: #f8fafc;
+      --ink: #172033;
+      --muted: #637083;
+      --line: #d8e0ea;
+      --brand: #1d4ed8;
+      --brand-2: #0f766e;
+      --brand-3: #7c3aed;
+      --shadow: 0 20px 44px rgba(15, 23, 42, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(29, 78, 216, 0.08), transparent 22%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      min-width: 1280px;
+    }
+
+    .shell {
+      max-width: 1520px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #0f766e 100%);
+      color: #fff;
+      border-radius: 32px;
+      padding: 34px 36px;
+      box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 24px;
+      align-items: end;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: 40px;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 17px;
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .hero-stat {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 16px 18px;
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 28px;
+      margin-top: 6px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 22px;
+    }
+
+    .sidebar,
+    .content {
+      min-height: 740px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      padding: 20px;
+      position: sticky;
+      top: 18px;
+      align-self: start;
+    }
+
+    .sidebar h2 {
+      margin: 4px 0 16px;
+      font-size: 18px;
+    }
+
+    .nav-link {
+      display: block;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .nav-link span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .content {
+      padding: 22px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+    }
+
+    .block {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+    }
+
+    .block h3 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    .block p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .span-8 { grid-column: span 8; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .span-12 { grid-column: span 12; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 150px;
+      text-decoration: none;
+      padding: 13px 18px;
+      border-radius: 16px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      color: #fff;
+      background: var(--brand);
+      box-shadow: 0 10px 20px rgba(29, 78, 216, 0.18);
+    }
+
+    .button.alt {
+      background: var(--brand-2);
+      box-shadow: 0 10px 20px rgba(15, 118, 110, 0.16);
+    }
+
+    .button.soft {
+      background: #475569;
+      box-shadow: 0 10px 20px rgba(71, 85, 105, 0.16);
+    }
+
+    .button.accent {
+      background: var(--brand-3);
+      box-shadow: 0 10px 20px rgba(124, 58, 237, 0.16);
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .mini-item {
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <h1>쿠폰관리 PC 대쉬보드</h1>
+        <p>
+          이 화면은 외부 브라우저에서 데스크톱으로 접속해 고객관리, 쿠폰관리, 경영정보 메뉴를 빠르게 여는
+          운영용 대쉬보드입니다. 넓은 화면에서 메뉴 접근, 작업 분기, 관리 화면 이동이 한눈에 보이도록 구성했습니다.
+        </p>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          운영모드
+          <strong>PC</strong>
+        </div>
+        <div class="hero-stat">
+          메뉴 수
+          <strong>3</strong>
+        </div>
+        <div class="hero-stat">
+          바로가기
+          <strong>8+</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar panel">
+        <h2>빠른 메뉴</h2>
+        <a class="nav-link" href="app://customer-management">
+          고객관리
+          <span>고객 목록 조회, 기본정보 수정, 신규 등록</span>
+        </a>
+        <a class="nav-link" href="app://coupon-management">
+          쿠폰관리
+          <span>쿠폰 조회, QR 스캔, 발행 후속 작업 진입</span>
+        </a>
+        <a class="nav-link" href="app://management-info">
+          경영정보
+          <span>요약 통계, 서버 정보, 운영 현황 확인</span>
+        </a>
+        <a class="nav-link" href="app://server-info">
+          서버 정보
+          <span>현재 기기에서 구동 중인 API 서버 상태 확인</span>
+        </a>
+        <a class="nav-link" href="app://admin-settings">
+          관리자 설정
+          <span>운영 설정, 화면 회전, URL, 인증 정보 관리</span>
+        </a>
+      </aside>
+
+      <main class="content panel">
+        <div class="content-grid">
+          <section class="block span-8">
+            <h3>고객관리 메뉴</h3>
+            <p>PC에서 가장 자주 쓰는 고객 데이터 관리 작업을 바로 열 수 있도록 배치했습니다.</p>
+            <div class="actions">
+              <a class="button" href="app://customer-management">고객관리 열기</a>
+              <a class="button soft" href="app://customer-management">고객 조회/수정</a>
+            </div>
+            <div class="mini-list">
+              <div class="mini-item">고객명 검색 후 목록 확인</div>
+              <div class="mini-item">선택한 고객의 사업자번호, 대표자, 연락처, 이메일, 주소 수정</div>
+              <div class="mini-item">신규 고객 등록을 같은 화면에서 처리</div>
+            </div>
+          </section>
+
+          <section class="block span-4">
+            <h3>운영 포인트</h3>
+            <p>PC 화면에서는 대량 확인과 빠른 이동이 중요하므로, 설명보다 바로가기 중심으로 구성했습니다.</p>
+            <div class="mini-list">
+              <div class="mini-item">왼쪽: 전체 메뉴 네비게이션</div>
+              <div class="mini-item">오른쪽: 작업 중심 바로가기</div>
+              <div class="mini-item">상단: 운영 상태 요약</div>
+            </div>
+          </section>
+
+          <section class="block span-6">
+            <h3>쿠폰관리 메뉴</h3>
+            <p>조회와 스캔 기능으로 빠르게 들어갈 수 있게 분리했습니다.</p>
+            <div class="actions">
+              <a class="button alt" href="app://coupon-management">쿠폰관리 열기</a>
+              <a class="button soft" href="app://coupon-list">쿠폰 조회</a>
+              <a class="button accent" href="app://qr-scan">QR 스캔</a>
+            </div>
+          </section>
+
+          <section class="block span-6">
+            <h3>경영정보 메뉴</h3>
+            <p>운영 현황 요약과 서버 상태 화면으로 자연스럽게 이어지도록 묶었습니다.</p>
+            <div class="actions">
+              <a class="button accent" href="app://management-info">경영정보 열기</a>
+              <a class="button soft" href="app://server-info">서버 정보</a>
+              <a class="button alt" href="app://admin-settings">관리자 설정</a>
+            </div>
+          </section>
+
+          <section class="block span-12">
+            <h3>PC 사용 기준 권장 흐름</h3>
+            <p>
+              고객 문의나 운영 작업이 들어오면 먼저 고객관리에서 거래처 정보를 확인하고,
+              이어서 쿠폰관리에서 쿠폰 상태나 QR 처리 여부를 확인한 뒤,
+              필요하면 경영정보에서 전체 현황이나 서버 상태를 점검하는 흐름을 권장합니다.
+            </p>
+            <div class="actions">
+              <a class="button" href="app://customer-management">1. 고객 확인</a>
+              <a class="button alt" href="app://coupon-management">2. 쿠폰 작업</a>
+              <a class="button accent" href="app://management-info">3. 현황 점검</a>
+            </div>
+            <div class="footer-note">
+              현재 페이지는 데스크톱 폭을 기준으로 설계했습니다. 모바일 최적화보다 PC 운영 동선과 넓은 화면 활용에 초점을 두었습니다.
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

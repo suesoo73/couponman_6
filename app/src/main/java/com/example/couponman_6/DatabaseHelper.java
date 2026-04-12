@@ -10,7 +10,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     // 데이터베이스 정보
     private static final String DATABASE_NAME = "couponman.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
     
     // Corporate 테이블 정보
     public static final String TABLE_CORPORATE = "corporate";
@@ -28,6 +28,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_EMPLOYEE_ID = "employee_id";
     public static final String COLUMN_EMPLOYEE_CORPORATE_ID = "corporate_id";
     public static final String COLUMN_EMPLOYEE_NAME = "name";
+    public static final String COLUMN_EMPLOYEE_CODE = "employee_code";
     public static final String COLUMN_EMPLOYEE_PHONE = "phone";
     public static final String COLUMN_EMPLOYEE_EMAIL = "email";
     public static final String COLUMN_EMPLOYEE_DEPARTMENT = "department";
@@ -105,6 +106,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             COLUMN_EMPLOYEE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             COLUMN_EMPLOYEE_CORPORATE_ID + " INTEGER NOT NULL, " +
             COLUMN_EMPLOYEE_NAME + " TEXT NOT NULL, " +
+            COLUMN_EMPLOYEE_CODE + " TEXT, " +
             COLUMN_EMPLOYEE_PHONE + " TEXT NOT NULL, " +
             COLUMN_EMPLOYEE_EMAIL + " TEXT, " +
             COLUMN_EMPLOYEE_DEPARTMENT + " TEXT, " +
@@ -193,6 +195,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     private static final String CREATE_INDEX_EMPLOYEE_PHONE = 
             "CREATE INDEX idx_employee_phone ON " + TABLE_EMPLOYEE + "(" + COLUMN_EMPLOYEE_PHONE + ");";
+
+    private static final String CREATE_INDEX_EMPLOYEE_CODE =
+            "CREATE INDEX idx_employee_code ON " + TABLE_EMPLOYEE + "(" + COLUMN_EMPLOYEE_CODE + ");";
     
     // Coupon 인덱스 생성 SQL
     private static final String CREATE_INDEX_COUPON_EMPLOYEE_ID = 
@@ -253,6 +258,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL(CREATE_INDEX_NAME);
             db.execSQL(CREATE_INDEX_EMPLOYEE_CORPORATE_ID);
             db.execSQL(CREATE_INDEX_EMPLOYEE_PHONE);
+            db.execSQL(CREATE_INDEX_EMPLOYEE_CODE);
             db.execSQL(CREATE_INDEX_COUPON_EMPLOYEE_ID);
             db.execSQL(CREATE_INDEX_COUPON_CODE);
             db.execSQL(CREATE_INDEX_COUPON_STATUS);
@@ -321,112 +327,67 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         Log.i(TAG, "Inserting sample corporate data");
         
         try {
-            // 샘플 거래처 데이터
-            String[] sampleData = {
-                "('삼성전자', '1208800767', '이재용', '02-2255-0114', 'contact@samsung.com', '서울특별시 서초구 서초대로74길 11')",
-                "('LG전자', '1078600546', '조주완', '02-3777-1114', 'info@lge.com', '서울특별시 영등포구 여의대로 128')",
-                "('현대자동차', '2014801002', '장재훈', '02-3464-1114', 'webmaster@hyundai.com', '서울특별시 서초구 헌릉로 12')",
-                "('네이버', '2208800767', '최수연', '1588-3820', 'dl_naverhelp@navercorp.com', '경기도 성남시 분당구 정자일로 95')",
-                "('카카오', '2208142253', '홍은택', '1566-3755', 'ir@kakaocorp.com', '제주특별자치도 제주시 첨단로 242')"
+            // ── 샘플 거래처 데이터 (6개) ──────────────────────────────────────
+            String[] sampleCorporateData = {
+                "('(주)한국식품', '1234567891', '김대표', '031-123-4567', 'info@kfood.co.kr', '경기도 수원시 영통구 삼성로 129')",
+                "('(주)서울테크', '2345678902', '이사장', '02-234-5678', 'contact@stech.co.kr', '서울특별시 강남구 테헤란로 521')",
+                "('(주)부산물산', '3456789013', '박사장', '051-345-6789', 'info@bsmul.co.kr', '부산광역시 해운대구 센텀중앙로 55')",
+                "('(주)대구기업', '4567890124', '최대표', '053-456-7890', 'admin@dgcorp.co.kr', '대구광역시 중구 달구벌대로 2077')",
+                "('(주)인천건설', '5678901235', '정대표', '032-567-8901', 'info@iccon.co.kr', '인천광역시 남동구 인주대로 604')",
+                "('(주)광주산업', '6789012346', '강대표', '062-678-9012', 'info@gjind.co.kr', '광주광역시 서구 상무중앙로 110')"
             };
-            
-            for (String data : sampleData) {
-                String sql = "INSERT INTO " + TABLE_CORPORATE + 
-                           " (name, business_number, representative, phone, email, address) VALUES " + data;
-                db.execSQL(sql);
+
+            for (String data : sampleCorporateData) {
+                db.execSQL("INSERT INTO " + TABLE_CORPORATE +
+                        " (name, business_number, representative, phone, email, address) VALUES " + data);
             }
-            
-            Log.i(TAG, "Sample corporate data inserted successfully: " + sampleData.length + " records");
-            
-            // 샘플 직원 데이터 (거래처 ID 1-5에 대응)
+            Log.i(TAG, "Sample corporate data inserted: " + sampleCorporateData.length + " records");
+
+            // ── 샘플 직원 데이터 (거래처당 5명, 총 30명) ──────────────────────
             String[] sampleEmployeeData = {
-                "(1, '김철수', '010-1234-5678', 'kim@samsung.com', '개발팀')",
-                "(1, '이영희', '010-2345-6789', 'lee@samsung.com', 'IT팀')",
-                "(1, '박민수', '010-3456-7890', 'park@samsung.com', '영업팀')",
-                "(2, '최준호', '010-4567-8901', 'choi@lge.com', '기획팀')",
-                "(2, '정수진', '010-5678-9012', 'jung@lge.com', '마케팅팀')",
-                "(3, '김영수', '010-6789-0123', 'kim@hyundai.com', '총무팀')",
-                "(3, '서미경', '010-7890-1234', 'seo@hyundai.com', '인사팀')",
-                "(4, '홍길동', '010-8901-2345', 'hong@navercorp.com', '개발팀')",
-                "(4, '양지원', '010-9012-3456', 'yang@navercorp.com', 'UX팀')",
-                "(5, '송하나', '010-0123-4567', 'song@kakaocorp.com', '서비스팀')"
+                // (주)한국식품 (corporate_id=1)
+                "(1, '김민준', '010-1111-1001', 'minjun.kim@kfood.co.kr', '생산팀')",
+                "(1, '이서연', '010-1111-1002', 'seoyeon.lee@kfood.co.kr', '영업팀')",
+                "(1, '박지훈', '010-1111-1003', 'jihun.park@kfood.co.kr', '기획팀')",
+                "(1, '최유나', '010-1111-1004', 'yuna.choi@kfood.co.kr', '총무팀')",
+                "(1, '정민호', '010-1111-1005', 'minho.jung@kfood.co.kr', '개발팀')",
+                // (주)서울테크 (corporate_id=2)
+                "(2, '강지수', '010-2222-2001', 'jisu.kang@stech.co.kr', '개발팀')",
+                "(2, '윤수현', '010-2222-2002', 'suhyun.yoon@stech.co.kr', '디자인팀')",
+                "(2, '임재원', '010-2222-2003', 'jaewon.lim@stech.co.kr', '영업팀')",
+                "(2, '한소희', '010-2222-2004', 'sohee.han@stech.co.kr', '인사팀')",
+                "(2, '오동현', '010-2222-2005', 'donghyun.oh@stech.co.kr', '기획팀')",
+                // (주)부산물산 (corporate_id=3)
+                "(3, '신미래', '010-3333-3001', 'mirae.shin@bsmul.co.kr', '물류팀')",
+                "(3, '류성민', '010-3333-3002', 'sungmin.ryu@bsmul.co.kr', '영업팀')",
+                "(3, '권지영', '010-3333-3003', 'jiyoung.kwon@bsmul.co.kr', '총무팀')",
+                "(3, '남재혁', '010-3333-3004', 'jaehyuk.nam@bsmul.co.kr', '기획팀')",
+                "(3, '조아라', '010-3333-3005', 'ara.jo@bsmul.co.kr', '마케팅팀')",
+                // (주)대구기업 (corporate_id=4)
+                "(4, '황준서', '010-4444-4001', 'junseo.hwang@dgcorp.co.kr', '생산팀')",
+                "(4, '문채원', '010-4444-4002', 'chaewon.moon@dgcorp.co.kr', '품질팀')",
+                "(4, '배성준', '010-4444-4003', 'sungjun.bae@dgcorp.co.kr', '영업팀')",
+                "(4, '노지민', '010-4444-4004', 'jimin.noh@dgcorp.co.kr', '인사팀')",
+                "(4, '마승현', '010-4444-4005', 'seunghyun.ma@dgcorp.co.kr', '개발팀')",
+                // (주)인천건설 (corporate_id=5)
+                "(5, '구민성', '010-5555-5001', 'minsung.goo@iccon.co.kr', '시공팀')",
+                "(5, '진하은', '010-5555-5002', 'haeun.jin@iccon.co.kr', '설계팀')",
+                "(5, '방준혁', '010-5555-5003', 'junhyuk.bang@iccon.co.kr', '영업팀')",
+                "(5, '엄소영', '010-5555-5004', 'soyoung.um@iccon.co.kr', '총무팀')",
+                "(5, '석민재', '010-5555-5005', 'minjae.seok@iccon.co.kr', '안전팀')",
+                // (주)광주산업 (corporate_id=6)
+                "(6, '태현우', '010-6666-6001', 'hyunwoo.tae@gjind.co.kr', '생산팀')",
+                "(6, '변수진', '010-6666-6002', 'sujin.byun@gjind.co.kr', '관리팀')",
+                "(6, '도재현', '010-6666-6003', 'jaehyun.do@gjind.co.kr', '영업팀')",
+                "(6, '표지현', '010-6666-6004', 'jihyun.pyo@gjind.co.kr', '마케팅팀')",
+                "(6, '견미리', '010-6666-6005', 'miri.kyun@gjind.co.kr', '인사팀')"
             };
-            
+
             for (String empData : sampleEmployeeData) {
-                String sql = "INSERT INTO " + TABLE_EMPLOYEE + 
-                           " (corporate_id, name, phone, email, department) VALUES " + empData;
-                db.execSQL(sql);
+                db.execSQL("INSERT INTO " + TABLE_EMPLOYEE +
+                        " (corporate_id, name, phone, email, department) VALUES " + empData);
             }
-            
-            Log.i(TAG, "Sample employee data inserted successfully: " + sampleEmployeeData.length + " records");
-            
-            // 샘플 쿠폰 데이터 (직원 ID 1-10에 대응, 각자 1개씩)
-            String[] sampleCouponData = {
-                "(1, 100000.0, 50000.0, '2024-12-31', '사용 가능', 'prepaid', '1111100')",
-                "(2, 150000.0, 30000.0, '2024-12-31', '사용 가능', 'prepaid', '1111111')",
-                "(3, 200000.0, 0.0, '2024-12-31', '사용 가능', 'postpaid', '1111100')",
-                "(4, 80000.0, 20000.0, '2024-12-31', '사용 가능', 'prepaid', '1111111')",
-                "(5, 120000.0, 60000.0, '2024-12-31', '사용 가능', 'prepaid', '1111100')",
-                "(6, 90000.0, 10000.0, '2024-12-31', '사용 가능', 'prepaid', '1111111')",
-                "(7, 110000.0, 40000.0, '2024-12-31', '사용 가능', 'prepaid', '1111100')",
-                "(8, 180000.0, 70000.0, '2024-12-31', '사용 가능', 'prepaid', '1111111')",
-                "(9, 95000.0, 25000.0, '2024-12-31', '사용 가능', 'prepaid', '1111100')",
-                "(10, 160000.0, 80000.0, '2024-12-31', '사용 가능', 'prepaid', '1111111')"
-            };
-            
-            for (String couponData : sampleCouponData) {
-                String sql = "INSERT INTO " + TABLE_COUPON + 
-                           " (employee_id, cash_balance, point_balance, expire_date, status, payment_type, available_days) VALUES " + couponData;
-                db.execSQL(sql);
-            }
-            
-            Log.i(TAG, "Sample coupon data inserted successfully: " + sampleCouponData.length + " records");
-            
-            // 각 쿠폰에 대해 쿠폰 코드 생성 및 업데이트
-            Log.i(TAG, "Generating coupon codes for sample data");
-            for (int couponId = 1; couponId <= sampleCouponData.length; couponId++) {
-                try {
-                    // 쿠폰 코드 생성 로직을 단순화해서 적용
-                    String availableDaysCode = (couponId % 2 == 0) ? "1111111" : "1111100";
-                    String couponIdPadded = String.format("%010d", couponId);
-                    String paymentTypeCode = "1"; // prepaid
-                    String parity = String.format("%03d", (couponId * 123) % 1000);
-                    String businessNumber = "0000000000"; // 기본 사업자번호
-                    
-                    String fullCouponCode = businessNumber + "-" + availableDaysCode + "-" + couponIdPadded + "-" + paymentTypeCode + "-" + parity;
-                    
-                    String updateSql = "UPDATE " + TABLE_COUPON + " SET " + COLUMN_COUPON_FULL_CODE + " = ? WHERE " + COLUMN_COUPON_ID + " = ?";
-                    db.execSQL(updateSql, new Object[]{fullCouponCode, couponId});
-                    
-                    Log.d(TAG, "Generated coupon code for ID " + couponId + ": " + fullCouponCode);
-                } catch (Exception e) {
-                    Log.w(TAG, "Error generating coupon code for ID " + couponId, e);
-                }
-            }
-            
-            // 샘플 거래내역 데이터 (쿠폰 ID 1-5에 대한 충전/사용 내역)
-            String[] sampleTransactionData = {
-                "(1, 100000.0, '충전', 'cash', 0.0, 100000.0, '초기 충전')",
-                "(1, 50000.0, '충전', 'point', 0.0, 50000.0, '포인트 충전')",
-                "(1, -15000.0, '사용', 'cash', 100000.0, 85000.0, '점심 식사')",
-                "(2, 150000.0, '충전', 'cash', 0.0, 150000.0, '월급 충전')",
-                "(2, 30000.0, '충전', 'point', 0.0, 30000.0, '이벤트 포인트')",
-                "(2, -8000.0, '사용', 'cash', 150000.0, 142000.0, '커피 구매')",
-                "(3, 200000.0, '충전', 'cash', 0.0, 200000.0, '대량 충전')",
-                "(3, -25000.0, '사용', 'cash', 200000.0, 175000.0, '회식비')",
-                "(4, 80000.0, '충전', 'cash', 0.0, 80000.0, '기본 충전')",
-                "(4, 20000.0, '충전', 'point', 0.0, 20000.0, '보너스 포인트')",
-                "(5, 120000.0, '충전', 'cash', 0.0, 120000.0, '충전')",
-                "(5, 60000.0, '충전', 'point', 0.0, 60000.0, '적립 포인트')"
-            };
-            
-            for (String transactionData : sampleTransactionData) {
-                String sql = "INSERT INTO " + TABLE_TRANSACTION + 
-                           " (coupon_id, amount, transaction_type, balance_type, balance_before, balance_after, description) VALUES " + transactionData;
-                db.execSQL(sql);
-            }
-            
-            Log.i(TAG, "Sample transaction data inserted successfully: " + sampleTransactionData.length + " records");
+            Log.i(TAG, "Sample employee data inserted: " + sampleEmployeeData.length + " records");
             
             // 시스템 설정 기본값 삽입
             insertDefaultSystemSettings(db);

@@ -29,6 +29,7 @@ public class CouponDeliveryDAO {
      * 데이터베이스 연결 열기 (쓰기용)
      */
     public void open() {
+        if (database != null && database.isOpen()) return;
         try {
             database = dbHelper.getWritableDatabase();
             Log.d(TAG, "Database connection opened");
@@ -39,9 +40,16 @@ public class CouponDeliveryDAO {
     }
 
     /**
-     * 데이터베이스 연결 닫기
+     * 데이터베이스 연결 닫기 (no-op: 서버 핸들러에서 호출해도 연결 유지)
      */
     public void close() {
+        // no-op: SQLiteOpenHelper 연결 유지. shutdown()으로만 실제 닫기.
+    }
+
+    /**
+     * 실제 데이터베이스 연결 닫기 (서비스 종료 시에만 호출)
+     */
+    public void shutdown() {
         if (database != null && database.isOpen()) {
             database.close();
             Log.d(TAG, "Database connection closed");

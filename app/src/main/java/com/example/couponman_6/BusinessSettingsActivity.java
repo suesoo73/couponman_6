@@ -23,6 +23,7 @@ public class BusinessSettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ScreenOrientationHelper.applyOrientation(this);
         setContentView(R.layout.activity_business_settings);
 
         initializeViews();
@@ -116,5 +117,11 @@ public class BusinessSettingsActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ScreenOrientationHelper.applyOrientation(this);
     }
 }

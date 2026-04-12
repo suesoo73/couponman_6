@@ -54,6 +54,16 @@
     </LinearLayout>
 
     <Button
+        android:id="@+id/btnWebDashboard"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="웹 대쉬보드"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/button_server"
+        android:textColor="@android:color/white" />
+
+    <Button
         android:id="@+id/btnAdminSettings"
         android:layout_width="match_parent"
         android:layout_height="60dp"
@@ -88,6 +98,16 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:text="🚗 주차등록"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/button_style"
+        android:textColor="@android:color/white" />
+
+    <Button
+        android:id="@+id/btnCouponList"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="🎫 쿠폰 조회"
         android:textSize="18sp"
         android:layout_marginBottom="20dp"
         android:background="@drawable/button_style"

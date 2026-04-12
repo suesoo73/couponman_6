@@ -17,6 +17,7 @@ public class Transaction {
 
     // 거래 타입 상수
     public static final String TYPE_CHARGE = "충전";
+    public static final String TYPE_ISSUE = "발행";
     public static final String TYPE_USE = "사용";
     public static final String TYPE_REFUND = "환불";
     public static final String TYPE_EXPIRE = "만료";

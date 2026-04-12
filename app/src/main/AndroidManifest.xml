@@ -33,6 +33,30 @@
         <activity android:name=".AdminSettingsActivity"
             android:exported="false" />
 
+        <activity android:name=".WebDashboardActivity"
+            android:exported="false"
+            android:label="웹 대쉬보드" />
+
+        <activity android:name=".CustomerManagementActivity"
+            android:exported="false"
+            android:label="고객관리" />
+
+        <activity android:name=".CouponManagementActivity"
+            android:exported="false"
+            android:label="쿠폰관리" />
+
+        <activity android:name=".CouponIssueActivity"
+            android:exported="false"
+            android:label="신규쿠폰 생성" />
+
+        <activity android:name=".CouponRechargeActivity"
+            android:exported="false"
+            android:label="기존쿠폰 충전" />
+
+        <activity android:name=".ManagementInfoActivity"
+            android:exported="false"
+            android:label="경영정보" />
+
         <activity android:name=".QRScanActivity"
             android:exported="false" />
 
@@ -45,6 +69,10 @@
         <activity android:name=".ParkingWebViewActivity"
             android:exported="false"
             android:label="주차등록" />
+
+        <activity android:name=".CouponListActivity"
+            android:exported="false"
+            android:label="쿠폰 조회" />
 
         <service
             android:name=".ApiServerService"
