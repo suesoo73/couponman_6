@@ -7,6 +7,7 @@
     <title>🎟️ 쿠폰 매니저 시스템 PC 대시보드</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         /* ===== BASE ===== */
@@ -1135,13 +1136,14 @@
                     </div>
 
                     <!-- 일괄 발송 버튼 -->
-                    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <button onclick="sendAllEmails()" class="success-button" style="background: #e53e3e;">📧 전체 이메일
                             발송</button>
                         <button onclick="sendAllSMS()" class="success-button" style="background: #48bb78;">📱 전체 SMS
                             발송</button>
                         <button onclick="sendAllKakao()" class="success-button" style="background: #f6ad55;">💬 전체 카카오톡
                             발송</button>
+                        <button onclick="printCouponsA4()" class="success-button" style="background: #553c9a;">🖨️ A4 출력</button>
                     </div>
 
                     <!-- 쿠폰 목록 테이블 -->
@@ -3263,6 +3265,107 @@
         async function sendAllEmails() { for (const c of sendCoupons) await sendSingleEmail(c.couponId); }
         async function sendAllSMS() { for (const c of sendCoupons) await sendSingleSMS(c.couponId); }
         function sendAllKakao() { showNotification('카카오톡 발송 기능은 준비 중입니다.', 'info'); }
+
+        async function printCouponsA4() {
+            if (!sendCoupons || !sendCoupons.length) {
+                showNotification('출력할 쿠폰이 없습니다.', 'error');
+                return;
+            }
+
+            const corpName = document.getElementById('sendCorporateSelect').selectedOptions[0]?.text || '';
+
+            // A4: 가로 2열 × 세로 3행 = 6개/페이지
+            // QR 코드를 canvas/img로 생성하려면 DOM 임시 컨테이너 필요
+            const generateQRDataURL = (text) => new Promise((resolve) => {
+                const tmp = document.createElement('div');
+                tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+                document.body.appendChild(tmp);
+                const qr = new QRCode(tmp, {
+                    text,
+                    width: 200,
+                    height: 200,
+                    correctLevel: QRCode.CorrectLevel.M,
+                });
+                // QRCode 라이브러리는 동기적으로 img를 생성
+                setTimeout(() => {
+                    const img = tmp.querySelector('img');
+                    const src = img ? img.src : '';
+                    document.body.removeChild(tmp);
+                    resolve(src);
+                }, 80);
+            });
+
+            // 모든 QR 이미지 생성
+            const qrImages = [];
+            for (const c of sendCoupons) {
+                const src = await generateQRDataURL(c.fullCouponCode || String(c.couponId));
+                qrImages.push({ c, src });
+            }
+
+            // 인쇄용 HTML 생성
+            const cellStyle = `
+                display:inline-flex;
+                flex-direction:column;
+                align-items:center;
+                justify-content:flex-start;
+                width:88mm;
+                height:90mm;
+                border:1px dashed #bbb;
+                border-radius:6px;
+                padding:8mm 4mm 6mm;
+                box-sizing:border-box;
+                page-break-inside:avoid;
+                vertical-align:top;
+                margin:1mm;
+            `;
+
+            let html = `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>${corpName} 쿠폰 출력</title>
+<style>
+    @page { size: A4 portrait; margin: 8mm; }
+    body { margin:0; padding:0; font-family:'Malgun Gothic','맑은 고딕',sans-serif; }
+    .page-wrap { width:190mm; }
+    .row { display:flex; justify-content:flex-start; gap:2mm; margin-bottom:2mm; page-break-inside:avoid; }
+    .cell { width:92mm; height:94mm; border:1px dashed #999; border-radius:5px; padding:6mm 4mm 4mm; box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+    .corp-name { font-size:9pt; color:#555; margin-bottom:3mm; letter-spacing:0.5px; }
+    .qr-img { width:55mm; height:55mm; }
+    .coupon-code { font-size:7.5pt; color:#333; margin-top:3mm; letter-spacing:1px; word-break:break-all; text-align:center; }
+    .emp-name { font-size:13pt; font-weight:700; color:#222; margin-top:3mm; }
+    .expire { font-size:8pt; color:#888; margin-top:2mm; }
+    @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style>
+</head>
+<body>
+<div class="page-wrap">`;
+
+            for (let i = 0; i < qrImages.length; i++) {
+                if (i % 2 === 0) html += '<div class="row">';
+                const { c, src } = qrImages[i];
+                const name = c.recipientName || '-';
+                const code = c.fullCouponCode || '';
+                const expire = c.expireDate ? `유효기간: ${c.expireDate}` : '';
+                html += `
+    <div class="cell">
+        <div class="corp-name">${corpName}</div>
+        <img class="qr-img" src="${src}" alt="QR">
+        <div class="emp-name">${name}</div>
+        <div class="coupon-code">${code}</div>
+        <div class="expire">${expire}</div>
+    </div>`;
+                if (i % 2 === 1 || i === qrImages.length - 1) html += '</div>';
+            }
+
+            html += `</div></body></html>`;
+
+            const win = window.open('', '_blank', 'width=800,height=1000');
+            win.document.write(html);
+            win.document.close();
+            win.onload = () => { win.focus(); win.print(); };
+        }
 
         // ============================================================
         // SERVER REGISTRATION
