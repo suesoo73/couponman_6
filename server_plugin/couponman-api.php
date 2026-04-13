@@ -25,6 +25,7 @@ add_action('admin_menu', function () {
     );
     add_submenu_page('couponman', '등록된 쿠폰', '등록된 쿠폰', 'manage_options', 'couponman', 'couponman_admin_page');
     add_submenu_page('couponman', '등록 이력', '등록 이력', 'manage_options', 'couponman-history', 'couponman_admin_history_page');
+    add_submenu_page('couponman', '관리회사', '🏢 관리회사', 'manage_options', 'couponman-corporates', 'couponman_admin_corporates_page');
 });
 
 // ============================================================
@@ -231,6 +232,61 @@ function couponman_admin_history_page() {
 }
 
 // ============================================================
+// 관리자 페이지: 관리회사 목록
+// ============================================================
+function couponman_admin_corporates_page() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'couponman_corporates';
+
+    // 삭제 처리
+    if (isset($_POST['couponman_corp_delete']) && check_admin_referer('couponman_corp_delete_nonce')) {
+        $id = intval($_POST['couponman_corp_delete']);
+        $wpdb->delete($table, ['id' => $id]);
+        echo '<div class="notice notice-success"><p>관리회사 등록이 해제되었습니다.</p></div>';
+    }
+
+    $rows = $wpdb->get_results("SELECT * FROM {$table} ORDER BY registered_at DESC");
+    ?>
+    <div class="wrap">
+        <h1>🏢 관리회사 목록</h1>
+        <p>CouponMan 앱에서 등록한 관리회사(거래처) 목록입니다.</p>
+        <table class="wp-list-table widefat fixed striped" style="margin-top:16px;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>거래처 ID (앱)</th>
+                    <th>회사명</th>
+                    <th>사업자등록번호</th>
+                    <th>등록일시</th>
+                    <th>액션</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (!$rows): ?>
+                <tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">등록된 관리회사가 없습니다.</td></tr>
+            <?php else: foreach ($rows as $r): ?>
+                <tr>
+                    <td><?= $r->id ?></td>
+                    <td><?= esc_html($r->corporate_id) ?></td>
+                    <td><strong><?= esc_html($r->corporate_name) ?></strong></td>
+                    <td><?= esc_html($r->business_number) ?></td>
+                    <td><?= esc_html($r->registered_at) ?></td>
+                    <td>
+                        <form method="post" style="display:inline;" onsubmit="return confirm('등록을 해제하시겠습니까?');">
+                            <?php wp_nonce_field('couponman_corp_delete_nonce'); ?>
+                            <input type="hidden" name="couponman_corp_delete" value="<?= $r->id ?>">
+                            <button type="submit" class="button button-small button-link-delete">해제</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
+// ============================================================
 // DB 테이블 생성 (플러그인 활성화 시)
 // ============================================================
 register_activation_hook(__FILE__, 'couponman_create_tables');
@@ -272,6 +328,22 @@ function couponman_create_tables() {
         $wpdb->query("ALTER TABLE {$table} ADD COLUMN corporate_id BIGINT UNSIGNED DEFAULT 0 AFTER coupon_code");
         $wpdb->query("ALTER TABLE {$table} ADD KEY idx_corporate_id (corporate_id)");
     }
+
+    // 관리회사 테이블 생성
+    $corp_table = $wpdb->prefix . 'couponman_corporates';
+    $sql2 = "CREATE TABLE IF NOT EXISTS {$corp_table} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        corporate_id BIGINT UNSIGNED NOT NULL,
+        corporate_name VARCHAR(255) NOT NULL DEFAULT '',
+        business_number VARCHAR(20) DEFAULT '',
+        registered_by BIGINT UNSIGNED DEFAULT 0,
+        registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY idx_corporate_id (corporate_id),
+        KEY idx_corporate_name (corporate_name)
+    ) {$charset};";
+    dbDelta($sql2);
 }
 
 // ============================================================
@@ -342,6 +414,27 @@ add_action('rest_api_init', function () {
     register_rest_route('couponman/v1', '/history', [
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'couponman_get_history',
+        'permission_callback' => '__return_true',
+    ]);
+
+    // 관리회사 등록/조회
+    register_rest_route('couponman/v1', '/corporates', [
+        [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => 'couponman_register_corporate',
+            'permission_callback' => '__return_true',
+        ],
+        [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => 'couponman_get_corporates',
+            'permission_callback' => '__return_true',
+        ],
+    ]);
+
+    // 특정 관리회사 삭제
+    register_rest_route('couponman/v1', '/corporates/(?P<corporate_id>\d+)', [
+        'methods'             => WP_REST_Server::DELETABLE,
+        'callback'            => 'couponman_delete_corporate',
         'permission_callback' => '__return_true',
     ]);
 });
@@ -596,4 +689,99 @@ function couponman_get_history(WP_REST_Request $request) {
         'count'   => count($rows),
         'data'    => $rows,
     ]);
+}
+
+// ============================================================
+// 관리회사 등록
+// ============================================================
+function couponman_register_corporate(WP_REST_Request $request) {
+    global $wpdb;
+
+    $user = couponman_get_authenticated_user();
+    if (is_wp_error($user)) return $user;
+
+    $corporate_id   = intval($request->get_param('corporateId'));
+    $corporate_name = sanitize_text_field($request->get_param('corporateName') ?? '');
+    $business_number = sanitize_text_field($request->get_param('businessNumber') ?? '');
+
+    if (!$corporate_id || empty($corporate_name)) {
+        return new WP_Error('couponman_missing_data', '거래처 ID와 회사명은 필수입니다.', ['status' => 400]);
+    }
+
+    $table = $wpdb->prefix . 'couponman_corporates';
+
+    // 이미 등록된 경우 업데이트
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$table} WHERE corporate_id = %d", $corporate_id
+    ));
+
+    if ($existing) {
+        $wpdb->update($table,
+            ['corporate_name' => $corporate_name, 'business_number' => $business_number, 'updated_at' => current_time('mysql')],
+            ['corporate_id' => $corporate_id]
+        );
+        return new WP_REST_Response([
+            'success'        => true,
+            'message'        => '관리회사 정보가 업데이트되었습니다.',
+            'corporate_id'   => $corporate_id,
+            'updated'        => true,
+        ]);
+    }
+
+    $result = $wpdb->insert($table, [
+        'corporate_id'   => $corporate_id,
+        'corporate_name' => $corporate_name,
+        'business_number'=> $business_number,
+        'registered_by'  => $user->ID,
+        'registered_at'  => current_time('mysql'),
+    ]);
+
+    if ($result === false) {
+        return new WP_Error('couponman_db_error', 'DB 오류: ' . $wpdb->last_error, ['status' => 500]);
+    }
+
+    return new WP_REST_Response([
+        'success'      => true,
+        'message'      => '관리회사가 등록되었습니다.',
+        'id'           => $wpdb->insert_id,
+        'corporate_id' => $corporate_id,
+    ], 201);
+}
+
+// ============================================================
+// 관리회사 목록 조회
+// ============================================================
+function couponman_get_corporates(WP_REST_Request $request) {
+    global $wpdb;
+
+    $user = couponman_get_authenticated_user();
+    if (is_wp_error($user)) return $user;
+
+    $table = $wpdb->prefix . 'couponman_corporates';
+    $rows  = $wpdb->get_results("SELECT * FROM {$table} ORDER BY registered_at DESC");
+
+    return new WP_REST_Response([
+        'success' => true,
+        'count'   => count($rows),
+        'data'    => $rows,
+    ]);
+}
+
+// ============================================================
+// 관리회사 삭제
+// ============================================================
+function couponman_delete_corporate(WP_REST_Request $request) {
+    global $wpdb;
+
+    $user = couponman_get_authenticated_user();
+    if (is_wp_error($user)) return $user;
+
+    $corporate_id = intval($request->get_param('corporate_id'));
+    $table        = $wpdb->prefix . 'couponman_corporates';
+
+    $result = $wpdb->delete($table, ['corporate_id' => $corporate_id]);
+    if (!$result) {
+        return new WP_Error('couponman_not_found', '등록된 거래처를 찾을 수 없습니다.', ['status' => 404]);
+    }
+    return new WP_REST_Response(['success' => true, 'message' => '관리회사 등록이 해제되었습니다.']);
 }
