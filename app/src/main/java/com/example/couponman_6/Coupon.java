@@ -30,6 +30,7 @@ public class Coupon {
     private String corporateName;
     
     // 추가 직원 및 거래처 정보 (런타임에만 사용, JOIN 쿼리 결과 저장용)
+    private int corporateId;
     private String employeeDepartment;
     private String corporateBusinessNumber;
     private String corporateRepresentative;
@@ -376,6 +377,14 @@ public class Coupon {
 
     public void setRecipientEmail(String recipientEmail) {
         this.recipientEmail = recipientEmail;
+    }
+
+    public int getCorporateId() {
+        return corporateId;
+    }
+
+    public void setCorporateId(int corporateId) {
+        this.corporateId = corporateId;
     }
 
     public String getCorporateName() {

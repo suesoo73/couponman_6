@@ -3375,6 +3375,7 @@
             try {
                 const result = await extApiCall('POST', '/couponman/v1/coupons', {
                     couponCode:    c.fullCouponCode,
+                    corporateId:   c.corporateId || 0,
                     corporateName: c.corporateName || '',
                     employeeName:  c.recipientName || '',
                     employeePhone: c.recipientPhone || '',
@@ -3406,6 +3407,7 @@
                 .filter(c => selected.includes(c.couponId))
                 .map(c => ({
                     couponCode:    c.fullCouponCode,
+                    corporateId:   c.corporateId || 0,
                     corporateName: c.corporateName || '',
                     employeeName:  c.recipientName || '',
                     employeePhone: c.recipientPhone || '',

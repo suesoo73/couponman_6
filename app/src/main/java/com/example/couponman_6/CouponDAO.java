@@ -341,6 +341,7 @@ public class CouponDAO {
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_NAME + " AS employee_name, " +
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_CODE + " AS employee_code, " +
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT + " AS employee_department, " +
+                        "corp." + DatabaseHelper.COLUMN_CUSTOMER_ID + " AS corporate_id, " +
                         "corp." + DatabaseHelper.COLUMN_NAME + " AS corporate_name, " +
                         "corp." + DatabaseHelper.COLUMN_BUSINESS_NUMBER + " AS corporate_business_number, " +
                         "corp." + DatabaseHelper.COLUMN_REPRESENTATIVE + " AS corporate_representative, " +
@@ -385,13 +386,19 @@ public class CouponDAO {
                 open();
             }
             
-            // 쿠폰 테이블과 직원 테이블을 조인하여 거래처 ID로 필터링
+            // 쿠폰 테이블과 직원 테이블, 거래처 테이블을 조인하여 거래처 ID로 필터링
             String sql = "SELECT c.*, " +
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_NAME + " AS employee_name, " +
                         "e." + DatabaseHelper.COLUMN_EMPLOYEE_CODE + " AS employee_code, " +
-                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT + " AS employee_department " +
+                        "e." + DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT + " AS employee_department, " +
+                        "corp." + DatabaseHelper.COLUMN_CUSTOMER_ID + " AS corporate_id, " +
+                        "corp." + DatabaseHelper.COLUMN_NAME + " AS corporate_name, " +
+                        "corp." + DatabaseHelper.COLUMN_BUSINESS_NUMBER + " AS corporate_business_number, " +
+                        "corp." + DatabaseHelper.COLUMN_REPRESENTATIVE + " AS corporate_representative, " +
+                        "corp." + DatabaseHelper.COLUMN_PHONE + " AS corporate_phone " +
                         "FROM " + DatabaseHelper.TABLE_COUPON + " c " +
                         "JOIN " + DatabaseHelper.TABLE_EMPLOYEE + " e ON c." + DatabaseHelper.COLUMN_COUPON_EMPLOYEE_ID + " = e." + DatabaseHelper.COLUMN_EMPLOYEE_ID + " " +
+                        "LEFT JOIN " + DatabaseHelper.TABLE_CORPORATE + " corp ON e." + DatabaseHelper.COLUMN_EMPLOYEE_CORPORATE_ID + " = corp." + DatabaseHelper.COLUMN_CUSTOMER_ID + " " +
                         "WHERE e." + DatabaseHelper.COLUMN_EMPLOYEE_CORPORATE_ID + " = ? " +
                         "ORDER BY c." + DatabaseHelper.COLUMN_COUPON_CREATED_AT + " DESC";
             
@@ -702,6 +709,8 @@ public class CouponDAO {
         
         // 거래처 정보 설정 (JOIN된 데이터에서)
         try {
+            int corpIdCol = cursor.getColumnIndex("corporate_id");
+            if (corpIdCol >= 0) coupon.setCorporateId(cursor.getInt(corpIdCol));
             String corporateName = cursor.getString(cursor.getColumnIndex("corporate_name"));
             String corporateBusinessNumber = cursor.getString(cursor.getColumnIndex("corporate_business_number"));
             String corporateRepresentative = cursor.getString(cursor.getColumnIndex("corporate_representative"));

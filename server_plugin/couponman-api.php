@@ -243,6 +243,7 @@ function couponman_create_tables() {
     $sql = "CREATE TABLE IF NOT EXISTS {$table} (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         coupon_code VARCHAR(255) NOT NULL UNIQUE,
+        corporate_id BIGINT UNSIGNED DEFAULT 0,
         corporate_name VARCHAR(255) DEFAULT '',
         employee_name VARCHAR(255) DEFAULT '',
         employee_phone VARCHAR(50) DEFAULT '',
@@ -257,12 +258,20 @@ function couponman_create_tables() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         KEY idx_coupon_code (coupon_code),
+        KEY idx_corporate_id (corporate_id),
         KEY idx_corporate (corporate_name),
         KEY idx_status (status)
     ) {$charset};";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);
+
+    // 기존 설치본에 corporate_id 컬럼이 없으면 추가
+    $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table} LIKE 'corporate_id'");
+    if (empty($columns)) {
+        $wpdb->query("ALTER TABLE {$table} ADD COLUMN corporate_id BIGINT UNSIGNED DEFAULT 0 AFTER coupon_code");
+        $wpdb->query("ALTER TABLE {$table} ADD KEY idx_corporate_id (corporate_id)");
+    }
 }
 
 // ============================================================
@@ -347,6 +356,7 @@ function couponman_register_coupon(WP_REST_Request $request) {
     if (is_wp_error($user)) return $user;
 
     $coupon_code    = sanitize_text_field($request->get_param('couponCode'));
+    $corporate_id   = intval($request->get_param('corporateId') ?? 0);
     $corporate_name = sanitize_text_field($request->get_param('corporateName') ?? '');
     $employee_name  = sanitize_text_field($request->get_param('employeeName') ?? '');
     $employee_phone = sanitize_text_field($request->get_param('employeePhone') ?? '');
@@ -373,6 +383,7 @@ function couponman_register_coupon(WP_REST_Request $request) {
 
     $result = $wpdb->insert($table, [
         'coupon_code'    => $coupon_code,
+        'corporate_id'   => $corporate_id,
         'corporate_name' => $corporate_name,
         'employee_name'  => $employee_name,
         'employee_phone' => $employee_phone,
@@ -434,6 +445,7 @@ function couponman_bulk_register_coupons(WP_REST_Request $request) {
 
         $result = $wpdb->insert($table, [
             'coupon_code'    => $coupon_code,
+            'corporate_id'   => intval($coupon['corporateId'] ?? 0),
             'corporate_name' => sanitize_text_field($coupon['corporateName'] ?? ''),
             'employee_name'  => sanitize_text_field($coupon['employeeName'] ?? ''),
             'employee_phone' => sanitize_text_field($coupon['employeePhone'] ?? ''),
