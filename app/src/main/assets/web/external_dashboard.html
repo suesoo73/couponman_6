@@ -600,11 +600,8 @@
                     <button onclick="clearToken()" class="btn btn-danger">토큰 삭제</button>
 
                     <div id="loginResult"></div>
-                    <div id="tokenDisplay" style="display: none; margin-top: 15px;">
-                        <label style="margin-bottom: 10px;">액세스 토큰:</label>
-                        <div style="background: #2d3748; color: #68d391; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; word-break: break-all; font-size: 14px;"
-                            id="accessToken"></div>
-                    </div>
+                    <div id="tokenDisplay" style="display:none;"></div>
+                    <div id="accessToken" style="display:none;"></div>
                 </div>
             </div>
         </div>
@@ -2509,8 +2506,6 @@
                 if (data && (data.token || data.accessToken)) {
                     authToken = data.token || data.accessToken;
                     localStorage.setItem('authToken', authToken);
-                    document.getElementById('tokenDisplay').style.display = 'block';
-                    document.getElementById('accessToken').textContent = authToken;
                     resultDiv.innerHTML = `<div style="color:green;margin-top:10px;">✅ 로그인 성공</div>`;
                     loadAllCorporatesForSelects();
                 } else {
@@ -4027,8 +4022,6 @@
             const savedToken = localStorage.getItem('authToken');
             if (savedToken) {
                 authToken = savedToken;
-                document.getElementById('tokenDisplay').style.display = 'block';
-                document.getElementById('accessToken').textContent = authToken;
                 loadAllCorporatesForSelects();
             }
 
