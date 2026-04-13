@@ -602,14 +602,12 @@ public class ApiServer extends NanoHTTPD {
 
     private Response handleCreateCoupon(IHTTPSession session) {
         Log.i(TAG, "=== COUPON CREATE START ===");
-        
+
         try {
-            Map<String, String> body = new HashMap<>();
-            session.parseBody(body);
-            String postData = body.get("postData");
-            
+            String postData = extractRequestBody(session);
+
             Log.d(TAG, "[COUPON-CREATE] Request data: " + postData);
-            
+
             Map<String, Object> couponData = gson.fromJson(postData, Map.class);
             Log.d(TAG, "[COUPON-CREATE] Parsed coupon data: " + couponData);
             
