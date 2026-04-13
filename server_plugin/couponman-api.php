@@ -11,6 +11,226 @@ if (!defined('ABSPATH')) {
 }
 
 // ============================================================
+// 관리자 메뉴 등록
+// ============================================================
+add_action('admin_menu', function () {
+    add_menu_page(
+        '쿠폰 관리',
+        '🎫 쿠폰 관리',
+        'manage_options',
+        'couponman',
+        'couponman_admin_page',
+        'dashicons-tickets-alt',
+        30
+    );
+    add_submenu_page('couponman', '등록된 쿠폰', '등록된 쿠폰', 'manage_options', 'couponman', 'couponman_admin_page');
+    add_submenu_page('couponman', '등록 이력', '등록 이력', 'manage_options', 'couponman-history', 'couponman_admin_history_page');
+});
+
+// ============================================================
+// 관리자 페이지: 등록된 쿠폰 목록
+// ============================================================
+function couponman_admin_page() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'couponman_coupons';
+
+    // 삭제 처리
+    if (isset($_POST['couponman_delete']) && check_admin_referer('couponman_delete_nonce')) {
+        $id = intval($_POST['couponman_delete']);
+        $wpdb->delete($table, ['id' => $id]);
+        echo '<div class="notice notice-success"><p>쿠폰이 삭제되었습니다.</p></div>';
+    }
+
+    // 검색/필터
+    $search    = sanitize_text_field($_GET['s'] ?? '');
+    $filter_status = sanitize_text_field($_GET['status'] ?? '');
+    $per_page  = 20;
+    $page      = max(1, intval($_GET['paged'] ?? 1));
+    $offset    = ($page - 1) * $per_page;
+
+    $where  = ['1=1'];
+    $params = [];
+    if ($search) {
+        $where[]  = '(coupon_code LIKE %s OR corporate_name LIKE %s OR employee_name LIKE %s)';
+        $like = '%' . $wpdb->esc_like($search) . '%';
+        $params = array_merge($params, [$like, $like, $like]);
+    }
+    if ($filter_status) {
+        $where[]  = 'status = %s';
+        $params[] = $filter_status;
+    }
+    $where_sql = implode(' AND ', $where);
+
+    $total = $params
+        ? $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE {$where_sql}", $params))
+        : $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE {$where_sql}");
+
+    $rows = $params
+        ? $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY registered_at DESC LIMIT %d OFFSET %d",
+            array_merge($params, [$per_page, $offset])
+          ))
+        : $wpdb->get_results("SELECT * FROM {$table} WHERE {$where_sql} ORDER BY registered_at DESC LIMIT {$per_page} OFFSET {$offset}");
+
+    $total_pages = ceil($total / $per_page);
+    $base_url = admin_url('admin.php?page=couponman');
+
+    // 상태별 건수
+    $stats = $wpdb->get_results("SELECT status, COUNT(*) as cnt FROM {$table} GROUP BY status");
+    $stat_map = [];
+    foreach ($stats as $s) $stat_map[$s->status] = $s->cnt;
+
+    ?>
+    <div class="wrap">
+        <h1 class="wp-heading-inline">🎫 등록된 쿠폰</h1>
+        <hr class="wp-header-end">
+
+        <!-- 통계 -->
+        <div style="display:flex;gap:16px;margin:16px 0;">
+            <?php
+            $all_count = array_sum(array_column($stats, 'cnt'));
+            $stat_cards = [
+                ['label'=>'전체', 'count'=>$all_count, 'color'=>'#667eea'],
+                ['label'=>'사용 가능', 'count'=>$stat_map['사용 가능'] ?? 0, 'color'=>'#48bb78'],
+                ['label'=>'사용됨', 'count'=>$stat_map['사용됨'] ?? 0, 'color'=>'#ed8936'],
+                ['label'=>'만료됨', 'count'=>$stat_map['만료됨'] ?? 0, 'color'=>'#e53e3e'],
+            ];
+            foreach ($stat_cards as $sc): ?>
+            <div style="background:white;border:1px solid #e0e0e0;border-radius:8px;padding:14px 24px;text-align:center;min-width:100px;border-top:4px solid <?= $sc['color'] ?>;">
+                <div style="font-size:24px;font-weight:700;color:<?= $sc['color'] ?>;"><?= $sc['count'] ?></div>
+                <div style="font-size:12px;color:#666;"><?= $sc['label'] ?></div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- 검색 폼 -->
+        <form method="get" style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
+            <input type="hidden" name="page" value="couponman">
+            <input type="text" name="s" value="<?= esc_attr($search) ?>" placeholder="쿠폰코드, 거래처, 직원명 검색..."
+                style="padding:8px 12px;border:1px solid #ccc;border-radius:4px;width:280px;">
+            <select name="status" style="padding:8px;border:1px solid #ccc;border-radius:4px;">
+                <option value="">전체 상태</option>
+                <?php foreach (['사용 가능','사용됨','만료됨','일시 중지','해지됨'] as $st): ?>
+                <option value="<?= $st ?>" <?= $filter_status === $st ? 'selected' : '' ?>><?= $st ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="button">🔍 검색</button>
+            <?php if ($search || $filter_status): ?>
+            <a href="<?= $base_url ?>" class="button">초기화</a>
+            <?php endif; ?>
+        </form>
+
+        <p style="color:#666;font-size:13px;">총 <strong><?= number_format($total) ?></strong>건 (현재 페이지: <?= $page ?>/<?= max(1,$total_pages) ?>)</p>
+
+        <!-- 쿠폰 테이블 -->
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th style="width:40px;">#</th>
+                    <th>쿠폰 코드</th>
+                    <th style="width:130px;">거래처</th>
+                    <th style="width:90px;">직원명</th>
+                    <th style="width:120px;">전화번호</th>
+                    <th style="width:100px;text-align:right;">현금잔고</th>
+                    <th style="width:90px;text-align:center;">만료일</th>
+                    <th style="width:80px;text-align:center;">상태</th>
+                    <th style="width:140px;text-align:center;">등록일시</th>
+                    <th style="width:60px;text-align:center;">삭제</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (empty($rows)): ?>
+                <tr><td colspan="10" style="text-align:center;padding:30px;color:#888;">등록된 쿠폰이 없습니다.</td></tr>
+            <?php else: foreach ($rows as $r):
+                $status_colors = ['사용 가능'=>'#d4edda;color:#155724','사용됨'=>'#fff3cd;color:#856404','만료됨'=>'#f8d7da;color:#721c24'];
+                $sc = $status_colors[$r->status] ?? '#e2e3e5;color:#495057';
+            ?>
+                <tr>
+                    <td><?= $r->id ?></td>
+                    <td style="font-family:monospace;font-size:11px;"><?= esc_html($r->coupon_code) ?></td>
+                    <td><?= esc_html($r->corporate_name) ?></td>
+                    <td><?= esc_html($r->employee_name) ?></td>
+                    <td><?= esc_html($r->employee_phone) ?></td>
+                    <td style="text-align:right;"><?= number_format($r->cash_balance) ?>원</td>
+                    <td style="text-align:center;"><?= esc_html($r->expire_date) ?></td>
+                    <td style="text-align:center;">
+                        <span style="padding:2px 8px;border-radius:10px;font-size:11px;background:<?= $sc ?>;">
+                            <?= esc_html($r->status) ?>
+                        </span>
+                    </td>
+                    <td style="text-align:center;font-size:12px;"><?= esc_html($r->registered_at) ?></td>
+                    <td style="text-align:center;">
+                        <form method="post" onsubmit="return confirm('이 쿠폰을 삭제하시겠습니까?');">
+                            <?php wp_nonce_field('couponman_delete_nonce'); ?>
+                            <input type="hidden" name="couponman_delete" value="<?= $r->id ?>">
+                            <button type="submit" class="button button-small" style="color:#e53e3e;border-color:#e53e3e;">삭제</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+
+        <!-- 페이지네이션 -->
+        <?php if ($total_pages > 1): ?>
+        <div style="margin-top:16px;display:flex;gap:4px;align-items:center;">
+            <?php if ($page > 1): ?>
+            <a href="<?= $base_url ?>&paged=<?= $page-1 ?>&s=<?= urlencode($search) ?>&status=<?= urlencode($filter_status) ?>" class="button">‹ 이전</a>
+            <?php endif; ?>
+            <?php for ($i = max(1,$page-3); $i <= min($total_pages,$page+3); $i++): ?>
+            <a href="<?= $base_url ?>&paged=<?= $i ?>&s=<?= urlencode($search) ?>&status=<?= urlencode($filter_status) ?>"
+               class="button <?= $i === $page ? 'button-primary' : '' ?>"><?= $i ?></a>
+            <?php endfor; ?>
+            <?php if ($page < $total_pages): ?>
+            <a href="<?= $base_url ?>&paged=<?= $page+1 ?>&s=<?= urlencode($search) ?>&status=<?= urlencode($filter_status) ?>" class="button">다음 ›</a>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
+// ============================================================
+// 관리자 페이지: 등록 이력 (최근 200건)
+// ============================================================
+function couponman_admin_history_page() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'couponman_coupons';
+    $rows  = $wpdb->get_results("SELECT coupon_code, corporate_name, employee_name, cash_balance, status, registered_at FROM {$table} ORDER BY registered_at DESC LIMIT 200");
+    ?>
+    <div class="wrap">
+        <h1>📜 등록 이력 (최근 200건)</h1>
+        <table class="wp-list-table widefat fixed striped" style="margin-top:16px;">
+            <thead>
+                <tr>
+                    <th>쿠폰 코드</th>
+                    <th style="width:130px;">거래처</th>
+                    <th style="width:90px;">직원명</th>
+                    <th style="width:110px;text-align:right;">금액</th>
+                    <th style="width:80px;text-align:center;">상태</th>
+                    <th style="width:150px;text-align:center;">등록일시</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (empty($rows)): ?>
+                <tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">이력이 없습니다.</td></tr>
+            <?php else: foreach ($rows as $r): ?>
+                <tr>
+                    <td style="font-family:monospace;font-size:11px;"><?= esc_html($r->coupon_code) ?></td>
+                    <td><?= esc_html($r->corporate_name) ?></td>
+                    <td><?= esc_html($r->employee_name) ?></td>
+                    <td style="text-align:right;"><?= number_format($r->cash_balance) ?>원</td>
+                    <td style="text-align:center;font-size:11px;"><?= esc_html($r->status) ?></td>
+                    <td style="text-align:center;font-size:12px;"><?= esc_html($r->registered_at) ?></td>
+                </tr>
+            <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
+// ============================================================
 // DB 테이블 생성 (플러그인 활성화 시)
 // ============================================================
 register_activation_hook(__FILE__, 'couponman_create_tables');
