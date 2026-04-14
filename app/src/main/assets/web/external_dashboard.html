@@ -1614,6 +1614,7 @@
                 <div class="management-tabs" style="margin-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
                     <button class="tab-button active" onclick="showManagementTab('statistics')">📊 거래처별 통계</button>
                     <button class="tab-button" onclick="showManagementTab('monthlyReport')">📋 월간정산보고서</button>
+                    <button class="tab-button" onclick="showManagementTab('usageHistory')">🧾 쿠폰 사용 내역</button>
                 </div>
 
                 <!-- 거래처별 통계 탭 -->
@@ -1830,6 +1831,94 @@
                                             조회 버튼을 클릭하여 월간보고서를 확인하세요.
                                         </td>
                                     </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 쿠폰 사용 내역 탭 -->
+                <div id="usageHistoryTab" class="management-tab-content">
+                    <h3 style="margin-bottom:20px;">🧾 쿠폰 사용 내역</h3>
+
+                    <!-- 조회 조건 -->
+                    <div class="card" style="margin-bottom:20px;">
+                        <h4 style="margin-bottom:15px;">🔍 조회 조건</h4>
+                        <div class="form-row">
+                            <div>
+                                <label>시작일:</label>
+                                <input type="date" id="usageStartDate">
+                            </div>
+                            <div>
+                                <label>종료일:</label>
+                                <input type="date" id="usageEndDate">
+                            </div>
+                            <div>
+                                <label>거래처:</label>
+                                <select id="usageCorporateSelect" style="padding:10px;border:1px solid #ddd;border-radius:6px;min-width:160px;">
+                                    <option value="">전체</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>유형:</label>
+                                <select id="usageTypeFilter" style="padding:10px;border:1px solid #ddd;border-radius:6px;">
+                                    <option value="">전체</option>
+                                    <option value="사용">사용</option>
+                                    <option value="충전">충전</option>
+                                    <option value="발행">발행</option>
+                                    <option value="환불">환불</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top:15px;display:flex;gap:10px;align-items:center;">
+                            <button onclick="loadUsageHistory()" class="btn btn-success">🔍 조회</button>
+                            <button onclick="exportUsageHistoryCSV()" class="btn" style="background:#52c41a;color:white;">📥 CSV 다운로드</button>
+                            <span id="usageHistoryCount" style="font-size:13px;color:#666;"></span>
+                        </div>
+                    </div>
+
+                    <!-- 요약 카드 -->
+                    <div id="usageSummaryCards" style="display:none;margin-bottom:20px;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+                            <div style="background:#e6f7ff;padding:15px;border-radius:8px;text-align:center;">
+                                <div style="font-size:13px;color:#666;">총 거래 건수</div>
+                                <div id="uhTotalCount" style="font-size:24px;font-weight:bold;color:#1890ff;">0</div>
+                            </div>
+                            <div style="background:#fff7e6;padding:15px;border-radius:8px;text-align:center;">
+                                <div style="font-size:13px;color:#666;">사용 건수</div>
+                                <div id="uhUseCount" style="font-size:24px;font-weight:bold;color:#fa8c16;">0</div>
+                            </div>
+                            <div style="background:#f6ffed;padding:15px;border-radius:8px;text-align:center;">
+                                <div style="font-size:13px;color:#666;">총 사용 현금</div>
+                                <div id="uhTotalCash" style="font-size:20px;font-weight:bold;color:#52c41a;">0원</div>
+                            </div>
+                            <div style="background:#f0f5ff;padding:15px;border-radius:8px;text-align:center;">
+                                <div style="font-size:13px;color:#666;">총 사용 포인트</div>
+                                <div id="uhTotalPoint" style="font-size:20px;font-weight:bold;color:#722ed1;">0P</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 내역 테이블 -->
+                    <div class="card">
+                        <div style="max-height:520px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;">
+                            <table style="width:100%;border-collapse:collapse;">
+                                <thead style="background:#f8f9fa;position:sticky;top:0;">
+                                    <tr>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:left;min-width:140px;">일시</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:left;">거래처</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:left;">직원명</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:center;">유형</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:center;">잔액종류</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:right;">금액</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:right;">거래전잔액</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:right;">거래후잔액</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:left;">쿠폰코드</th>
+                                        <th style="border:1px solid #e0e0e0;padding:10px;text-align:left;">비고</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usageHistoryBody">
+                                    <tr><td colspan="10" style="text-align:center;padding:30px;color:#888;">조회 버튼을 클릭하세요.</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -3804,6 +3893,87 @@
             } catch (e) { showNotification('상세 로드 실패: ' + e.message, 'error'); }
         }
 
+        // ============================================================
+        // 쿠폰 사용 내역
+        // ============================================================
+        let usageHistoryData = [];
+
+        async function loadUsageHistory() {
+            const startDate   = document.getElementById('usageStartDate').value;
+            const endDate     = document.getElementById('usageEndDate').value;
+            const corporateId = document.getElementById('usageCorporateSelect').value;
+            const typeFilter  = document.getElementById('usageTypeFilter').value;
+
+            const params = new URLSearchParams();
+            if (startDate)   params.append('startDate',   startDate);
+            if (endDate)     params.append('endDate',     endDate);
+            if (corporateId) params.append('corporateId', corporateId);
+            if (typeFilter)  params.append('type',        typeFilter);
+            params.append('limit', '500');
+
+            try {
+                document.getElementById('usageHistoryBody').innerHTML =
+                    '<tr><td colspan="10" style="text-align:center;padding:20px;color:#888;">조회 중...</td></tr>';
+                const data = await apiCall('GET', `/api/transactions?${params}`);
+                usageHistoryData = (data && data.data) || [];
+
+                // 요약 계산
+                let useCount = 0, totalCash = 0, totalPoint = 0;
+                usageHistoryData.forEach(t => {
+                    if (t.transactionType === '사용') {
+                        useCount++;
+                        if (t.balanceType === 'cash')  totalCash  += Math.abs(t.amount || 0);
+                        if (t.balanceType === 'point') totalPoint += Math.abs(t.amount || 0);
+                    }
+                });
+                document.getElementById('uhTotalCount').textContent = usageHistoryData.length;
+                document.getElementById('uhUseCount').textContent   = useCount;
+                document.getElementById('uhTotalCash').textContent  = formatCurrency(totalCash) + '원';
+                document.getElementById('uhTotalPoint').textContent = formatCurrency(totalPoint) + 'P';
+                document.getElementById('usageSummaryCards').style.display = '';
+                document.getElementById('usageHistoryCount').textContent = `총 ${usageHistoryData.length}건`;
+
+                renderUsageHistory(usageHistoryData);
+            } catch(e) { showNotification('조회 실패: ' + e.message, 'error'); }
+        }
+
+        function renderUsageHistory(list) {
+            const typeColor = { '사용': '#e53e3e', '충전': '#38a169', '발행': '#3182ce', '환불': '#d69e2e', '만료': '#718096', '취소': '#a0aec0' };
+            const balanceLabel = { 'cash': '현금', 'point': '포인트' };
+            document.getElementById('usageHistoryBody').innerHTML = list.length
+                ? list.map(t => `<tr>
+                    <td style="border:1px solid #e0e0e0;padding:8px;font-size:12px;white-space:nowrap;">${t.transactionDate || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;">${t.corporateName || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;">${t.employeeName || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
+                        <span style="color:${typeColor[t.transactionType]||'#333'};font-weight:600;">${t.transactionType || '-'}</span>
+                    </td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">${balanceLabel[t.balanceType] || t.balanceType || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;font-weight:600;">${formatCurrency(t.amount)}원</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;color:#666;">${formatCurrency(t.balanceBefore)}원</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;color:#666;">${formatCurrency(t.balanceAfter)}원</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;font-size:11px;color:#888;">${t.couponCode || '-'}</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;font-size:12px;color:#666;">${t.description || '-'}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="10" style="text-align:center;padding:30px;color:#888;">조회된 내역이 없습니다.</td></tr>';
+        }
+
+        function exportUsageHistoryCSV() {
+            if (!usageHistoryData.length) { showNotification('조회된 데이터가 없습니다.', 'error'); return; }
+            const headers = ['일시','거래처','직원명','유형','잔액종류','금액','거래전잔액','거래후잔액','쿠폰코드','비고'];
+            const balanceLabel = { 'cash': '현금', 'point': '포인트' };
+            const rows = usageHistoryData.map(t => [
+                t.transactionDate || '', t.corporateName || '', t.employeeName || '',
+                t.transactionType || '', balanceLabel[t.balanceType] || t.balanceType || '',
+                t.amount || 0, t.balanceBefore || 0, t.balanceAfter || 0,
+                t.couponCode || '', t.description || ''
+            ]);
+            const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: '쿠폰사용내역.csv' });
+            a.click();
+        }
+
         function exportStatsToExcel() { showNotification('엑셀 다운로드 기능은 준비 중입니다.', 'info'); }
         function exportMonthlyReportToExcel() { showNotification('엑셀 다운로드 기능은 준비 중입니다.', 'info'); }
 
@@ -4152,7 +4322,7 @@
             try {
                 const data = await apiCall('GET', '/api/corporates');
                 corporates = (data && data.data) || [];
-                const selects = ['corporateSelectForEmployee', 'issueCorporateSelect', 'sendCorporateSelect', 'couponSearchCorporate', 'monthlyReportCorporate'];
+                const selects = ['corporateSelectForEmployee', 'issueCorporateSelect', 'sendCorporateSelect', 'couponSearchCorporate', 'monthlyReportCorporate', 'usageCorporateSelect', 'regCorporateSelect'];
                 selects.forEach(id => {
                     const el = document.getElementById(id);
                     if (!el) return;

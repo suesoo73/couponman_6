@@ -378,6 +378,10 @@ public class ApiServer extends NanoHTTPD {
                                     response = handleGetEmployeeDailyTransactions(employeeId, session);
                                 }
                             }
+                        } else if (uri.equals("/api/transactions")) {
+                            if (Method.GET.equals(method)) {
+                                response = handleGetUsageHistory(session);
+                            }
                         }
                     } else if (uri.equals("/api/backup")) {
                         if (!isAuthorized(session)) {
@@ -4023,6 +4027,84 @@ public class ApiServer extends NanoHTTPD {
             result.put("timestamp", new java.util.Date().toString());
 
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(result));
+        }
+    }
+
+    /**
+     * 쿠폰 사용 내역 조회
+     * GET /api/transactions?startDate=&endDate=&corporateId=&type=&limit=&offset=
+     */
+    private Response handleGetUsageHistory(IHTTPSession session) {
+        try {
+            Map<String, String> params = session.getParms();
+            String startDate   = params.getOrDefault("startDate", "");
+            String endDate     = params.getOrDefault("endDate", "");
+            String corporateId = params.getOrDefault("corporateId", "");
+            String typeFilter  = params.getOrDefault("type", "");
+            int limit          = 200;
+            int offset         = 0;
+            try { limit  = Integer.parseInt(params.getOrDefault("limit",  "200")); } catch (Exception ignored) {}
+            try { offset = Integer.parseInt(params.getOrDefault("offset", "0"));   } catch (Exception ignored) {}
+
+            // 전체 거래 내역 조회
+            List<Transaction> allTrans = transactionDAO.getAllTransactions();
+
+            // 쿠폰·직원·거래처 조인 정보를 위해 쿠폰 목록 캐시
+            List<Coupon> allCoupons = couponDAO.getAllCoupons();
+            java.util.Map<Integer, Coupon> couponMap = new java.util.HashMap<>();
+            for (Coupon c : allCoupons) couponMap.put(c.getCouponId(), c);
+
+            List<Map<String, Object>> result = new java.util.ArrayList<>();
+            for (Transaction t : allTrans) {
+                // 타입 필터
+                if (!typeFilter.isEmpty() && !typeFilter.equals(t.getTransactionType())) continue;
+
+                // 쿠폰 조인
+                Coupon coupon = couponMap.get(t.getCouponId());
+                String corpName = coupon != null && coupon.getCorporateName() != null ? coupon.getCorporateName() : "";
+                int    corpId   = coupon != null ? coupon.getCorporateId() : 0;
+                String empName  = coupon != null && coupon.getRecipientName() != null ? coupon.getRecipientName() : "";
+                String couponCode = coupon != null && coupon.getFullCouponCode() != null ? coupon.getFullCouponCode() : "";
+
+                // 거래처 필터
+                if (!corporateId.isEmpty() && !String.valueOf(corpId).equals(corporateId)) continue;
+
+                // 날짜 필터
+                String tDate = t.getTransactionDate() != null ? t.getTransactionDate() : "";
+                if (!startDate.isEmpty() && tDate.compareTo(startDate) < 0) continue;
+                if (!endDate.isEmpty()   && tDate.compareTo(endDate + " 23:59:59") > 0) continue;
+
+                Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("transactionId",   t.getTransactionId());
+                row.put("couponId",        t.getCouponId());
+                row.put("couponCode",      couponCode);
+                row.put("corporateId",     corpId);
+                row.put("corporateName",   corpName);
+                row.put("employeeName",    empName);
+                row.put("transactionType", t.getTransactionType());
+                row.put("amount",          t.getAmount());
+                row.put("balanceType",     t.getBalanceType() != null ? t.getBalanceType() : "");
+                row.put("balanceBefore",   t.getBalanceBefore());
+                row.put("balanceAfter",    t.getBalanceAfter());
+                row.put("description",     t.getDescription() != null ? t.getDescription() : "");
+                row.put("transactionDate", tDate);
+                result.add(row);
+            }
+
+            // 페이징
+            int total = result.size();
+            int end   = Math.min(offset + limit, total);
+            List<Map<String, Object>> paged = offset < total ? result.subList(offset, end) : new java.util.ArrayList<>();
+
+            Map<String, Object> response = new java.util.LinkedHashMap<>();
+            response.put("success", true);
+            response.put("total",   total);
+            response.put("count",   paged.size());
+            response.put("data",    paged);
+            return createJsonResponse(gson.toJson(response));
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting usage history", e);
+            return createErrorResponse("사용 내역 조회 실패: " + e.getMessage());
         }
     }
 
