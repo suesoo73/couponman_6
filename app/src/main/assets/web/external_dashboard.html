@@ -3920,7 +3920,7 @@
                 // 요약 계산
                 let useCount = 0, totalCash = 0, totalPoint = 0;
                 usageHistoryData.forEach(t => {
-                    if (t.transactionType === '사용') {
+                    if (t.transactionType === '사용' || t.transactionType === 'DEDUCTION') {
                         useCount++;
                         if (t.balanceType === 'cash')  totalCash  += Math.abs(t.amount || 0);
                         if (t.balanceType === 'point') totalPoint += Math.abs(t.amount || 0);
@@ -3938,7 +3938,8 @@
         }
 
         function renderUsageHistory(list) {
-            const typeColor = { '사용': '#e53e3e', '충전': '#38a169', '발행': '#3182ce', '환불': '#d69e2e', '만료': '#718096', '취소': '#a0aec0' };
+            const typeColor = { '사용': '#e53e3e', 'DEDUCTION': '#e53e3e', '충전': '#38a169', '발행': '#3182ce', '환불': '#d69e2e', '만료': '#718096', '취소': '#a0aec0' };
+            const typeLabel = { 'DEDUCTION': '사용' };
             const balanceLabel = { 'cash': '현금', 'point': '포인트' };
             document.getElementById('usageHistoryBody').innerHTML = list.length
                 ? list.map(t => `<tr>
@@ -3946,7 +3947,7 @@
                     <td style="border:1px solid #e0e0e0;padding:8px;">${t.corporateName || '-'}</td>
                     <td style="border:1px solid #e0e0e0;padding:8px;">${t.employeeName || '-'}</td>
                     <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">
-                        <span style="color:${typeColor[t.transactionType]||'#333'};font-weight:600;">${t.transactionType || '-'}</span>
+                        <span style="color:${typeColor[t.transactionType]||'#333'};font-weight:600;">${typeLabel[t.transactionType] || t.transactionType || '-'}</span>
                     </td>
                     <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">${balanceLabel[t.balanceType] || t.balanceType || '-'}</td>
                     <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;font-weight:600;">${formatCurrency(t.amount)}원</td>

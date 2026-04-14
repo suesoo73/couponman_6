@@ -714,7 +714,7 @@ public class QRScanActivity extends AppCompatActivity {
                     // 거래 기록 생성
                     Transaction transaction = new Transaction();
                     transaction.setCouponId(coupon.getCouponId());
-                    transaction.setTransactionType("DEDUCTION"); // 차감 거래
+                    transaction.setTransactionType(Transaction.TYPE_USE); // 차감 거래
                     transaction.setAmount(finalCashDeduction); // 차감 금액
                     transaction.setBalanceType(Transaction.BALANCE_TYPE_CASH); // 현금 거래
                     transaction.setDescription("QR 스캔 " + finalPeriodName + " 시간대 차감");
