@@ -4101,10 +4101,13 @@ public class ApiServer extends NanoHTTPD {
             response.put("total",   total);
             response.put("count",   paged.size());
             response.put("data",    paged);
-            return createJsonResponse(gson.toJson(response));
+            return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(response));
         } catch (Exception e) {
             Log.e(TAG, "Error getting usage history", e);
-            return createErrorResponse("사용 내역 조회 실패: " + e.getMessage());
+            Map<String, Object> err = new java.util.LinkedHashMap<>();
+            err.put("success", false);
+            err.put("message", "사용 내역 조회 실패: " + e.getMessage());
+            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(err));
         }
     }
 
