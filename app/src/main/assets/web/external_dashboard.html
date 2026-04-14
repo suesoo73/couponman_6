@@ -3813,16 +3813,22 @@
             const start = document.getElementById('statsStartDate').value;
             const end = document.getElementById('statsEndDate').value;
             try {
-                const data = await apiCall('GET', `/api/statistics/summary?startDate=${start}&endDate=${end}`);
-                if (data) {
-                    document.getElementById('totalCorporates').textContent = data.totalCorporates || 0;
-                    document.getElementById('totalIssuedCoupons').textContent = data.totalIssuedCoupons || 0;
-                    document.getElementById('totalUsedCoupons').textContent = data.totalUsedCoupons || 0;
-                    const rate = data.totalIssuedCoupons > 0 ? ((data.totalUsedCoupons / data.totalIssuedCoupons) * 100).toFixed(1) + '%' : '0%';
-                    document.getElementById('totalUsageRate').textContent = rate;
-                }
-                const corpData = await apiCall('GET', `/api/statistics/corporate?startDate=${start}&endDate=${end}`);
-                renderCorporateStats(corpData || []);
+                // /api/statistics/corporate 하나로 요약+거래처별 모두 반환
+                const params = new URLSearchParams();
+                if (start) params.append('startDate', start);
+                if (end)   params.append('endDate',   end);
+                const resp = await apiCall('GET', `/api/statistics/corporate?${params}`);
+                const summary     = (resp && resp.data && resp.data.summary)        || {};
+                const corpStats   = (resp && resp.data && resp.data.corporateStats) || [];
+
+                document.getElementById('totalCorporates').textContent    = summary.totalCorporates    || 0;
+                document.getElementById('totalIssuedCoupons').textContent = summary.totalIssuedCoupons || 0;
+                document.getElementById('totalUsedCoupons').textContent   = summary.totalUsedCoupons   || 0;
+                const issued = summary.totalIssuedCoupons || 0;
+                const used   = summary.totalUsedCoupons   || 0;
+                document.getElementById('totalUsageRate').textContent = issued > 0 ? ((used / issued) * 100).toFixed(1) + '%' : '0%';
+
+                renderCorporateStats(corpStats);
             } catch (e) { showNotification('통계 로드 실패: ' + e.message, 'error'); }
         }
 

@@ -3226,17 +3226,10 @@ public class ApiServer extends NanoHTTPD {
         Log.i(TAG, "=== GET CORPORATE STATISTICS REQUEST ===");
 
         try {
-            // 쿼리 매개변수 가져오기
+            // 쿼리 매개변수 가져오기 (날짜 미입력 시 전체 기간)
             Map<String, String> params = session.getParms();
-            String startDate = params.get("startDate");
-            String endDate = params.get("endDate");
-
-            if (startDate == null || endDate == null) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "시작일(startDate)과 종료일(endDate)이 필요합니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
+            String startDate = params.getOrDefault("startDate", "");
+            String endDate   = params.getOrDefault("endDate",   "");
 
             // DAO 열기
             corporateDAO.open();
@@ -3268,17 +3261,17 @@ public class ApiServer extends NanoHTTPD {
                 for (Employee employee : employees) {
                     List<Coupon> empCoupons = couponDAO.getCouponsByEmployeeId(employee.getEmployeeId());
                     for (Coupon coupon : empCoupons) {
-                        // 기간 필터링
-                        if (coupon.getCreatedAt() != null) {
-                            String couponDate = coupon.getCreatedAt().split(" ")[0]; // "YYYY-MM-DD HH:MM:SS"에서 날짜 부분만
-                            if (couponDate.compareTo(startDate) >= 0 && couponDate.compareTo(endDate) <= 0) {
-                                issuedCoupons++;
-                                totalCashValue += coupon.getCashBalance();
-                                totalPointValue += coupon.getPointBalance();
-                                
-                                if ("USED".equals(coupon.getStatus())) {
-                                    usedCoupons++;
-                                }
+                        // 기간 필터링 (날짜 미입력 시 전체 포함)
+                        String couponDate = coupon.getCreatedAt() != null ? coupon.getCreatedAt().split(" ")[0] : "";
+                        boolean inRange = (startDate.isEmpty() || couponDate.compareTo(startDate) >= 0)
+                                       && (endDate.isEmpty()   || couponDate.compareTo(endDate)   <= 0);
+                        if (inRange) {
+                            issuedCoupons++;
+                            totalCashValue  += coupon.getCashBalance();
+                            totalPointValue += coupon.getPointBalance();
+                            // 실제 상태 상수는 "사용됨"
+                            if ("사용됨".equals(coupon.getStatus())) {
+                                usedCoupons++;
                             }
                         }
                     }
@@ -3286,13 +3279,17 @@ public class ApiServer extends NanoHTTPD {
                 
                 // 거래처별 통계 데이터 생성
                 Map<String, Object> corporateStat = new HashMap<>();
-                corporateStat.put("corporateId", corporate.getCustomerId());
-                corporateStat.put("corporateName", corporate.getName());
-                corporateStat.put("employeeCount", employeeCount);
-                corporateStat.put("issuedCoupons", issuedCoupons);
-                corporateStat.put("usedCoupons", usedCoupons);
+                String usageRate = issuedCoupons > 0
+                        ? String.format("%.1f%%", (usedCoupons * 100.0 / issuedCoupons))
+                        : "0%";
+                corporateStat.put("corporateId",    corporate.getCustomerId());
+                corporateStat.put("corporateName",  corporate.getName());
+                corporateStat.put("employeeCount",  employeeCount);
+                corporateStat.put("issuedCoupons",  issuedCoupons);
+                corporateStat.put("usedCoupons",    usedCoupons);
+                corporateStat.put("usageRate",      usageRate);
                 corporateStat.put("totalCashValue", totalCashValue);
-                corporateStat.put("totalPointValue", totalPointValue);
+                corporateStat.put("totalPointValue",totalPointValue);
                 
                 corporateStats.add(corporateStat);
                 
