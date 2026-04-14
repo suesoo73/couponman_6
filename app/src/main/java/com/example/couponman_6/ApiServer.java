@@ -4161,8 +4161,9 @@ public class ApiServer extends NanoHTTPD {
                 int totalUsageCount = 0;
 
                 for (Transaction trans : transactions) {
-                    // DEDUCTION 타입만 카운트
-                    if (!"DEDUCTION".equals(trans.getTransactionType())) {
+                    // 사용(TYPE_USE) 또는 구버전 DEDUCTION 타입만 카운트
+                    String tType = trans.getTransactionType();
+                    if (!Transaction.TYPE_USE.equals(tType) && !"DEDUCTION".equals(tType)) {
                         continue;
                     }
 
@@ -4234,23 +4235,30 @@ public class ApiServer extends NanoHTTPD {
                     }
                 }
 
-                // 응답 데이터 구성
-                Map<String, Object> summary = new HashMap<>();
-                summary.put("totalUsageCount", totalUsageCount);
-                summary.put("totalCashDeducted", totalCashDeducted);
-                summary.put("totalPointsDeducted", totalPointsDeducted);
-                summary.put("remainingCashBalance", totalCashBalance);
-                summary.put("remainingPointBalance", totalPointBalance);
+                // 직원별 상세: JS 필드명(cashUsed, pointsUsed, cashBalance, pointBalance)에 맞게 변환
+                List<Map<String, Object>> detailsList = new ArrayList<>();
+                for (Map<String, Object> stat : employeeStats.values()) {
+                    Map<String, Object> d = new HashMap<>();
+                    d.put("employeeId",   stat.get("employeeId"));
+                    d.put("employeeName", stat.get("employeeName"));
+                    d.put("corporateName",stat.get("corporateName"));
+                    d.put("usageCount",   stat.get("usageCount"));
+                    d.put("cashUsed",     stat.get("cashDeducted"));
+                    d.put("pointsUsed",   stat.get("pointsDeducted"));
+                    d.put("cashBalance",  stat.get("cashBalance"));
+                    d.put("pointBalance", stat.get("pointBalance"));
+                    detailsList.add(d);
+                }
 
-                List<Map<String, Object>> employeeDetailsList = new ArrayList<>(employeeStats.values());
-
-                Map<String, Object> data = new HashMap<>();
-                data.put("summary", summary);
-                data.put("employeeDetails", employeeDetailsList);
-
+                // 응답 최상위 키를 JS가 기대하는 이름으로 맞춤
                 Map<String, Object> result = new HashMap<>();
-                result.put("success", true);
-                result.put("data", data);
+                result.put("success",      true);
+                result.put("totalUsage",   totalUsageCount);
+                result.put("totalCash",    totalCashDeducted);
+                result.put("totalPoints",  totalPointsDeducted);
+                result.put("cashBalance",  totalCashBalance);
+                result.put("pointBalance", totalPointBalance);
+                result.put("details",      detailsList);
 
                 Log.i(TAG, "[MONTHLY-TRANS] Response - Total usage: " + totalUsageCount + ", Employees: " + employeeStats.size());
                 Log.i(TAG, "=== MONTHLY TRANSACTIONS END ===");
