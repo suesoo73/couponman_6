@@ -3922,7 +3922,7 @@
                 usageHistoryData.forEach(t => {
                     if (t.transactionType === '사용' || t.transactionType === 'DEDUCTION') {
                         useCount++;
-                        if (t.balanceType === 'cash')  totalCash  += Math.abs(t.amount || 0);
+                        if (t.balanceType === 'cash')  totalCash  += Math.abs(t.amount || 0); // DB에 양수/음수 혼재 가능하므로 abs 처리
                         if (t.balanceType === 'point') totalPoint += Math.abs(t.amount || 0);
                     }
                 });
@@ -3950,7 +3950,9 @@
                         <span style="color:${typeColor[t.transactionType]||'#333'};font-weight:600;">${typeLabel[t.transactionType] || t.transactionType || '-'}</span>
                     </td>
                     <td style="border:1px solid #e0e0e0;padding:8px;text-align:center;">${balanceLabel[t.balanceType] || t.balanceType || '-'}</td>
-                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;font-weight:600;">${formatCurrency(t.amount)}원</td>
+                    <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;font-weight:600;color:${(t.transactionType==='사용'||t.transactionType==='DEDUCTION')?'#e53e3e':'#38a169'};">
+                        ${(t.transactionType==='사용'||t.transactionType==='DEDUCTION')?'-':'+'} ${formatCurrency(Math.abs(t.amount))}원
+                    </td>
                     <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;color:#666;">${formatCurrency(t.balanceBefore)}원</td>
                     <td style="border:1px solid #e0e0e0;padding:8px;text-align:right;color:#666;">${formatCurrency(t.balanceAfter)}원</td>
                     <td style="border:1px solid #e0e0e0;padding:8px;font-size:11px;color:#888;">${t.couponCode || '-'}</td>
