@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎟️ 쿠폰 매니저 시스템 PC 대시보드</title>
+    <title>쿠폰 매니저 시스템 PC 대시보드</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -65,6 +65,141 @@
         .logo h1 {
             font-size: 1.3em;
             font-weight: 700;
+        }
+
+        /* ===== DASHBOARD KPI ===== */
+        .dash-kpi-card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            border-top: 4px solid var(--kpi-color, #667eea);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .dash-kpi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .dash-kpi-icon {
+            font-size: 1.6em;
+            margin-bottom: 2px;
+        }
+
+        .dash-kpi-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #222;
+            line-height: 1.1;
+        }
+
+        .dash-kpi-label {
+            font-size: 13px;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .dash-kpi-sub {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        /* ===== AUTH BAR ===== */
+        .auth-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.85em;
+        }
+
+        .auth-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.4);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .auth-btn:hover { background: rgba(255,255,255,0.35); }
+        .auth-btn.logout { background: rgba(220,53,69,0.5); border-color: rgba(220,53,69,0.7); }
+        .auth-btn.logout:hover { background: rgba(220,53,69,0.75); }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 500;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 28px 32px;
+            width: 400px;
+            max-width: 95vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .modal-box h3 {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .modal-box label {
+            display: block;
+            margin-bottom: 4px;
+            margin-top: 14px;
+            font-size: 13px;
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 12px; right: 14px;
+            background: none; border: none;
+            font-size: 1.3em; cursor: pointer; color: #999;
         }
 
         /* ===== NAV DROPDOWN ===== */
@@ -518,120 +653,200 @@
                 <h1>쿠폰 매니저 PC 대시보드</h1>
             </div>
 
-            <div class="nav-dropdown">
-                <button class="nav-button" onclick="toggleDropdown()">
-                    <span>📋 메뉴</span>
-                </button>
-                <div class="dropdown-content" id="navDropdown">
-                    <a class="dropdown-item" onclick="showSection('welcome')">
-                        <span class="icon">🏠</span>대시보드 홈
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('corporate')">
-                        <span class="icon">🏢</span>거래처 관리
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('couponManagement')">
-                        <span class="icon">📋</span>쿠폰 관리
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('send')">
-                        <span class="icon">📤</span>쿠폰 발송
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('deliveryHistory')">
-                        <span class="icon">📋</span>발송 기록
-                    </a>
-                    <a class="dropdown-item" id="emailConfigMenu" onclick="showSection('emailConfig')"
-                        style="display: none;">
-                        <span class="icon">📧</span>이메일 설정
-                    </a>
-                    <a class="dropdown-item" id="smsConfigMenu" onclick="showSection('smsConfig')"
-                        style="display: none;">
-                        <span class="icon">📱</span>SMS 설정
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('systemSettings')">
-                        <span class="icon">💰</span>가격 설정
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('managementInfo')">
-                        <span class="icon">📊</span>경영정보
-                    </a>
-                    <a class="dropdown-item" onclick="showSection('backup')">
-                        <span class="icon">💾</span>백업/복구
-                    </a>
-                    <div class="dropdown-divider" style="border-top: 1px solid #e0e0e0; margin: 10px 0;"></div>
-                    <a class="dropdown-item" onclick="showDeveloperLogin()" id="developerMenuButton"
-                        style="color: #dc3545;">
-                        <span class="icon">👨‍💻</span>개발자 메뉴
-                    </a>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <!-- Auth status bar -->
+                <div class="auth-bar">
+                    <div class="auth-status" id="authStatusBar">
+                        <span id="authStatusDot">🔴</span>
+                        <span id="authStatusText">미로그인</span>
+                    </div>
+                    <button class="auth-btn" id="btnLogin" onclick="openLoginModal()">로그인</button>
+                    <button class="auth-btn logout" id="btnLogout" onclick="logout()" style="display:none;">로그아웃</button>
                 </div>
+
+                <div class="nav-dropdown">
+                    <button class="nav-button" onclick="toggleDropdown()">
+                        <span>📋 메뉴</span>
+                    </button>
+                    <div class="dropdown-content" id="navDropdown">
+                        <a class="dropdown-item" onclick="showSection('welcome')">
+                            <span class="icon">🏠</span>대시보드 홈
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('corporate')">
+                            <span class="icon">🏢</span>거래처 관리
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('couponManagement')">
+                            <span class="icon">📋</span>쿠폰 관리
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('send')">
+                            <span class="icon">📤</span>쿠폰 발송
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('deliveryHistory')">
+                            <span class="icon">📋</span>발송 기록
+                        </a>
+                        <a class="dropdown-item" id="emailConfigMenu" onclick="showSection('emailConfig')"
+                            style="display: none;">
+                            <span class="icon">📧</span>이메일 설정
+                        </a>
+                        <a class="dropdown-item" id="smsConfigMenu" onclick="showSection('smsConfig')"
+                            style="display: none;">
+                            <span class="icon">📱</span>SMS 설정
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('systemSettings')">
+                            <span class="icon">💰</span>가격 설정
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('managementInfo')">
+                            <span class="icon">📊</span>경영정보
+                        </a>
+                        <a class="dropdown-item" onclick="showSection('backup')">
+                            <span class="icon">💾</span>백업/복구
+                        </a>
+                        <div class="dropdown-divider" style="border-top: 1px solid #e0e0e0; margin: 10px 0;"></div>
+                        <a class="dropdown-item" onclick="openServerSettingsModal()">
+                            <span class="icon">🔧</span>서버 설정
+                        </a>
+                        <a class="dropdown-item" onclick="showDeveloperLogin()" id="developerMenuButton"
+                            style="color: #dc3545;">
+                            <span class="icon">👨‍💻</span>개발자 메뉴
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeLoginModal()">✕</button>
+            <h3>🔐 로그인</h3>
+            <label for="serverUrlModal">API 서버 주소</label>
+            <input type="url" id="serverUrlModal" placeholder="http://192.168.x.x:8080">
+            <label for="userId">사용자 ID</label>
+            <input type="text" id="userId" placeholder="사용자 ID를 입력하세요">
+            <label for="password">패스워드</label>
+            <input type="password" id="password" placeholder="패스워드를 입력하세요"
+                onkeydown="if(event.key==='Enter') login()">
+            <div id="loginResult" style="margin-top:10px; font-size:13px;"></div>
+            <div id="tokenDisplay" style="display:none;"></div>
+            <div id="accessToken" style="display:none;"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeLoginModal()">취소</button>
+                <button class="btn btn-success" onclick="login()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Settings Modal -->
+    <div class="modal-overlay" id="serverSettingsModal">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeServerSettingsModal()">✕</button>
+            <h3>🔧 서버 설정</h3>
+            <label for="serverUrlSettings">API 서버 주소</label>
+            <input type="url" id="serverUrlSettings" placeholder="http://192.168.x.x:8080">
+            <div id="serverStatus" style="margin-top:8px; font-size:13px;"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeServerSettingsModal()">닫기</button>
+                <button class="btn" onclick="checkServerStatus()">연결 테스트</button>
+                <button class="btn btn-success" onclick="saveServerUrl()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price Save Confirm Modal -->
+    <div class="modal-overlay" id="priceSaveConfirmModal">
+        <div class="modal-box" style="width:460px;">
+            <h3>⚠️ 가격 변경 확인</h3>
+            <p style="margin-top:14px;line-height:1.7;color:#555;font-size:14px;">
+                가격 변동은 손익에 중대한 영향을 미치므로, 신중하게 결정이 필요합니다.<br><br>
+                <span id="priceChangeDesc" style="font-weight:600;color:#333;"></span><br><br>
+                저장하시겠습니까?
+            </p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="document.getElementById('priceSaveConfirmModal').classList.remove('show')">취소</button>
+                <button class="btn btn-success" onclick="doSaveSystemSettings()">확인</button>
             </div>
         </div>
     </div>
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Server Status Card -->
-        <div class="status-card">
-            <div class="status-grid">
-                <div>
-                    <h3 style="margin-bottom: 15px;">🔧 서버 설정</h3>
-                    <div class="form-row">
-                        <div>
-                            <label for="serverUrl">API 서버 주소</label>
-                            <input type="url" id="serverUrl" value=""
-                                placeholder="http://192.168.x.x:8080">
-                        </div>
-                        <div style="display: flex; align-items: end;">
-                            <button onclick="checkServerStatus()" class="btn">서버 상태 확인</button>
-                        </div>
-                    </div>
-                    <div id="serverStatus"></div>
-                </div>
-
-                <div>
-                    <h3 style="margin-bottom: 15px;">🔐 로그인</h3>
-                    <div class="form-row">
-                        <div>
-                            <label for="userId">사용자 ID</label>
-                            <input type="text" id="userId" value="" placeholder="사용자 ID를 입력하세요">
-                        </div>
-                        <div>
-                            <label for="password">패스워드</label>
-                            <input type="password" id="password" value="" placeholder="패스워드를 입력하세요">
-                        </div>
-                    </div>
-                    <button onclick="login()" class="btn btn-success">로그인</button>
-                    <button onclick="clearToken()" class="btn btn-danger">토큰 삭제</button>
-
-                    <div id="loginResult"></div>
-                    <div id="tokenDisplay" style="display:none;"></div>
-                    <div id="accessToken" style="display:none;"></div>
-                </div>
-            </div>
-        </div>
 
         <!-- Content Area -->
         <div class="content-area">
             <!-- Welcome Section -->
             <div id="welcomeSection" class="content-section active">
-                <div class="section-header">
-                    <span class="icon">🖥️</span>
-                    <h2>PC 대시보드 홈</h2>
+                <div class="section-header" style="justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="icon">🖥️</span>
+                        <h2>대시보드 홈</h2>
+                    </div>
+                    <button onclick="loadDashboard()" class="btn btn-secondary" style="font-size:13px;padding:6px 14px;">🔄 새로고침</button>
                 </div>
 
-                <div class="quick-links">
-                    <div class="quick-link-card" onclick="showSection('corporate')">
-                        <span class="icon">🏢</span>
-                        <h3>고객 관리</h3>
-                        <p>거래처 및 직원 정보 등록/수정/삭제</p>
+                <!-- 가격 설정 현황 배너 -->
+                <div id="dashPriceBanner" style="
+                    background: linear-gradient(135deg,#7B2FBE,#5a1090);
+                    color:white; border-radius:12px; padding:18px 28px;
+                    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+                    margin-bottom:24px; box-shadow:0 4px 16px rgba(123,47,190,0.25);">
+                    <div style="font-size:2em;">💰</div>
+                    <div>
+                        <div style="font-size:12px;opacity:0.8;margin-bottom:4px;">현재 쿠폰 차감 가격</div>
+                        <div style="font-size:2em;font-weight:700;" id="dashCurrentPrice">-</div>
                     </div>
-                    <div class="quick-link-card" onclick="showSection('couponManagement')">
-                        <span class="icon">🎟️</span>
-                        <h3>쿠폰 관리</h3>
-                        <p>신규 쿠폰 발행, 기존 쿠폰 충전, 프리셋 관리</p>
+                    <div style="width:1px;height:48px;background:rgba(255,255,255,0.3);"></div>
+                    <div id="dashTimeSlots" style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;"></div>
+                    <div style="margin-left:auto;">
+                        <button onclick="showSection('systemSettings')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;">⚙️ 가격 설정</button>
                     </div>
-                    <div class="quick-link-card" onclick="showSection('managementInfo')">
-                        <span class="icon">📊</span>
-                        <h3>경영 정보</h3>
-                        <p>거래처별 월간 정산 보고서 및 사용 내역 통계</p>
+                </div>
+
+                <!-- KPI 카드 그리드 -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;margin-bottom:28px;">
+                    <!-- 거래처 수 -->
+                    <div class="dash-kpi-card" style="--kpi-color:#667eea;">
+                        <div class="dash-kpi-icon">🏢</div>
+                        <div class="dash-kpi-value" id="dashCorpCount">-</div>
+                        <div class="dash-kpi-label">거래처 수</div>
                     </div>
+                    <!-- 쿠폰 발행 총수 -->
+                    <div class="dash-kpi-card" style="--kpi-color:#f093fb;">
+                        <div class="dash-kpi-icon">🎟️</div>
+                        <div class="dash-kpi-value" id="dashTotalCoupons">-</div>
+                        <div class="dash-kpi-label">쿠폰 발행 총수</div>
+                    </div>
+                    <!-- 이번달 사용금액 -->
+                    <div class="dash-kpi-card" style="--kpi-color:#4facfe;">
+                        <div class="dash-kpi-icon">📈</div>
+                        <div class="dash-kpi-value" id="dashMonthUsage">-</div>
+                        <div class="dash-kpi-label">이번달 쿠폰 사용금액</div>
+                        <div class="dash-kpi-sub" id="dashMonthUsageCnt"></div>
+                    </div>
+                    <!-- 이번달 기초잔액 -->
+                    <div class="dash-kpi-card" style="--kpi-color:#43e97b;">
+                        <div class="dash-kpi-icon">📋</div>
+                        <div class="dash-kpi-value" id="dashMonthOpenBal">-</div>
+                        <div class="dash-kpi-label">이번달 기초 잔액</div>
+                        <div class="dash-kpi-sub" style="font-size:11px;color:#888;" id="dashMonthLabel"></div>
+                    </div>
+                    <!-- 현재 쿠폰 잔액 -->
+                    <div class="dash-kpi-card" style="--kpi-color:#fa709a;">
+                        <div class="dash-kpi-icon">💳</div>
+                        <div class="dash-kpi-value" id="dashCurrentBal">-</div>
+                        <div class="dash-kpi-label">쿠폰 현재 잔액 (현금)</div>
+                        <div class="dash-kpi-sub" id="dashCurrentBalPt"></div>
+                    </div>
+                </div>
+
+                <!-- 이번달 일별 사용금액 바 차트 -->
+                <div class="card" style="margin-bottom:0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <h3 style="margin:0;">📊 이번달 일별 사용금액</h3>
+                        <span id="dashChartMonth" style="font-size:13px;color:#888;"></span>
+                    </div>
+                    <div id="dashBarChart" style="display:flex;align-items:flex-end;gap:4px;height:120px;padding:0 4px;overflow-x:auto;"></div>
+                    <div id="dashBarChartEmpty" style="display:none;text-align:center;padding:40px;color:#aaa;">데이터가 없습니다</div>
                 </div>
             </div>
 
@@ -666,6 +881,13 @@
                 <div class="section-header">
                     <span class="icon">💰</span>
                     <h2>가격 설정</h2>
+                </div>
+
+                <!-- 상단 액션 버튼 -->
+                <div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
+                    <button onclick="loadSystemSettings()" class="btn btn-secondary">🔄 설정 불러오기</button>
+                    <button onclick="confirmSaveSystemSettings()" class="btn btn-success">💾 설정 저장</button>
+                    <button onclick="testCurrentDeduction()" class="btn" style="background:#17a2b8;color:white;">🧮 현재 차감액 테스트</button>
                 </div>
 
                 <!-- 기본 가격 설정 (항상 표시되는 기본 설정) -->
@@ -786,12 +1008,7 @@
                     </div>
                 </div>
 
-                <div style="text-align: center; margin-top: 30px;">
-                    <button onclick="loadSystemSettings()" class="btn btn-secondary">🔄 설정 불러오기</button>
-                    <button onclick="saveSystemSettings()" class="btn btn-success">💾 설정 저장</button>
-                    <button onclick="testCurrentDeduction()" class="btn"
-                        style="background: #17a2b8; color: white; margin-left: 10px;">🧮 현재 차감액 테스트</button>
-                </div>
+                <!-- 하단 버튼 제거됨 (상단으로 이동) -->
 
                 <div id="settingsPreview"
                     style="background: #e6f3ff; padding: 15px; border-radius: 8px; margin-top: 20px; display: none;">
@@ -1693,17 +1910,16 @@
                                         </th>
                                         <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">사용률
                                         </th>
-                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">총 현금
-                                            가치</th>
-                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">총 포인트
-                                            가치</th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">사용금액<br><span style="font-size:10px;font-weight:normal;color:#888;">(매출액)</span></th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">미사용잔액<br><span style="font-size:10px;font-weight:normal;color:#888;">(현금)</span></th>
+                                        <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">미사용잔액<br><span style="font-size:10px;font-weight:normal;color:#888;">(포인트)</span></th>
                                         <th style="border: 1px solid #e0e0e0; padding: 12px; text-align: center;">상세보기
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody id="corporateStatsBody">
                                     <tr>
-                                        <td colspan="9"
+                                        <td colspan="10"
                                             style="text-align: center; padding: 20px; border: 1px solid #e0e0e0;">
                                             조회 버튼을 클릭하여 통계를 확인하세요.
                                         </td>
@@ -2582,23 +2798,85 @@
         // ============================================================
         // AUTH
         // ============================================================
+        function updateAuthUI() {
+            const dot = document.getElementById('authStatusDot');
+            const text = document.getElementById('authStatusText');
+            const btnLogin = document.getElementById('btnLogin');
+            const btnLogout = document.getElementById('btnLogout');
+            if (authToken) {
+                if (dot) dot.textContent = '🟢';
+                if (text) text.textContent = '로그인됨';
+                if (btnLogin) btnLogin.style.display = 'none';
+                if (btnLogout) btnLogout.style.display = '';
+            } else {
+                if (dot) dot.textContent = '🔴';
+                if (text) text.textContent = '미로그인';
+                if (btnLogin) btnLogin.style.display = '';
+                if (btnLogout) btnLogout.style.display = 'none';
+            }
+        }
+
+        function openLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.classList.add('show');
+            const urlInput = document.getElementById('serverUrlModal');
+            if (urlInput) urlInput.value = serverUrl || '';
+            document.getElementById('loginResult').innerHTML = '';
+            setTimeout(() => { const u = document.getElementById('userId'); if (u) u.focus(); }, 100);
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('show');
+        }
+
+        function openServerSettingsModal() {
+            const modal = document.getElementById('serverSettingsModal');
+            modal.classList.add('show');
+            const urlInput = document.getElementById('serverUrlSettings');
+            if (urlInput) urlInput.value = serverUrl || '';
+            document.getElementById('serverStatus').innerHTML = '';
+            const dd = document.getElementById('navDropdown');
+            if (dd) dd.classList.remove('show');
+        }
+
+        function closeServerSettingsModal() {
+            document.getElementById('serverSettingsModal').classList.remove('show');
+        }
+
+        function saveServerUrl() {
+            const url = document.getElementById('serverUrlSettings').value.trim();
+            serverUrl = url;
+            localStorage.setItem('serverUrl', url);
+            // also sync to login modal
+            const m = document.getElementById('serverUrlModal');
+            if (m) m.value = url;
+            closeServerSettingsModal();
+            showNotification('서버 주소가 저장되었습니다.', 'success');
+        }
+
         async function checkServerStatus() {
-            const url = document.getElementById('serverUrl').value.trim();
+            const urlEl = document.getElementById('serverUrlSettings');
+            const url = urlEl ? urlEl.value.trim() : serverUrl;
             serverUrl = url;
             localStorage.setItem('serverUrl', url);
             const statusDiv = document.getElementById('serverStatus');
+            statusDiv.innerHTML = '<span style="color:#888;">연결 확인 중...</span>';
             try {
                 const data = await apiCall('GET', '/api/server/status');
-                statusDiv.innerHTML = `<div style="color:green;margin-top:10px;">✅ 서버 연결 성공</div>`;
+                statusDiv.innerHTML = `<span style="color:green;">✅ 서버 연결 성공</span>`;
             } catch (e) {
-                statusDiv.innerHTML = `<div style="color:red;margin-top:10px;">❌ 서버 연결 실패: ${e.message}</div>`;
+                statusDiv.innerHTML = `<span style="color:red;">❌ 서버 연결 실패: ${e.message}</span>`;
             }
         }
 
         async function login() {
-            const url = document.getElementById('serverUrl').value.trim();
+            const urlEl = document.getElementById('serverUrlModal');
+            const url = urlEl ? urlEl.value.trim() : serverUrl;
             serverUrl = url;
             localStorage.setItem('serverUrl', url);
+            // sync to settings modal
+            const se = document.getElementById('serverUrlSettings');
+            if (se) se.value = url;
             const userId = document.getElementById('userId').value;
             const password = document.getElementById('password').value;
             const resultDiv = document.getElementById('loginResult');
@@ -2607,23 +2885,30 @@
                 if (data && (data.token || data.accessToken)) {
                     authToken = data.token || data.accessToken;
                     localStorage.setItem('authToken', authToken);
-                    resultDiv.innerHTML = `<div style="color:green;margin-top:10px;">✅ 로그인 성공</div>`;
+                    resultDiv.innerHTML = `<span style="color:green;">✅ 로그인 성공</span>`;
+                    updateAuthUI();
                     loadAllCorporatesForSelects();
+                    loadDashboard();
+                    setTimeout(closeLoginModal, 800);
                 } else {
                     const msg = (data && data.message) ? data.message : '아이디 또는 패스워드를 확인하세요';
-                    resultDiv.innerHTML = `<div style="color:red;margin-top:10px;">❌ 로그인 실패: ${msg}</div>`;
+                    resultDiv.innerHTML = `<span style="color:red;">❌ 로그인 실패: ${msg}</span>`;
                 }
             } catch (e) {
-                resultDiv.innerHTML = `<div style="color:red;margin-top:10px;">❌ 오류: ${e.message}</div>`;
+                resultDiv.innerHTML = `<span style="color:red;">❌ 오류: ${e.message}</span>`;
             }
         }
 
-        function clearToken() {
+        function logout() {
             authToken = null;
             localStorage.removeItem('authToken');
             document.getElementById('tokenDisplay').style.display = 'none';
-            document.getElementById('loginResult').innerHTML = '<div style="color:orange;margin-top:10px;">토큰이 삭제되었습니다.</div>';
+            updateAuthUI();
+            showNotification('로그아웃되었습니다.', 'info');
         }
+
+        // keep old name as alias for any remaining references
+        function clearToken() { logout(); }
 
         // ============================================================
         // NAVIGATION
@@ -2637,6 +2922,9 @@
                 const dd = document.getElementById('navDropdown');
                 if (dd) dd.classList.remove('show');
             }
+            // close modals on overlay click
+            if (e.target.id === 'loginModal') closeLoginModal();
+            if (e.target.id === 'serverSettingsModal') closeServerSettingsModal();
         });
 
         function showSection(name) {
@@ -2645,6 +2933,7 @@
             if (el) el.classList.add('active');
             const dd = document.getElementById('navDropdown');
             if (dd) dd.classList.remove('show');
+            if (name === 'welcome' && authToken) loadDashboard();
         }
 
         // ============================================================
@@ -2707,8 +2996,66 @@
                         ${regStat}${extToken ? '<br>' + regBtn : ''}
                     </td>
                     <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">
+                        <button onclick="toggleCorpEmployeePanel(${c.customerId}, '${(c.name||'').replace(/'/g,"\\'")}', this)" class="btn" style="padding:5px 10px;font-size:12px;margin:2px;background:#5c6bc0;color:#fff;">👥 직원관리</button>
                         <button onclick="editCorporate(${c.customerId})" class="btn" style="padding:5px 10px;font-size:12px;margin:2px;">✏️ 수정</button>
                         <button onclick="deleteCorporate(${c.customerId})" class="btn btn-danger" style="padding:5px 10px;font-size:12px;margin:2px;">🗑️ 삭제</button>
+                    </td>
+                </tr>
+                <tr id="empPanel_${c.customerId}" style="display:none;">
+                    <td colspan="6" style="padding:0;border:2px solid #5c6bc0;border-top:none;">
+                        <div style="background:#f8f7ff;padding:20px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                                <strong style="color:#4a1090;font-size:15px;">👥 ${(c.name||'')} 직원 목록</strong>
+                                <div>
+                                    <button onclick="showInlineAddEmployee(${c.customerId})" class="btn btn-success" style="padding:5px 12px;font-size:12px;margin:2px;">+ 직원 추가</button>
+                                    <button onclick="showInlineExcelImport(${c.customerId})" class="btn" style="padding:5px 12px;font-size:12px;margin:2px;background:#1976d2;color:#fff;">📋 엑셀 붙여넣기</button>
+                                </div>
+                            </div>
+                            <!-- 직원 추가 폼 (인라인) -->
+                            <div id="inlineAddForm_${c.customerId}" style="display:none;background:#fff;border:1px solid #c5cae9;border-radius:8px;padding:16px;margin-bottom:14px;">
+                                <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                                    <div style="flex:1;min-width:120px;">
+                                        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">이름 *</label>
+                                        <input type="text" id="inlineName_${c.customerId}" placeholder="홍길동" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                                    </div>
+                                    <div style="flex:1;min-width:130px;">
+                                        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">사번</label>
+                                        <input type="text" id="inlineCode_${c.customerId}" placeholder="EMP-001" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                                    </div>
+                                    <div style="flex:1;min-width:130px;">
+                                        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">전화번호</label>
+                                        <input type="text" id="inlinePhone_${c.customerId}" placeholder="010-0000-0000" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                                    </div>
+                                    <div style="flex:1;min-width:100px;">
+                                        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">부서</label>
+                                        <input type="text" id="inlineDept_${c.customerId}" placeholder="개발팀" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                                    </div>
+                                    <div>
+                                        <button onclick="submitInlineEmployee(${c.customerId})" class="btn btn-success" style="padding:7px 16px;font-size:13px;">저장</button>
+                                        <button onclick="document.getElementById('inlineAddForm_${c.customerId}').style.display='none'" class="btn btn-secondary" style="padding:7px 12px;font-size:13px;margin-left:4px;">취소</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 엑셀 붙여넣기 폼 -->
+                            <div id="inlineExcelForm_${c.customerId}" style="display:none;background:#fff;border:1px solid #bbdefb;border-radius:8px;padding:16px;margin-bottom:14px;">
+                                <p style="font-size:12px;color:#555;margin-bottom:8px;">
+                                    Excel에서 <strong>이름 | 사번 | 전화번호 | 부서</strong> 순서로 복사 후 붙여넣기 하세요.
+                                </p>
+                                <textarea id="inlineExcelInput_${c.customerId}" rows="5"
+                                    placeholder="이름&#9;사번&#9;전화번호&#9;부서&#10;홍길동&#9;EMP-001&#9;010-1234-5678&#9;개발팀"
+                                    style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:12px;font-family:monospace;resize:vertical;"></textarea>
+                                <div style="margin-top:8px;display:flex;gap:8px;">
+                                    <button onclick="previewInlineExcel(${c.customerId})" class="btn" style="padding:6px 14px;font-size:12px;background:#1976d2;color:#fff;">미리보기</button>
+                                    <button onclick="submitInlineExcel(${c.customerId})" class="btn btn-success" id="inlineExcelSubmit_${c.customerId}" style="padding:6px 14px;font-size:12px;" disabled>일괄 등록</button>
+                                    <button onclick="document.getElementById('inlineExcelForm_${c.customerId}').style.display='none'" class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">취소</button>
+                                </div>
+                                <div id="inlineExcelPreview_${c.customerId}" style="margin-top:10px;"></div>
+                            </div>
+                            <!-- 직원 목록 -->
+                            <div id="inlineEmpList_${c.customerId}">
+                                <p style="text-align:center;color:#888;padding:20px;">로딩 중...</p>
+                            </div>
+                        </div>
                     </td>
                 </tr>`;
                 }).join('')}
@@ -3850,19 +4197,53 @@
             <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${s.usedCoupons || 0}</td>
             <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${(s.issuedCoupons || 0) - (s.usedCoupons || 0)}</td>
             <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${s.usageRate || '0%'}</td>
+            <td style="border:1px solid #e0e0e0;padding:12px;text-align:right;color:${(s.usedCashAmount||0)>0?'#1565c0':'#333'};font-weight:${(s.usedCashAmount||0)>0?'600':'normal'};">${formatCurrency(s.usedCashAmount||0)}원</td>
             <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${formatCurrency(s.totalCashValue)}원</td>
             <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">${formatCurrency(s.totalPointValue)}P</td>
             <td style="border:1px solid #e0e0e0;padding:12px;text-align:center;">
                 <button onclick="showCorporateDetail(${s.corporateId})" class="btn" style="padding:5px 10px;font-size:12px;">상세보기</button>
             </td>
-        </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px;border:1px solid #e0e0e0;">데이터가 없습니다.</td></tr>';
+        </tr>`).join('') : '<tr><td colspan="10" style="text-align:center;padding:20px;border:1px solid #e0e0e0;">데이터가 없습니다.</td></tr>';
         }
 
         async function showCorporateDetail(corporateId) {
             try {
-                const data = await apiCall('GET', `/api/statistics/corporate/${corporateId}`);
+                const startDate = document.getElementById('statsStartDate').value;
+                const endDate   = document.getElementById('statsEndDate').value;
+                const params = new URLSearchParams();
+                if (startDate) params.append('startDate', startDate);
+                if (endDate)   params.append('endDate',   endDate);
+                const qs = params.toString() ? '?' + params.toString() : '';
+                const data = await apiCall('GET', `/api/statistics/corporate/${corporateId}${qs}`);
                 document.getElementById('detailModalTitle').textContent = '거래처 상세 통계';
-                document.getElementById('detailModalContent').innerHTML = '<pre style="overflow:auto;max-height:400px;font-size:13px;">' + JSON.stringify(data, null, 2) + '</pre>';
+                if (data && data.data && data.data.employees) {
+                    const corp = data.data.corporate || {};
+                    const emps = data.data.employees;
+                    let html = `<p style="margin-bottom:12px;color:#555;">거래처: <strong>${corp.name || '-'}</strong></p>`;
+                    html += `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead><tr style="background:#f5f5f5;">
+                            <th style="border:1px solid #ddd;padding:8px;">직원명</th>
+                            <th style="border:1px solid #ddd;padding:8px;text-align:center;">발행쿠폰</th>
+                            <th style="border:1px solid #ddd;padding:8px;text-align:center;">사용쿠폰</th>
+                            <th style="border:1px solid #ddd;padding:8px;text-align:right;">사용금액(매출액)</th>
+                            <th style="border:1px solid #ddd;padding:8px;text-align:right;">현금잔액</th>
+                            <th style="border:1px solid #ddd;padding:8px;text-align:right;">포인트잔액</th>
+                        </tr></thead><tbody>`;
+                    emps.forEach(e => {
+                        html += `<tr>
+                            <td style="border:1px solid #ddd;padding:8px;">${e.employeeName || '-'}</td>
+                            <td style="border:1px solid #ddd;padding:8px;text-align:center;">${e.issuedCoupons || 0}</td>
+                            <td style="border:1px solid #ddd;padding:8px;text-align:center;">${e.usedCoupons || 0}</td>
+                            <td style="border:1px solid #ddd;padding:8px;text-align:right;color:#2e7d32;font-weight:600;">${formatCurrency(e.usedCashAmount || 0)}원</td>
+                            <td style="border:1px solid #ddd;padding:8px;text-align:right;">${formatCurrency(e.totalCashBalance)}원</td>
+                            <td style="border:1px solid #ddd;padding:8px;text-align:right;">${formatCurrency(e.totalPointBalance)}P</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('detailModalContent').innerHTML = html;
+                } else {
+                    document.getElementById('detailModalContent').innerHTML = '<p style="color:#888;text-align:center;padding:20px;">데이터가 없습니다.</p>';
+                }
                 document.getElementById('corporateDetailModal').style.display = 'block';
             } catch (e) { showNotification('상세 로드 실패: ' + e.message, 'error'); }
         }
@@ -3902,9 +4283,36 @@
 
         async function showEmployeeUsage(employeeId, name) {
             try {
-                const data = await apiCall('GET', `/api/transactions/employee/${employeeId}/daily`);
-                document.getElementById('employeeUsageModalTitle').textContent = `${name} - 일자별 사용 내역`;
-                document.getElementById('employeeUsageModalContent').innerHTML = '<pre style="overflow:auto;max-height:400px;font-size:13px;">' + JSON.stringify(data, null, 2) + '</pre>';
+                const year  = document.getElementById('monthlyReportYear').value;
+                const month = document.getElementById('monthlyReportMonth').value;
+                const data = await apiCall('GET', `/api/transactions/employee/${employeeId}/daily?year=${year}&month=${month}`);
+                document.getElementById('employeeUsageModalTitle').textContent = `${name} - ${year}년 ${month}월 일자별 사용 내역`;
+                if (data && data.data && data.data.dailyUsage) {
+                    const daily = data.data.dailyUsage;
+                    if (daily.length === 0) {
+                        document.getElementById('employeeUsageModalContent').innerHTML = '<p style="color:#888;text-align:center;padding:20px;">사용 내역이 없습니다.</p>';
+                    } else {
+                        let html = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+                            <thead><tr style="background:#f5f5f5;">
+                                <th style="border:1px solid #ddd;padding:8px;">날짜</th>
+                                <th style="border:1px solid #ddd;padding:8px;text-align:center;">사용 횟수</th>
+                                <th style="border:1px solid #ddd;padding:8px;text-align:right;">현금 사용액</th>
+                                <th style="border:1px solid #ddd;padding:8px;text-align:right;">포인트 사용액</th>
+                            </tr></thead><tbody>`;
+                        daily.forEach(d => {
+                            html += `<tr>
+                                <td style="border:1px solid #ddd;padding:8px;">${d.date || '-'}</td>
+                                <td style="border:1px solid #ddd;padding:8px;text-align:center;">${d.usageCount || 0}</td>
+                                <td style="border:1px solid #ddd;padding:8px;text-align:right;">${formatCurrency(d.cashUsed || 0)}원</td>
+                                <td style="border:1px solid #ddd;padding:8px;text-align:right;">${formatCurrency(d.pointUsed || 0)}P</td>
+                            </tr>`;
+                        });
+                        html += '</tbody></table>';
+                        document.getElementById('employeeUsageModalContent').innerHTML = html;
+                    }
+                } else {
+                    document.getElementById('employeeUsageModalContent').innerHTML = '<p style="color:#888;text-align:center;padding:20px;">데이터가 없습니다.</p>';
+                }
                 document.getElementById('employeeUsageModal').style.display = 'block';
             } catch (e) { showNotification('상세 로드 실패: ' + e.message, 'error'); }
         }
@@ -4001,40 +4409,92 @@
         // ============================================================
         async function loadSystemSettings() {
             try {
-                const data = await apiCall('GET', '/api/price-settings');
+                const resp = await apiCall('GET', '/api/price-settings');
+                // server returns { success, settings: { enableTimeBasedDeduction, default: { cashDeduction }, breakfast: {...}, ... } }
+                const data = (resp && resp.settings) ? resp.settings : resp;
                 if (data) {
-                    if (data.defaultCashDeduction !== undefined) document.getElementById('defaultCashDeduction').value = data.defaultCashDeduction;
+                    const defCash = data['default'] && data['default'].cashDeduction !== undefined
+                        ? data['default'].cashDeduction : data.defaultCashDeduction;
+                    if (defCash !== undefined) {
+                        document.getElementById('defaultCashDeduction').value = defCash;
+                        _savedDefaultCash = defCash; // 불러온 값을 이전 가격으로 기억
+                    }
                     if (data.pointDeductionMethod) document.getElementById('pointDeductionMethod').value = data.pointDeductionMethod;
-                    document.getElementById('enableTimeBasedDeduction').checked = !!data.enableTimeBased;
+                    document.getElementById('enableTimeBasedDeduction').checked = !!(data.enableTimeBasedDeduction || data.enableTimeBased);
                     toggleTimeBasedControls();
                     document.getElementById('allowNegativeBalance').checked = !!data.allowNegativeBalance;
                     if (data.parkingRegistrationUrl) document.getElementById('parkingRegistrationUrl').value = data.parkingRegistrationUrl;
                     ['breakfast', 'lunch', 'dinner'].forEach(m => {
-                        if (data[m + 'StartTime']) document.getElementById(m + 'StartTime').value = data[m + 'StartTime'];
-                        if (data[m + 'EndTime']) document.getElementById(m + 'EndTime').value = data[m + 'EndTime'];
-                        if (data[m + 'CashDeduction']) document.getElementById(m + 'CashDeduction').value = data[m + 'CashDeduction'];
+                        const p = data[m] || {};
+                        if (p.startTime) document.getElementById(m + 'StartTime').value = p.startTime;
+                        if (p.endTime) document.getElementById(m + 'EndTime').value = p.endTime;
+                        if (p.cashDeduction !== undefined) document.getElementById(m + 'CashDeduction').value = p.cashDeduction;
                     });
                 }
                 showNotification('설정을 불러왔습니다.', 'success');
             } catch (e) { showNotification('설정 로드 실패: ' + e.message, 'error'); }
         }
 
+        // 저장 전 이전 가격을 기억해두는 변수
+        let _savedDefaultCash = null;
+
+        async function confirmSaveSystemSettings() {
+            const newDefault = parseInt(document.getElementById('defaultCashDeduction').value) || 0;
+            const oldDefault = (_savedDefaultCash !== null) ? _savedDefaultCash : newDefault;
+
+            // 시간대별 활성화 여부에 따라 설명 구성
+            const timeEnabled = document.getElementById('enableTimeBasedDeduction').checked;
+            let desc = '';
+            if (!timeEnabled) {
+                // 기본 가격만 표시
+                if (oldDefault !== newDefault) {
+                    desc = `기본 차감액: ${oldDefault.toLocaleString()}원 → ${newDefault.toLocaleString()}원`;
+                } else {
+                    desc = `기본 차감액: ${newDefault.toLocaleString()}원 (변경 없음)`;
+                }
+            } else {
+                const bCash = parseInt(document.getElementById('breakfastCashDeduction').value) || 0;
+                const lCash = parseInt(document.getElementById('lunchCashDeduction').value) || 0;
+                const dCash = parseInt(document.getElementById('dinnerCashDeduction').value) || 0;
+                desc = `기본: ${newDefault.toLocaleString()}원 / 아침: ${bCash.toLocaleString()}원 / 점심: ${lCash.toLocaleString()}원 / 저녁: ${dCash.toLocaleString()}원`;
+                if (oldDefault !== newDefault) {
+                    desc = `기본 ${oldDefault.toLocaleString()}원 → ${newDefault.toLocaleString()}원 포함, ` + desc;
+                }
+            }
+
+            document.getElementById('priceChangeDesc').textContent = desc;
+            document.getElementById('priceSaveConfirmModal').classList.add('show');
+        }
+
+        async function doSaveSystemSettings() {
+            document.getElementById('priceSaveConfirmModal').classList.remove('show');
+            await saveSystemSettings();
+            showNotification('변경되었습니다.', 'success');
+        }
+
         async function saveSystemSettings() {
+            // server expects nested structure: { enableTimeBasedDeduction, allowNegativeBalance, pointDeductionMethod,
+            //   default: { cashDeduction }, breakfast: { startTime, endTime, cashDeduction }, ... }
+            const newDefault = parseInt(document.getElementById('defaultCashDeduction').value) || 0;
             const body = {
-                defaultCashDeduction: parseInt(document.getElementById('defaultCashDeduction').value),
-                pointDeductionMethod: document.getElementById('pointDeductionMethod').value,
-                enableTimeBased: document.getElementById('enableTimeBasedDeduction').checked,
+                enableTimeBasedDeduction: document.getElementById('enableTimeBasedDeduction').checked,
                 allowNegativeBalance: document.getElementById('allowNegativeBalance').checked,
-                parkingRegistrationUrl: document.getElementById('parkingRegistrationUrl').value
+                pointDeductionMethod: document.getElementById('pointDeductionMethod').value,
+                parkingRegistrationUrl: document.getElementById('parkingRegistrationUrl').value,
+                default: {
+                    cashDeduction: newDefault
+                }
             };
             ['breakfast', 'lunch', 'dinner'].forEach(m => {
-                body[m + 'StartTime'] = document.getElementById(m + 'StartTime').value;
-                body[m + 'EndTime'] = document.getElementById(m + 'EndTime').value;
-                body[m + 'CashDeduction'] = parseInt(document.getElementById(m + 'CashDeduction').value);
+                body[m] = {
+                    startTime: document.getElementById(m + 'StartTime').value,
+                    endTime: document.getElementById(m + 'EndTime').value,
+                    cashDeduction: parseInt(document.getElementById(m + 'CashDeduction').value) || 0
+                };
             });
             try {
                 await apiCall('POST', '/api/price-settings', body);
-                showNotification('설정이 저장되었습니다.', 'success');
+                _savedDefaultCash = newDefault; // 저장 성공 시 이전 가격 갱신
             } catch (e) { showNotification('저장 실패: ' + e.message, 'error'); }
         }
 
@@ -4158,51 +4618,51 @@
             const SAMPLE_EMPLOYEES = [
                 // (주)한국식품
                 [
-                    { name: '김민준', employeeCode: '010-1111-1001', department: '생산팀' },
-                    { name: '이서연', employeeCode: '010-1111-1002', department: '영업팀' },
-                    { name: '박지훈', employeeCode: '010-1111-1003', department: '기획팀' },
-                    { name: '최유나', employeeCode: '010-1111-1004', department: '총무팀' },
-                    { name: '정민호', employeeCode: '010-1111-1005', department: '개발팀' }
+                    { name: '김민준', phone: '010-1111-1001', employeeCode: 'EMP-1001', department: '생산팀' },
+                    { name: '이서연', phone: '010-1111-1002', employeeCode: 'EMP-1002', department: '영업팀' },
+                    { name: '박지훈', phone: '010-1111-1003', employeeCode: 'EMP-1003', department: '기획팀' },
+                    { name: '최유나', phone: '010-1111-1004', employeeCode: 'EMP-1004', department: '총무팀' },
+                    { name: '정민호', phone: '010-1111-1005', employeeCode: 'EMP-1005', department: '개발팀' }
                 ],
                 // (주)서울테크
                 [
-                    { name: '강지수', employeeCode: '010-2222-2001', department: '개발팀' },
-                    { name: '윤수현', employeeCode: '010-2222-2002', department: '디자인팀' },
-                    { name: '임재원', employeeCode: '010-2222-2003', department: '영업팀' },
-                    { name: '한소희', employeeCode: '010-2222-2004', department: '인사팀' },
-                    { name: '오동현', employeeCode: '010-2222-2005', department: '기획팀' }
+                    { name: '강지수', phone: '010-2222-2001', employeeCode: 'EMP-2001', department: '개발팀' },
+                    { name: '윤수현', phone: '010-2222-2002', employeeCode: 'EMP-2002', department: '디자인팀' },
+                    { name: '임재원', phone: '010-2222-2003', employeeCode: 'EMP-2003', department: '영업팀' },
+                    { name: '한소희', phone: '010-2222-2004', employeeCode: 'EMP-2004', department: '인사팀' },
+                    { name: '오동현', phone: '010-2222-2005', employeeCode: 'EMP-2005', department: '기획팀' }
                 ],
                 // (주)부산물산
                 [
-                    { name: '신미래', employeeCode: '010-3333-3001', department: '물류팀' },
-                    { name: '류성민', employeeCode: '010-3333-3002', department: '영업팀' },
-                    { name: '권지영', employeeCode: '010-3333-3003', department: '총무팀' },
-                    { name: '남재혁', employeeCode: '010-3333-3004', department: '기획팀' },
-                    { name: '조아라', employeeCode: '010-3333-3005', department: '마케팅팀' }
+                    { name: '신미래', phone: '010-3333-3001', employeeCode: 'EMP-3001', department: '물류팀' },
+                    { name: '류성민', phone: '010-3333-3002', employeeCode: 'EMP-3002', department: '영업팀' },
+                    { name: '권지영', phone: '010-3333-3003', employeeCode: 'EMP-3003', department: '총무팀' },
+                    { name: '남재혁', phone: '010-3333-3004', employeeCode: 'EMP-3004', department: '기획팀' },
+                    { name: '조아라', phone: '010-3333-3005', employeeCode: 'EMP-3005', department: '마케팅팀' }
                 ],
                 // (주)대구기업
                 [
-                    { name: '황준서', employeeCode: '010-4444-4001', department: '생산팀' },
-                    { name: '문채원', employeeCode: '010-4444-4002', department: '품질팀' },
-                    { name: '배성준', employeeCode: '010-4444-4003', department: '영업팀' },
-                    { name: '노지민', employeeCode: '010-4444-4004', department: '인사팀' },
-                    { name: '마승현', employeeCode: '010-4444-4005', department: '개발팀' }
+                    { name: '황준서', phone: '010-4444-4001', employeeCode: 'EMP-4001', department: '생산팀' },
+                    { name: '문채원', phone: '010-4444-4002', employeeCode: 'EMP-4002', department: '품질팀' },
+                    { name: '배성준', phone: '010-4444-4003', employeeCode: 'EMP-4003', department: '영업팀' },
+                    { name: '노지민', phone: '010-4444-4004', employeeCode: 'EMP-4004', department: '인사팀' },
+                    { name: '마승현', phone: '010-4444-4005', employeeCode: 'EMP-4005', department: '개발팀' }
                 ],
                 // (주)인천건설
                 [
-                    { name: '구민성', employeeCode: '010-5555-5001', department: '시공팀' },
-                    { name: '진하은', employeeCode: '010-5555-5002', department: '설계팀' },
-                    { name: '방준혁', employeeCode: '010-5555-5003', department: '영업팀' },
-                    { name: '엄소영', employeeCode: '010-5555-5004', department: '총무팀' },
-                    { name: '석민재', employeeCode: '010-5555-5005', department: '안전팀' }
+                    { name: '구민성', phone: '010-5555-5001', employeeCode: 'EMP-5001', department: '시공팀' },
+                    { name: '진하은', phone: '010-5555-5002', employeeCode: 'EMP-5002', department: '설계팀' },
+                    { name: '방준혁', phone: '010-5555-5003', employeeCode: 'EMP-5003', department: '영업팀' },
+                    { name: '엄소영', phone: '010-5555-5004', employeeCode: 'EMP-5004', department: '총무팀' },
+                    { name: '석민재', phone: '010-5555-5005', employeeCode: 'EMP-5005', department: '안전팀' }
                 ],
                 // (주)광주산업
                 [
-                    { name: '태현우', employeeCode: '010-6666-6001', department: '생산팀' },
-                    { name: '변수진', employeeCode: '010-6666-6002', department: '관리팀' },
-                    { name: '도재현', employeeCode: '010-6666-6003', department: '영업팀' },
-                    { name: '표지현', employeeCode: '010-6666-6004', department: '마케팅팀' },
-                    { name: '견미리', employeeCode: '010-6666-6005', department: '인사팀' }
+                    { name: '태현우', phone: '010-6666-6001', employeeCode: 'EMP-6001', department: '생산팀' },
+                    { name: '변수진', phone: '010-6666-6002', employeeCode: 'EMP-6002', department: '관리팀' },
+                    { name: '도재현', phone: '010-6666-6003', employeeCode: 'EMP-6003', department: '영업팀' },
+                    { name: '표지현', phone: '010-6666-6004', employeeCode: 'EMP-6004', department: '마케팅팀' },
+                    { name: '견미리', phone: '010-6666-6005', employeeCode: 'EMP-6005', department: '인사팀' }
                 ]
             ];
 
@@ -4221,10 +4681,11 @@
                         corpOk++;
                         log.push(`✅ 거래처: ${corp.name} (ID: ${corpId})`);
                     } else if (res && res.message && res.message.includes('이미 등록')) {
-                        // 이미 있으면 기존 ID 조회
+                        // 이미 있으면 기존 ID 조회 (응답 구조: { success, data: [...], count })
                         const existing = await apiCall('GET', `/api/corporates/search?name=${encodeURIComponent(corp.name)}`);
-                        if (existing && existing.length > 0) {
-                            corpId = existing[0].customerId || existing[0].id;
+                        const existingList = (existing && existing.data) ? existing.data : [];
+                        if (existingList.length > 0) {
+                            corpId = existingList[0].customerId || existingList[0].customer_id;
                         }
                         corpSkip++;
                         log.push(`⏭️ 거래처 중복 건너뜀: ${corp.name} (ID: ${corpId})`);
@@ -4335,6 +4796,336 @@
         });
 
         // ============================================================
+        // ============================================================
+        // 거래처 탭 - 인라인 직원 관리
+        // ============================================================
+        let inlineExcelDataMap = {}; // corpId -> parsed rows
+
+        function toggleCorpEmployeePanel(corpId, corpName, btn) {
+            const panel = document.getElementById('empPanel_' + corpId);
+            if (!panel) return;
+            const isOpen = panel.style.display !== 'none';
+            // 다른 패널 모두 닫기
+            document.querySelectorAll('[id^="empPanel_"]').forEach(p => { p.style.display = 'none'; });
+            document.querySelectorAll('.corp-emp-btn').forEach(b => b.textContent = '👥 직원관리');
+            if (!isOpen) {
+                panel.style.display = 'table-row';
+                btn.textContent = '▲ 닫기';
+                btn.classList.add('corp-emp-btn');
+                loadInlineEmployeeList(corpId);
+            } else {
+                btn.textContent = '👥 직원관리';
+            }
+        }
+
+        async function loadInlineEmployeeList(corpId) {
+            const container = document.getElementById('inlineEmpList_' + corpId);
+            if (!container) return;
+            try {
+                const data = await apiCall('GET', `/api/corporates/${corpId}/employees`);
+                const list = (data && data.data) || [];
+                if (!list.length) {
+                    container.innerHTML = '<p style="text-align:center;color:#888;padding:16px;">등록된 직원이 없습니다.</p>';
+                    return;
+                }
+                container.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead style="background:#ede7f6;">
+                        <tr>
+                            <th style="border:1px solid #d1c4e9;padding:8px;text-align:left;">이름</th>
+                            <th style="border:1px solid #d1c4e9;padding:8px;text-align:left;">사번</th>
+                            <th style="border:1px solid #d1c4e9;padding:8px;text-align:left;">전화번호</th>
+                            <th style="border:1px solid #d1c4e9;padding:8px;text-align:left;">부서</th>
+                            <th style="border:1px solid #d1c4e9;padding:8px;text-align:center;">액션</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${list.map(e => `<tr id="inlineEmpRow_${e.employeeId}">
+                            <td style="border:1px solid #d1c4e9;padding:8px;">${e.name||'-'}</td>
+                            <td style="border:1px solid #d1c4e9;padding:8px;">${e.employeeCode||'-'}</td>
+                            <td style="border:1px solid #d1c4e9;padding:8px;">${e.phone||'-'}</td>
+                            <td style="border:1px solid #d1c4e9;padding:8px;">${e.department||'-'}</td>
+                            <td style="border:1px solid #d1c4e9;padding:8px;text-align:center;">
+                                <button onclick="deleteInlineEmployee(${e.employeeId}, ${corpId})" class="btn btn-danger" style="padding:3px 8px;font-size:11px;">삭제</button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+                <p style="color:#888;font-size:12px;margin-top:6px;text-align:right;">총 ${list.length}명</p>`;
+            } catch(e) {
+                container.innerHTML = `<p style="color:red;padding:12px;">로드 실패: ${e.message}</p>`;
+            }
+        }
+
+        function showInlineAddEmployee(corpId) {
+            document.getElementById('inlineExcelForm_' + corpId).style.display = 'none';
+            const form = document.getElementById('inlineAddForm_' + corpId);
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') {
+                document.getElementById('inlineName_' + corpId).focus();
+            }
+        }
+
+        async function submitInlineEmployee(corpId) {
+            const name  = document.getElementById('inlineName_' + corpId).value.trim();
+            const code  = document.getElementById('inlineCode_' + corpId).value.trim();
+            const phone = document.getElementById('inlinePhone_' + corpId).value.trim();
+            const dept  = document.getElementById('inlineDept_' + corpId).value.trim();
+            if (!name) { showNotification('이름을 입력하세요.', 'error'); return; }
+            try {
+                const res = await apiCall('POST', '/api/employees', {
+                    name, employeeCode: code, phone: phone || '000-0000-0000', department: dept, corporateId: corpId
+                });
+                if (res && res.success) {
+                    showNotification(`"${name}" 등록 완료`, 'success');
+                    document.getElementById('inlineAddForm_' + corpId).style.display = 'none';
+                    document.getElementById('inlineName_'  + corpId).value = '';
+                    document.getElementById('inlineCode_'  + corpId).value = '';
+                    document.getElementById('inlinePhone_' + corpId).value = '';
+                    document.getElementById('inlineDept_'  + corpId).value = '';
+                    loadInlineEmployeeList(corpId);
+                } else {
+                    showNotification('등록 실패: ' + (res && res.message ? res.message : '오류'), 'error');
+                }
+            } catch(e) { showNotification('오류: ' + e.message, 'error'); }
+        }
+
+        async function deleteInlineEmployee(empId, corpId) {
+            if (!confirm('이 직원을 삭제하시겠습니까?')) return;
+            try {
+                const res = await apiCall('DELETE', `/api/employees/${empId}`);
+                if (res && res.success) {
+                    showNotification('삭제 완료', 'success');
+                    loadInlineEmployeeList(corpId);
+                } else {
+                    showNotification('삭제 실패: ' + (res && res.message || ''), 'error');
+                }
+            } catch(e) { showNotification('오류: ' + e.message, 'error'); }
+        }
+
+        function showInlineExcelImport(corpId) {
+            document.getElementById('inlineAddForm_' + corpId).style.display = 'none';
+            const form = document.getElementById('inlineExcelForm_' + corpId);
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function previewInlineExcel(corpId) {
+            const raw = document.getElementById('inlineExcelInput_' + corpId).value.trim();
+            if (!raw) { showNotification('데이터를 붙여넣기 하세요.', 'error'); return; }
+            const rows = raw.split('\n').filter(l => l.trim()).map(line => {
+                const cols = line.split('\t').map(c => c.trim());
+                return { name: cols[0]||'', employeeCode: cols[1]||'', phone: cols[2]||'', department: cols[3]||'' };
+            }).filter(r => r.name);
+            inlineExcelDataMap[corpId] = rows;
+            const previewEl = document.getElementById('inlineExcelPreview_' + corpId);
+            if (!rows.length) {
+                previewEl.innerHTML = '<p style="color:red;font-size:12px;">파싱된 데이터가 없습니다. 이름 컬럼을 확인하세요.</p>';
+                document.getElementById('inlineExcelSubmit_' + corpId).disabled = true;
+                return;
+            }
+            previewEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">
+                <thead style="background:#e3f2fd;"><tr>
+                    <th style="border:1px solid #ddd;padding:6px;">이름</th>
+                    <th style="border:1px solid #ddd;padding:6px;">사번</th>
+                    <th style="border:1px solid #ddd;padding:6px;">전화번호</th>
+                    <th style="border:1px solid #ddd;padding:6px;">부서</th>
+                </tr></thead>
+                <tbody>${rows.map(r => `<tr>
+                    <td style="border:1px solid #ddd;padding:6px;">${r.name}</td>
+                    <td style="border:1px solid #ddd;padding:6px;">${r.employeeCode||'-'}</td>
+                    <td style="border:1px solid #ddd;padding:6px;">${r.phone||'-'}</td>
+                    <td style="border:1px solid #ddd;padding:6px;">${r.department||'-'}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+            <p style="font-size:12px;color:#555;margin-top:6px;">총 <strong>${rows.length}명</strong> 확인됨</p>`;
+            document.getElementById('inlineExcelSubmit_' + corpId).disabled = false;
+        }
+
+        async function submitInlineExcel(corpId) {
+            const rows = inlineExcelDataMap[corpId];
+            if (!rows || !rows.length) return;
+            const btn = document.getElementById('inlineExcelSubmit_' + corpId);
+            btn.disabled = true;
+            btn.textContent = '등록 중...';
+            let success = 0, failed = 0, failNames = [];
+            for (const r of rows) {
+                try {
+                    const res = await apiCall('POST', '/api/employees', {
+                        name: r.name,
+                        employeeCode: r.employeeCode || '',
+                        phone: r.phone || '000-0000-0000',
+                        department: r.department || '',
+                        corporateId: parseInt(corpId)
+                    });
+                    if (res && res.success) success++;
+                    else { failed++; failNames.push(r.name); }
+                } catch(e) { failed++; failNames.push(r.name); }
+            }
+            const msg = `완료: 성공 ${success}명, 실패 ${failed}명` + (failNames.length ? ` (실패: ${failNames.join(', ')})` : '');
+            showNotification(msg, success > 0 ? 'success' : 'error');
+            btn.textContent = '일괄 등록';
+            document.getElementById('inlineExcelInput_' + corpId).value = '';
+            document.getElementById('inlineExcelPreview_' + corpId).innerHTML = '';
+            document.getElementById('inlineExcelForm_' + corpId).style.display = 'none';
+            delete inlineExcelDataMap[corpId];
+            loadInlineEmployeeList(corpId);
+        }
+
+        // ============================================================
+        // DASHBOARD HOME
+        // ============================================================
+        async function loadDashboard() {
+            try {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                const monthStr = String(month).padStart(2, '0');
+                const firstDay = `${year}-${monthStr}-01`;
+                const today = now.toISOString().split('T')[0];
+
+                document.getElementById('dashMonthLabel').textContent = `${year}년 ${month}월`;
+                document.getElementById('dashChartMonth').textContent = `${year}년 ${month}월`;
+
+                // 병렬 API 호출
+                const [corpData, couponData, priceData, monthlyData] = await Promise.allSettled([
+                    apiCall('GET', '/api/corporates'),
+                    apiCall('GET', '/api/coupons'),
+                    apiCall('GET', '/api/price-settings'),
+                    apiCall('GET', `/api/transactions/monthly?year=${year}&month=${month}`)
+                ]);
+
+                // 거래처 수
+                const corps = (corpData.status === 'fulfilled' && corpData.value && corpData.value.data) ? corpData.value.data : [];
+                document.getElementById('dashCorpCount').textContent = corps.length.toLocaleString() + '개';
+
+                // 쿠폰 발행 총수 & 현재 잔액
+                const coupons = (couponData.status === 'fulfilled' && couponData.value && couponData.value.data) ? couponData.value.data : [];
+                document.getElementById('dashTotalCoupons').textContent = coupons.length.toLocaleString() + '매';
+                let totalCash = 0, totalPoint = 0;
+                coupons.forEach(c => {
+                    totalCash += (c.cashBalance || 0);
+                    totalPoint += (c.pointBalance || 0);
+                });
+                document.getElementById('dashCurrentBal').textContent = formatCurrency(totalCash) + '원';
+                document.getElementById('dashCurrentBalPt').textContent = `포인트 잔액 ${formatCurrency(totalPoint)}P`;
+
+                // 가격 설정 배너
+                if (priceData.status === 'fulfilled' && priceData.value) {
+                    const ps = priceData.value.settings || priceData.value;
+                    const defCash = (ps['default'] && ps['default'].cashDeduction) || ps.defaultCashDeduction || 0;
+                    const timeEnabled = ps.enableTimeBasedDeduction || false;
+                    document.getElementById('dashCurrentPrice').textContent = formatCurrency(defCash) + '원 / 회';
+
+                    const slots = document.getElementById('dashTimeSlots');
+                    if (timeEnabled && (ps.breakfast || ps.lunch || ps.dinner)) {
+                        const slotMap = [
+                            { label:'🌅 아침', key:'breakfast' },
+                            { label:'🌞 점심', key:'lunch' },
+                            { label:'🌙 저녁', key:'dinner' }
+                        ];
+                        slots.innerHTML = slotMap.filter(s => ps[s.key]).map(s => {
+                            const p = ps[s.key];
+                            return `<div style="text-align:center;">
+                                <div style="opacity:0.75;font-size:11px;">${s.label}</div>
+                                <div style="font-weight:700;font-size:1.1em;">${formatCurrency(p.cashDeduction || 0)}원</div>
+                                <div style="opacity:0.6;font-size:10px;">${p.startTime||''} ~ ${p.endTime||''}</div>
+                            </div>`;
+                        }).join('');
+                    } else {
+                        slots.innerHTML = '<div style="opacity:0.75;font-size:13px;">시간대별 차감 비활성화</div>';
+                    }
+                }
+
+                // 이번달 사용금액 및 기초잔액
+                if (monthlyData.status === 'fulfilled' && monthlyData.value) {
+                    const md = monthlyData.value;
+                    const usedCash = md.totalCash || 0;
+                    const usedCnt = md.totalUsage || 0;
+                    document.getElementById('dashMonthUsage').textContent = formatCurrency(usedCash) + '원';
+                    document.getElementById('dashMonthUsageCnt').textContent = `${usedCnt}회 사용`;
+
+                    // 기초잔액 = 현재잔액 + 이번달사용금액
+                    const openBal = totalCash + usedCash;
+                    document.getElementById('dashMonthOpenBal').textContent = formatCurrency(openBal) + '원';
+                } else {
+                    document.getElementById('dashMonthUsage').textContent = '0원';
+                    document.getElementById('dashMonthUsageCnt').textContent = '0회 사용';
+                    document.getElementById('dashMonthOpenBal').textContent = formatCurrency(totalCash) + '원';
+                }
+
+                // 일별 바 차트 (이번달 거래 내역)
+                await renderDashBarChart(year, month);
+
+            } catch (e) {
+                console.warn('Dashboard load error:', e.message);
+            }
+        }
+
+        async function renderDashBarChart(year, month) {
+            try {
+                const monthStr = String(month).padStart(2, '0');
+                const firstDay = `${year}-${monthStr}-01`;
+                const lastDay = new Date(year, month, 0).getDate();
+                const today = new Date().getDate();
+                const daysInMonth = Math.min(lastDay, today);
+
+                // transactions API로 이번달 현금 사용 거래 일별 집계 (type 필터 없이 전체 조회 후 JS에서 필터)
+                let dayData = {};
+                const endDay = `${year}-${monthStr}-${String(daysInMonth).padStart(2,'0')}`;
+                const txData = await apiCall('GET', `/api/transactions?startDate=${firstDay}&endDate=${endDay}&limit=1000`);
+                const txRaw = (txData && txData.data) || [];
+                const txArr = Array.isArray(txRaw) ? txRaw : [];
+                txArr.forEach(t => {
+                    const tType = t.transactionType || '';
+                    // 사용/DEDUCTION 타입만 집계
+                    if (tType !== '사용' && tType !== 'DEDUCTION') return;
+                    const d = (t.transactionDate || '').substring(0, 10);
+                    if (!d || !d.startsWith(`${year}-${monthStr}`)) return;
+                    const bt = (t.balanceType || '').toLowerCase();
+                    // cash, 현금 모두 허용
+                    if (bt === 'cash' || bt === '현금') {
+                        dayData[d] = (dayData[d] || 0) + Math.abs(t.amount || 0);
+                    }
+                });
+
+                const chartEl = document.getElementById('dashBarChart');
+                const emptyEl = document.getElementById('dashBarChartEmpty');
+
+                if (Object.keys(dayData).length === 0) {
+                    chartEl.style.display = 'none';
+                    emptyEl.style.display = 'block';
+                    return;
+                }
+
+                chartEl.style.display = 'flex';
+                emptyEl.style.display = 'none';
+
+                const maxVal = Math.max(...Object.values(dayData), 1);
+                const chartH = 100;
+
+                let html = '';
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateKey = `${year}-${monthStr}-${String(d).padStart(2,'0')}`;
+                    const val = dayData[dateKey] || 0;
+                    const barH = val > 0 ? Math.max(Math.round((val / maxVal) * chartH), 4) : 2;
+                    const isToday = (d === new Date().getDate() && month === new Date().getMonth() + 1);
+                    const color = isToday ? '#7B2FBE' : '#a78bfa';
+                    const tip = val > 0 ? `${d}일: ${formatCurrency(val)}원` : `${d}일`;
+                    html += `<div title="${tip}" style="
+                        display:flex;flex-direction:column;align-items:center;gap:3px;
+                        flex:1;min-width:18px;max-width:36px;cursor:default;">
+                        <div style="width:100%;background:${color};border-radius:4px 4px 0 0;height:${barH}px;
+                            ${isToday ? 'box-shadow:0 0 8px rgba(123,47,190,0.5);' : ''}
+                            transition:height 0.3s;"></div>
+                        <div style="font-size:9px;color:#aaa;white-space:nowrap;">${d}</div>
+                    </div>`;
+                }
+                chartEl.innerHTML = html;
+            } catch (e) {
+                console.warn('Chart load error:', e.message);
+            }
+        }
+
+        // ============================================================
         // INITIALIZATION
         // ============================================================
         async function loadAllCorporatesForSelects() {
@@ -4361,13 +5152,19 @@
         document.addEventListener('DOMContentLoaded', function () {
             const savedUrl = localStorage.getItem('serverUrl') || window.location.origin;
             serverUrl = savedUrl;
-            document.getElementById('serverUrl').value = savedUrl;
+            // pre-fill modals with saved URL
+            const mu = document.getElementById('serverUrlModal');
+            if (mu) mu.value = savedUrl;
+            const su = document.getElementById('serverUrlSettings');
+            if (su) su.value = savedUrl;
 
             const savedToken = localStorage.getItem('authToken');
             if (savedToken) {
                 authToken = savedToken;
                 loadAllCorporatesForSelects();
+                loadDashboard();
             }
+            updateAuthUI();
 
             showSection('welcome');
 

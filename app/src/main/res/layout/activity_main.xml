@@ -1,45 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="16dp"
-    android:background="#f5f5f5">
+    android:background="#F3EEF8">
 
+    <!-- 상단 툴바 -->
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
         android:orientation="horizontal"
-        android:layout_marginBottom="40dp"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
+        android:background="#7B2FBE">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="쿠폰 매니저"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#333" />
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
+        <!-- 서버 상태 표시 -->
         <LinearLayout
             android:id="@+id/serverStatusIndicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginLeft="12dp"
+            android:layout_marginEnd="10dp"
             android:background="@drawable/info_background"
-            android:padding="6dp"
+            android:padding="5dp"
             android:gravity="center_vertical"
             android:visibility="gone">
 
             <View
                 android:id="@+id/serverStatusDot"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
                 android:background="@drawable/button_circle"
                 android:backgroundTint="#4CAF50"
-                android:layout_marginRight="4dp" />
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/serverStatusText"
@@ -51,66 +52,67 @@
 
         </LinearLayout>
 
+        <!-- 햄버거 메뉴 버튼 -->
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@android:drawable/ic_menu_more"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="#FFFFFF"
+            android:contentDescription="메뉴" />
+
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnWebDashboard"
+    <!-- 중앙 콘텐츠 (남은 공간 전부 차지) -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="웹 대쉬보드"
-        android:textSize="18sp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/button_server"
-        android:textColor="@android:color/white" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
 
-    <Button
-        android:id="@+id/btnAdminSettings"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="관리자 기본설정"
-        android:textSize="18sp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/button_style"
-        android:textColor="@android:color/white" />
+        <!-- 식권 아이콘 -->
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_meal_ticket"
+            android:layout_marginBottom="20dp"
+            android:contentDescription="식권 아이콘" />
 
-    <Button
-        android:id="@+id/btnQRScan"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="QR 코드 스캔"
-        android:textSize="18sp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/button_style"
-        android:textColor="@android:color/white" />
+        <!-- 시스템 이름 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="식권관리시스템"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#4A1080"
+            android:layout_marginBottom="8dp" />
 
-    <Button
-        android:id="@+id/btnServerInfo"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="서버 정보"
-        android:textSize="18sp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/button_server"
-        android:textColor="@android:color/white" />
+        <!-- 부제 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="식권을 스캔하여 사용 처리하세요"
+            android:textSize="14sp"
+            android:textColor="#888888"
+            android:layout_marginBottom="48dp" />
 
-    <Button
-        android:id="@+id/btnParkingRegistration"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="🚗 주차등록"
-        android:textSize="18sp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/button_style"
-        android:textColor="@android:color/white" />
+        <!-- QR 코드 스캔 버튼 (메인 액션, 원형 대형 버튼) -->
+        <Button
+            android:id="@+id/btnQRScan"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:text="QR 코드\n스캔"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:lineSpacingMultiplier="1.4"
+            android:background="@drawable/btn_qr_main"
+            android:elevation="6dp" />
 
-    <Button
-        android:id="@+id/btnCouponList"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="🎫 쿠폰 조회"
-        android:textSize="18sp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/button_style"
-        android:textColor="@android:color/white" />
+    </LinearLayout>
 
 </LinearLayout>

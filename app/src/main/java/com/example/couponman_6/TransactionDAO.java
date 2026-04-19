@@ -248,11 +248,19 @@ public class TransactionDAO {
         Cursor cursor = null;
         
         try {
+            // endDate가 "YYYY-MM-DD" 형식일 때 시간이 포함된 레코드("YYYY-MM-DD HH:mm:ss")도
+            // 포함되도록 종료일에 " 23:59:59"를 붙인다.
+            // 이미 시간이 포함된 경우(길이 > 10)는 그대로 사용.
+            String endDateTime = (endDate != null && endDate.length() == 10)
+                    ? endDate + " 23:59:59"
+                    : endDate;
+
             cursor = database.query(
                 DatabaseHelper.TABLE_TRANSACTION,
                 null,
-                DatabaseHelper.COLUMN_TRANSACTION_DATE + " BETWEEN ? AND ?",
-                new String[]{startDate, endDate},
+                DatabaseHelper.COLUMN_TRANSACTION_DATE + " >= ? AND "
+                    + DatabaseHelper.COLUMN_TRANSACTION_DATE + " <= ?",
+                new String[]{startDate, endDateTime},
                 null, null,
                 DatabaseHelper.COLUMN_TRANSACTION_DATE + " DESC"
             );
@@ -263,8 +271,8 @@ public class TransactionDAO {
                     transactions.add(transaction);
                 } while (cursor.moveToNext());
             }
-            
-            Log.i(TAG, "Retrieved " + transactions.size() + " transactions between " + startDate + " and " + endDate);
+
+            Log.i(TAG, "Retrieved " + transactions.size() + " transactions between " + startDate + " and " + endDateTime);
             
         } catch (SQLiteException e) {
             Log.e(TAG, "Error getting transactions by date range", e);

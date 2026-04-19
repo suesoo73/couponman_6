@@ -130,6 +130,8 @@ public class EmployeeDAO {
         values.put(DatabaseHelper.COLUMN_EMPLOYEE_CORPORATE_ID, employee.getCorporateId());
         values.put(DatabaseHelper.COLUMN_EMPLOYEE_NAME, employee.getName());
         values.put(DatabaseHelper.COLUMN_EMPLOYEE_CODE, employee.getEmployeeCode());
+        values.put(DatabaseHelper.COLUMN_EMPLOYEE_PHONE, employee.getPhone() != null ? employee.getPhone() : "");
+        values.put(DatabaseHelper.COLUMN_EMPLOYEE_EMAIL, employee.getEmail());
         values.put(DatabaseHelper.COLUMN_EMPLOYEE_DEPARTMENT, employee.getDepartment());
         return values;
     }

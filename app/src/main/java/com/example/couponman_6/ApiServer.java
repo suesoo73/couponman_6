@@ -3235,48 +3235,69 @@ public class ApiServer extends NanoHTTPD {
             corporateDAO.open();
             employeeDAO.open();
             couponDAO.open();
+            transactionDAO.open();
+
+            // 기간 내 거래 내역 조회 → 쿠폰별 사용 횟수 및 사용금액(현금) 집계
+            // (사용 여부 판단은 쿠폰 생성일이 아닌 실제 거래 발생일 기준)
+            Map<Integer, Integer> couponUsageCount = new HashMap<>();
+            Map<Integer, Double>  couponUsageCash  = new HashMap<>(); // couponId → 현금 사용금액
+            List<Transaction> rangeTransactions;
+            if (!startDate.isEmpty() && !endDate.isEmpty()) {
+                rangeTransactions = transactionDAO.getTransactionsByDateRange(startDate, endDate);
+            } else {
+                rangeTransactions = transactionDAO.getAllTransactions();
+            }
+            for (Transaction t : rangeTransactions) {
+                String tType = t.getTransactionType();
+                if (Transaction.TYPE_USE.equals(tType) || "DEDUCTION".equals(tType)) {
+                    int cid = t.getCouponId();
+                    couponUsageCount.put(cid, couponUsageCount.getOrDefault(cid, 0) + 1);
+                    if (Transaction.BALANCE_TYPE_CASH.equals(t.getBalanceType())) {
+                        couponUsageCash.put(cid, couponUsageCash.getOrDefault(cid, 0.0) + Math.abs(t.getAmount()));
+                    }
+                }
+            }
+            Log.i(TAG, "[CORP-STAT] Range transactions found: " + rangeTransactions.size()
+                    + ", usage couponIds: " + couponUsageCount.size());
 
             // 모든 거래처 조회
             List<Corporate> corporates = corporateDAO.getAllCorporates();
-            
+
             // 전체 요약 통계
             int totalCorporates = corporates.size();
             int totalIssuedCoupons = 0;
             int totalUsedCoupons = 0;
-            
+
             // 거래처별 상세 통계 리스트
             List<Map<String, Object>> corporateStats = new ArrayList<>();
-            
+
             for (Corporate corporate : corporates) {
                 // 거래처별 직원 수 조회
                 List<Employee> employees = employeeDAO.getEmployeesByCorporateId(corporate.getCustomerId());
                 int employeeCount = employees.size();
-                
+
                 // 거래처별 쿠폰 통계 계산
                 int issuedCoupons = 0;
                 int usedCoupons = 0;
-                double totalCashValue = 0;
+                double totalCashValue  = 0;
                 double totalPointValue = 0;
-                
+                double usedCashAmount  = 0; // 기간 내 현금 사용금액(매출액) 합계
+
                 for (Employee employee : employees) {
                     List<Coupon> empCoupons = couponDAO.getCouponsByEmployeeId(employee.getEmployeeId());
                     for (Coupon coupon : empCoupons) {
-                        // 기간 필터링 (날짜 미입력 시 전체 포함)
-                        String couponDate = coupon.getCreatedAt() != null ? coupon.getCreatedAt().split(" ")[0] : "";
-                        boolean inRange = (startDate.isEmpty() || couponDate.compareTo(startDate) >= 0)
-                                       && (endDate.isEmpty()   || couponDate.compareTo(endDate)   <= 0);
-                        if (inRange) {
-                            issuedCoupons++;
-                            totalCashValue  += coupon.getCashBalance();
-                            totalPointValue += coupon.getPointBalance();
-                            // 실제 상태 상수는 "사용됨"
-                            if ("사용됨".equals(coupon.getStatus())) {
-                                usedCoupons++;
-                            }
+                        issuedCoupons++;
+                        totalCashValue  += coupon.getCashBalance();
+                        totalPointValue += coupon.getPointBalance();
+                        // 사용 여부: 기간 내 거래 내역 기준
+                        if (couponUsageCount.containsKey(coupon.getCouponId())) {
+                            usedCoupons++;
                         }
+                        // 사용금액 합산
+                        usedCashAmount += couponUsageCash.getOrDefault(coupon.getCouponId(), 0.0);
                     }
                 }
-                
+
                 // 거래처별 통계 데이터 생성
                 Map<String, Object> corporateStat = new HashMap<>();
                 String usageRate = issuedCoupons > 0
@@ -3288,32 +3309,34 @@ public class ApiServer extends NanoHTTPD {
                 corporateStat.put("issuedCoupons",  issuedCoupons);
                 corporateStat.put("usedCoupons",    usedCoupons);
                 corporateStat.put("usageRate",      usageRate);
+                corporateStat.put("usedCashAmount", usedCashAmount);
                 corporateStat.put("totalCashValue", totalCashValue);
                 corporateStat.put("totalPointValue",totalPointValue);
-                
+
                 corporateStats.add(corporateStat);
-                
+
                 // 전체 통계에 합계 반영
                 totalIssuedCoupons += issuedCoupons;
                 totalUsedCoupons += usedCoupons;
             }
-            
+
             // 요약 통계 생성
             Map<String, Object> summary = new HashMap<>();
             summary.put("totalCorporates", totalCorporates);
             summary.put("totalIssuedCoupons", totalIssuedCoupons);
             summary.put("totalUsedCoupons", totalUsedCoupons);
-            
+
             // 응답 데이터 구성
             Map<String, Object> data = new HashMap<>();
             data.put("summary", summary);
             data.put("corporateStats", corporateStats);
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("data", data);
-            
-            Log.i(TAG, "Corporate statistics retrieved: " + totalCorporates + " corporates, " + totalIssuedCoupons + " coupons");
+
+            Log.i(TAG, "Corporate statistics retrieved: " + totalCorporates + " corporates, "
+                    + totalIssuedCoupons + " issued, " + totalUsedCoupons + " used");
             return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
 
         } catch (Exception e) {
@@ -3327,6 +3350,7 @@ public class ApiServer extends NanoHTTPD {
             corporateDAO.close();
             employeeDAO.close();
             couponDAO.close();
+            transactionDAO.close();
         }
     }
 
@@ -3344,12 +3368,9 @@ public class ApiServer extends NanoHTTPD {
             String startDate = params.get("startDate");
             String endDate = params.get("endDate");
 
-            if (startDate == null || endDate == null) {
-                Map<String, Object> error = new HashMap<>();
-                error.put("success", false);
-                error.put("message", "시작일(startDate)과 종료일(endDate)이 필요합니다");
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
-            }
+            // startDate/endDate 미전달 시 전체 기간으로 처리
+            if (startDate == null) startDate = "";
+            if (endDate == null)   endDate   = "";
 
             // DAO 열기
             corporateDAO.open();
@@ -3365,53 +3386,46 @@ public class ApiServer extends NanoHTTPD {
                 error.put("message", "거래처를 찾을 수 없습니다: " + corporateId);
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json; charset=utf-8", gson.toJson(error));
             }
-            
+
+            // 기간 내 거래 내역으로 쿠폰별 사용 횟수 및 현금 사용금액 집계 (거래 발생일 기준)
+            Map<Integer, Integer> couponUsageMap = new HashMap<>();
+            Map<Integer, Double> couponCashUsedMap = new HashMap<>();
+            List<Transaction> rangeTrans;
+            if (!startDate.isEmpty() && !endDate.isEmpty()) {
+                rangeTrans = transactionDAO.getTransactionsByDateRange(startDate, endDate);
+            } else {
+                rangeTrans = transactionDAO.getAllTransactions();
+            }
+            for (Transaction t : rangeTrans) {
+                String tType = t.getTransactionType();
+                if (Transaction.TYPE_USE.equals(tType) || "DEDUCTION".equals(tType)) {
+                    int cid = t.getCouponId();
+                    couponUsageMap.put(cid, couponUsageMap.getOrDefault(cid, 0) + 1);
+                    if (Transaction.BALANCE_TYPE_CASH.equals(t.getBalanceType())) {
+                        couponCashUsedMap.put(cid, couponCashUsedMap.getOrDefault(cid, 0.0) + Math.abs(t.getAmount()));
+                    }
+                }
+            }
+
             // 거래처의 직원 목록 조회
             List<Employee> employees = employeeDAO.getEmployeesByCorporateId(id);
             List<Map<String, Object>> employeeStats = new ArrayList<>();
-            
+
             for (Employee employee : employees) {
                 int issuedCoupons = 0;
                 int usedCoupons = 0;
                 double totalCashBalance = 0;
                 double totalPointBalance = 0;
-
-                // 직원별 쿠폰 및 거래 내역 리스트
-                List<Map<String, Object>> couponTransactions = new ArrayList<>();
+                double usedCashAmount = 0;
 
                 List<Coupon> empCoupons = couponDAO.getCouponsByEmployeeId(employee.getEmployeeId());
                 for (Coupon coupon : empCoupons) {
-                    // 기간 필터링
-                    if (coupon.getCreatedAt() != null) {
-                        String couponDate = coupon.getCreatedAt().split(" ")[0];
-                        if (couponDate.compareTo(startDate) >= 0 && couponDate.compareTo(endDate) <= 0) {
-                            issuedCoupons++;
-                            totalCashBalance += coupon.getCashBalance();
-                            totalPointBalance += coupon.getPointBalance();
-
-                            if ("USED".equals(coupon.getStatus())) {
-                                usedCoupons++;
-                            }
-
-                            // 쿠폰별 거래 내역 정보 수집 (클라이언트에서 계산하도록 데이터만 전송)
-                            Map<String, Object> couponInfo = new HashMap<>();
-                            couponInfo.put("couponId", coupon.getCouponId());
-                            couponInfo.put("cashBalance", coupon.getCashBalance());
-                            couponInfo.put("pointBalance", coupon.getPointBalance());
-
-                            // Transaction 데이터 조회
-                            double cashCharged = transactionDAO.getTotalChargeAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_CASH);
-                            double pointCharged = transactionDAO.getTotalChargeAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_POINT);
-                            double cashUsed = transactionDAO.getTotalUseAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_CASH);
-                            double pointUsed = transactionDAO.getTotalUseAmount(coupon.getCouponId(), Transaction.BALANCE_TYPE_POINT);
-
-                            couponInfo.put("cashCharged", cashCharged);
-                            couponInfo.put("pointCharged", pointCharged);
-                            couponInfo.put("cashUsed", cashUsed);
-                            couponInfo.put("pointUsed", pointUsed);
-
-                            couponTransactions.add(couponInfo);
-                        }
+                    issuedCoupons++;
+                    totalCashBalance += coupon.getCashBalance();
+                    totalPointBalance += coupon.getPointBalance();
+                    if (couponUsageMap.containsKey(coupon.getCouponId())) {
+                        usedCoupons++;
+                        usedCashAmount += couponCashUsedMap.getOrDefault(coupon.getCouponId(), 0.0);
                     }
                 }
 
@@ -3420,9 +3434,9 @@ public class ApiServer extends NanoHTTPD {
                 employeeStat.put("employeeName", employee.getName());
                 employeeStat.put("issuedCoupons", issuedCoupons);
                 employeeStat.put("usedCoupons", usedCoupons);
+                employeeStat.put("usedCashAmount", usedCashAmount);
                 employeeStat.put("totalCashBalance", totalCashBalance);
                 employeeStat.put("totalPointBalance", totalPointBalance);
-                employeeStat.put("transactions", couponTransactions);  // 거래 내역 리스트 추가 (클라이언트에서 계산)
 
                 employeeStats.add(employeeStat);
             }
@@ -4132,15 +4146,16 @@ public class ApiServer extends NanoHTTPD {
             }
 
             // 날짜 범위 설정 (해당 월의 1일 ~ 말일)
-            String startDate = year + "-" + month + "-01";
-
-            // 말일 계산
             int yearInt = Integer.parseInt(year);
             int monthInt = Integer.parseInt(month);
+            String paddedMonth = String.format("%02d", monthInt); // "4" → "04"
+            String startDate = year + "-" + paddedMonth + "-01";
+
+            // 말일 계산
             java.util.Calendar cal = java.util.Calendar.getInstance();
             cal.set(yearInt, monthInt - 1, 1);
             int lastDay = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
-            String endDate = year + "-" + month + "-" + String.format("%02d", lastDay);
+            String endDate = year + "-" + paddedMonth + "-" + String.format("%02d", lastDay);
 
             Log.i(TAG, "[MONTHLY-TRANS] Date range: " + startDate + " ~ " + endDate);
 
@@ -4202,13 +4217,15 @@ public class ApiServer extends NanoHTTPD {
                     stat.put("usageCount", (int)stat.get("usageCount") + 1);
 
                     if (Transaction.BALANCE_TYPE_CASH.equals(trans.getBalanceType())) {
+                        double amt = Math.abs(trans.getAmount());
                         double currentCash = (double)stat.get("cashDeducted");
-                        stat.put("cashDeducted", currentCash + trans.getAmount());
-                        totalCashDeducted += trans.getAmount();
+                        stat.put("cashDeducted", currentCash + amt);
+                        totalCashDeducted += amt;
                     } else if (Transaction.BALANCE_TYPE_POINT.equals(trans.getBalanceType())) {
+                        double amt = Math.abs(trans.getAmount());
                         double currentPoints = (double)stat.get("pointsDeducted");
-                        stat.put("pointsDeducted", currentPoints + trans.getAmount());
-                        totalPointsDeducted += trans.getAmount();
+                        stat.put("pointsDeducted", currentPoints + amt);
+                        totalPointsDeducted += amt;
                     }
 
                     totalUsageCount++;
@@ -4347,7 +4364,8 @@ public class ApiServer extends NanoHTTPD {
                         if (trans.getTransactionDate() != null) {
                             String transDate = trans.getTransactionDate().substring(0, 10); // YYYY-MM-DD 부분만 추출
                             if (transDate.compareTo(startDate) >= 0 && transDate.compareTo(endDate) <= 0) {
-                                if ("DEDUCTION".equals(trans.getTransactionType())) {
+                                String tType = trans.getTransactionType();
+                                if (Transaction.TYPE_USE.equals(tType) || "DEDUCTION".equals(tType)) {
                                     transactions.add(trans);
                                 }
                             }
@@ -4373,9 +4391,10 @@ public class ApiServer extends NanoHTTPD {
                     if (!dailyMap.containsKey(day)) {
                         Map<String, Object> dayData = new HashMap<>();
                         dayData.put("day", day);
+                        dayData.put("date", date);
                         dayData.put("usageCount", 0);
-                        dayData.put("cashDeducted", 0.0);
-                        dayData.put("pointsDeducted", 0.0);
+                        dayData.put("cashUsed", 0.0);
+                        dayData.put("pointUsed", 0.0);
                         dayData.put("usageTimes", new ArrayList<String>());
                         dailyMap.put(day, dayData);
                     }
@@ -4384,11 +4403,11 @@ public class ApiServer extends NanoHTTPD {
                     dayData.put("usageCount", (int)dayData.get("usageCount") + 1);
 
                     if (Transaction.BALANCE_TYPE_CASH.equals(trans.getBalanceType())) {
-                        double currentCash = (double)dayData.get("cashDeducted");
-                        dayData.put("cashDeducted", currentCash + trans.getAmount());
+                        double currentCash = (double)dayData.get("cashUsed");
+                        dayData.put("cashUsed", currentCash + Math.abs(trans.getAmount()));
                     } else if (Transaction.BALANCE_TYPE_POINT.equals(trans.getBalanceType())) {
-                        double currentPoints = (double)dayData.get("pointsDeducted");
-                        dayData.put("pointsDeducted", currentPoints + trans.getAmount());
+                        double currentPoints = (double)dayData.get("pointUsed");
+                        dayData.put("pointUsed", currentPoints + Math.abs(trans.getAmount()));
                     }
 
                     @SuppressWarnings("unchecked")
@@ -4597,20 +4616,12 @@ public class ApiServer extends NanoHTTPD {
                 return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json; charset=utf-8", gson.toJson(error));
             }
 
-            corporateDAO.open();
-            employeeDAO.open();
-            couponDAO.open();
-            transactionDAO.close();
+            // 직접 DB 접근 (원본 ID 보존을 위해 raw SQL 사용)
+            android.database.sqlite.SQLiteDatabase db = databaseHelper.getWritableDatabase();
 
+            db.beginTransaction();
             try {
-                // 기존 데이터 삭제 (역순으로)
-                Log.i(TAG, "[RESTORE] Clearing existing data...");
-                transactionDAO.open();
-                // 트랜잭션 삭제는 CASCADE로 자동 처리됨
-                transactionDAO.close();
-
-                // 기존 데이터 삭제 (DAO를 통해서는 CASCADE 처리가 안되므로 직접 SQL 실행)
-                android.database.sqlite.SQLiteDatabase db = databaseHelper.getWritableDatabase();
+                // 기존 데이터 전체 삭제 (FK CASCADE 순서 고려)
                 db.execSQL("DELETE FROM coupon_transaction");
                 db.execSQL("DELETE FROM coupon_deliveries");
                 db.execSQL("DELETE FROM coupon");
@@ -4620,94 +4631,114 @@ public class ApiServer extends NanoHTTPD {
 
                 int corporateCount = 0, employeeCount = 0, couponCount = 0, transactionCount = 0;
 
-                // 1. 거래처 복구
+                // 헬퍼: null-safe 문자열 추출
+                // (JsonNull이거나 없으면 null 반환)
+
+                // 1. 거래처 복구 — 원본 customer_id 보존
                 if (data.has("corporates")) {
                     com.google.gson.JsonArray corporates = data.getAsJsonArray("corporates");
                     for (com.google.gson.JsonElement elem : corporates) {
-                        com.google.gson.JsonObject corpObj = elem.getAsJsonObject();
-
-                        Corporate corp = new Corporate();
-                        if (corpObj.has("customer_id")) corp.setCustomerId(corpObj.get("customer_id").getAsInt());
-                        if (corpObj.has("name")) corp.setName(corpObj.get("name").getAsString());
-                        if (corpObj.has("business_number")) corp.setBusinessNumber(corpObj.get("business_number").getAsString());
-                        if (corpObj.has("representative")) corp.setRepresentative(corpObj.get("representative").getAsString());
-                        if (corpObj.has("phone")) corp.setPhone(corpObj.get("phone").getAsString());
-                        if (corpObj.has("email")) corp.setEmail(corpObj.get("email").getAsString());
-                        if (corpObj.has("address")) corp.setAddress(corpObj.get("address").getAsString());
-
-                        corporateDAO.insertCorporate(corp);
+                        com.google.gson.JsonObject o = elem.getAsJsonObject();
+                        db.execSQL(
+                            "INSERT OR REPLACE INTO corporate"
+                            + " (customer_id, name, business_number, representative, phone, email, address, created_at)"
+                            + " VALUES (?,?,?,?,?,?,?,?)",
+                            new Object[]{
+                                safeInt(o, "customer_id"),
+                                safeStr(o, "name"),
+                                safeStr(o, "business_number"),
+                                safeStr(o, "representative"),
+                                safeStr(o, "phone"),
+                                safeStr(o, "email"),
+                                safeStr(o, "address"),
+                                safeStr(o, "created_at")
+                            }
+                        );
                         corporateCount++;
                     }
                     Log.i(TAG, "[RESTORE] Corporates restored: " + corporateCount);
                 }
 
-                // 2. 직원 복구
+                // 2. 직원 복구 — 원본 employee_id 보존
                 if (data.has("employees")) {
                     com.google.gson.JsonArray employees = data.getAsJsonArray("employees");
                     for (com.google.gson.JsonElement elem : employees) {
-                        com.google.gson.JsonObject empObj = elem.getAsJsonObject();
-
-                        Employee emp = new Employee();
-                        if (empObj.has("employee_id")) emp.setEmployeeId(empObj.get("employee_id").getAsInt());
-                        if (empObj.has("corporate_id")) emp.setCorporateId(empObj.get("corporate_id").getAsInt());
-                        if (empObj.has("name")) emp.setName(empObj.get("name").getAsString());
-                        if (empObj.has("phone")) emp.setPhone(empObj.get("phone").getAsString());
-                        if (empObj.has("email")) emp.setEmail(empObj.get("email").getAsString());
-                        if (empObj.has("department")) emp.setDepartment(empObj.get("department").getAsString());
-
-                        employeeDAO.insertEmployee(emp);
+                        com.google.gson.JsonObject o = elem.getAsJsonObject();
+                        db.execSQL(
+                            "INSERT OR REPLACE INTO employee"
+                            + " (employee_id, corporate_id, name, phone, email, department, created_at)"
+                            + " VALUES (?,?,?,?,?,?,?)",
+                            new Object[]{
+                                safeInt(o, "employee_id"),
+                                safeInt(o, "corporate_id"),
+                                safeStr(o, "name"),
+                                safeStr(o, "phone"),
+                                safeStr(o, "email"),
+                                safeStr(o, "department"),
+                                safeStr(o, "created_at")
+                            }
+                        );
                         employeeCount++;
                     }
                     Log.i(TAG, "[RESTORE] Employees restored: " + employeeCount);
                 }
 
-                // 3. 쿠폰 복구
+                // 3. 쿠폰 복구 — 원본 coupon_id, 쿠폰코드, 날짜 보존
                 if (data.has("coupons")) {
                     com.google.gson.JsonArray coupons = data.getAsJsonArray("coupons");
                     for (com.google.gson.JsonElement elem : coupons) {
-                        com.google.gson.JsonObject couponObj = elem.getAsJsonObject();
-
-                        Coupon coupon = new Coupon();
-                        if (couponObj.has("coupon_id")) coupon.setCouponId(couponObj.get("coupon_id").getAsInt());
-                        if (couponObj.has("full_coupon_code")) coupon.setFullCouponCode(couponObj.get("full_coupon_code").getAsString());
-                        if (couponObj.has("employee_id")) coupon.setEmployeeId(couponObj.get("employee_id").getAsInt());
-                        if (couponObj.has("cash_balance")) coupon.setCashBalance(couponObj.get("cash_balance").getAsDouble());
-                        if (couponObj.has("point_balance")) coupon.setPointBalance(couponObj.get("point_balance").getAsDouble());
-                        if (couponObj.has("expire_date")) coupon.setExpireDate(couponObj.get("expire_date").getAsString());
-                        if (couponObj.has("status")) coupon.setStatus(couponObj.get("status").getAsString());
-                        if (couponObj.has("payment_type")) coupon.setPaymentType(couponObj.get("payment_type").getAsString());
-                        if (couponObj.has("available_days")) coupon.setAvailableDays(couponObj.get("available_days").getAsString());
-
-                        couponDAO.insertCoupon(coupon);
+                        com.google.gson.JsonObject o = elem.getAsJsonObject();
+                        db.execSQL(
+                            "INSERT OR REPLACE INTO coupon"
+                            + " (coupon_id, full_coupon_code, employee_id, cash_balance, point_balance,"
+                            + "  expire_date, status, payment_type, available_days, created_at)"
+                            + " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                            new Object[]{
+                                safeInt(o, "coupon_id"),
+                                safeStr(o, "full_coupon_code"),
+                                safeInt(o, "employee_id"),
+                                safeDbl(o, "cash_balance"),
+                                safeDbl(o, "point_balance"),
+                                safeStr(o, "expire_date"),
+                                safeStr(o, "status"),
+                                safeStr(o, "payment_type"),
+                                safeStr(o, "available_days"),
+                                safeStr(o, "created_at")
+                            }
+                        );
                         couponCount++;
                     }
                     Log.i(TAG, "[RESTORE] Coupons restored: " + couponCount);
                 }
 
-                // 4. 거래내역 복구
+                // 4. 거래내역 복구 — 원본 transaction_id, 날짜, 금액 그대로 보존
                 if (data.has("transactions")) {
-                    transactionDAO.open();
                     com.google.gson.JsonArray transactions = data.getAsJsonArray("transactions");
                     for (com.google.gson.JsonElement elem : transactions) {
-                        com.google.gson.JsonObject transObj = elem.getAsJsonObject();
-
-                        Transaction trans = new Transaction();
-                        if (transObj.has("transaction_id")) trans.setTransactionId(transObj.get("transaction_id").getAsInt());
-                        if (transObj.has("coupon_id")) trans.setCouponId(transObj.get("coupon_id").getAsInt());
-                        if (transObj.has("amount")) trans.setAmount(transObj.get("amount").getAsDouble());
-                        if (transObj.has("transaction_type")) trans.setTransactionType(transObj.get("transaction_type").getAsString());
-                        if (transObj.has("transaction_date")) trans.setTransactionDate(transObj.get("transaction_date").getAsString());
-                        if (transObj.has("balance_type")) trans.setBalanceType(transObj.get("balance_type").getAsString());
-                        if (transObj.has("balance_before")) trans.setBalanceBefore(transObj.get("balance_before").getAsDouble());
-                        if (transObj.has("balance_after")) trans.setBalanceAfter(transObj.get("balance_after").getAsDouble());
-                        if (transObj.has("description")) trans.setDescription(transObj.get("description").getAsString());
-
-                        transactionDAO.insertTransaction(trans);
+                        com.google.gson.JsonObject o = elem.getAsJsonObject();
+                        db.execSQL(
+                            "INSERT OR REPLACE INTO coupon_transaction"
+                            + " (transaction_id, coupon_id, amount, transaction_type, transaction_date,"
+                            + "  balance_type, balance_before, balance_after, description)"
+                            + " VALUES (?,?,?,?,?,?,?,?,?)",
+                            new Object[]{
+                                safeInt(o, "transaction_id"),
+                                safeInt(o, "coupon_id"),
+                                safeDbl(o, "amount"),
+                                safeStr(o, "transaction_type"),
+                                safeStr(o, "transaction_date"),
+                                safeStr(o, "balance_type"),
+                                safeDbl(o, "balance_before"),
+                                safeDbl(o, "balance_after"),
+                                safeStr(o, "description")
+                            }
+                        );
                         transactionCount++;
                     }
-                    transactionDAO.close();
                     Log.i(TAG, "[RESTORE] Transactions restored: " + transactionCount);
                 }
+
+                db.setTransactionSuccessful();
 
                 // 응답 생성
                 Map<String, Object> result = new HashMap<>();
@@ -4726,9 +4757,7 @@ public class ApiServer extends NanoHTTPD {
                 return newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", gson.toJson(result));
 
             } finally {
-                corporateDAO.close();
-                employeeDAO.close();
-                couponDAO.close();
+                db.endTransaction();
             }
 
         } catch (Exception e) {
@@ -4739,5 +4768,23 @@ public class ApiServer extends NanoHTTPD {
             error.put("message", "데이터베이스 복구 중 오류가 발생했습니다: " + e.getMessage());
             return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json; charset=utf-8", gson.toJson(error));
         }
+    }
+
+    /** null-safe JSON 문자열 추출 */
+    private String safeStr(com.google.gson.JsonObject o, String key) {
+        if (!o.has(key) || o.get(key).isJsonNull()) return null;
+        return o.get(key).getAsString();
+    }
+
+    /** null-safe JSON int 추출 */
+    private int safeInt(com.google.gson.JsonObject o, String key) {
+        if (!o.has(key) || o.get(key).isJsonNull()) return 0;
+        return o.get(key).getAsInt();
+    }
+
+    /** null-safe JSON double 추출 */
+    private double safeDbl(com.google.gson.JsonObject o, String key) {
+        if (!o.has(key) || o.get(key).isJsonNull()) return 0.0;
+        return o.get(key).getAsDouble();
     }
 }
