@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>플랫폼 용어 정의서</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#1d2433;--muted:#667085;--line:#e4e7ec;--c1:#4f46e5;--c2:#0e9f6e;--c3:#d97706;--c4:#db2777;--code:#f1f3f9}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1220;--card:#181c2f;--text:#e8eaf2;--muted:#9aa3b8;--line:#2a3050;--c1:#8b87ff;--c2:#34d399;--c3:#fbbf24;--c4:#f472b6;--code:#20253d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,"Malgun Gothic",sans-serif}
+header,main{max-width:1050px;margin:auto;padding:16px}
+header{padding-top:32px}
+h1{margin:0 0 4px;font-size:28px}
+header p{margin:0;color:var(--muted)}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:19px}
+h3{margin:0 0 4px;font-size:16px}
+code{font-family:Consolas,monospace;font-size:13px;background:var(--code);padding:1px 6px;border-radius:5px}
+.chain{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:12px 0}
+.actor{flex:1 1 200px;border:2px solid var(--c);border-radius:12px;padding:12px;background:var(--bg)}
+.actor small{color:var(--muted);display:block}
+.actor .role{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.04em}
+.a1{--c:var(--c1)}.a2{--c:var(--c2)}.a3{--c:var(--c3)}.a4{--c:var(--c4)}
+.arr{align-self:center;color:var(--muted);font-size:13px;text-align:center;flex:0 0 auto;max-width:90px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;white-space:nowrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--c)}
+.note{border-left:4px solid var(--c3);background:var(--bg);padding:10px 14px;border-radius:6px;margin:12px 0}
+.note.ok{border-color:var(--c2)}
+ol,ul{margin:6px 0;padding-left:22px}
+.q{color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧾 플랫폼 용어 정의서</h1>
+  <p>초안 v0.1 · 2026-11-21 · 식권 서비스에 참여하는 주체와 핵심 개념의 용어 통일</p>
+</header>
+<main>
+
+<section>
+  <h2>1. 주체 한눈에 보기</h2>
+  <div class="chain">
+    <div class="actor a1"><span class="role">① 공급사</span><h3>플랫폼 공급사</h3><small>Provider</small>우리 회사. 시스템을 개발·공급하고 운영한다.</div>
+    <div class="arr">시스템 공급<br>→</div>
+    <div class="actor a2"><span class="role">② 가맹점</span><h3>가맹점</h3><small>Merchant</small>시스템을 설치해 사용하는 식당. 식권을 판매하고 받는다.</div>
+    <div class="arr">식권 판매<br>→</div>
+    <div class="actor a3"><span class="role">③ 고객사</span><h3>고객사</h3><small>Client Company</small>가맹점의 기업고객. 식권을 구매해 직원에게 지급한다.</div>
+    <div class="arr">식권 지급<br>→</div>
+    <div class="actor a4"><span class="role">④ 이용자</span><h3>이용자</h3><small>Member</small>고객사 직원. 식권으로 식사 결제(차감)한다.</div>
+  </div>
+  <div class="note"><b>⚠ 기존 용어와 충돌합니다.</b> 현재 코드와 prd.txt는 <b>"거래처 = 기업고객(corporate)"</b>을 뜻합니다. 이번에 "거래처(주로 식당)"로 쓰면 같은 단어가 두 가지 의미가 됩니다. 그래서 식당은 <b>가맹점</b>, 기업고객은 <b>고객사</b>로 분리하고 <b>"거래처"는 공식 용어로 쓰지 않는 것</b>을 제안합니다.</div>
+</section>
+
+<section>
+  <h2>2. 주체별 정의</h2>
+  <div class="table-wrap"><table>
+    <tr><th>주체</th><th>정의</th><th>주요 행위</th><th>대표 사용자</th></tr>
+    <tr><td><span class="dot a1"></span><b>플랫폼 공급사</b><br><code>provider</code></td><td>서비스를 개발하고 가맹점에 공급하는 우리 회사</td><td>가맹점 계약·등록, 업데이트 배포, 서버 운영, 문의 대응</td><td>운영 관리자</td></tr>
+    <tr><td><span class="dot a2"></span><b>가맹점</b><br><code>merchant</code></td><td>시스템을 설치해 식권을 판매하고 사용을 받아 주는 식당(사업자)</td><td>고객사 등록, 식권 발급·충전, QR 스캔으로 사용 처리, 정산 확인</td><td>사장, 매니저, 계산대 직원</td></tr>
+    <tr><td><span class="dot a3"></span><b>고객사</b><br><code>client</code></td><td>가맹점과 거래하며 식권을 구매하는 기업. 가맹점 단위로 관리한다.</td><td>식권 구매(선불·후불), 직원 등록, 사용 내역 열람</td><td>총무·인사 담당자</td></tr>
+    <tr><td><span class="dot a4"></span><b>이용자</b><br><code>member</code></td><td>고객사 소속으로 식권을 받아 사용하는 직원</td><td>식권(QR) 제시, 잔액 확인</td><td>직원 본인</td></tr>
+  </table></div>
+  <p class="q">같은 기업이 여러 가맹점과 거래하면, 가맹점마다 별개의 고객사 레코드로 관리합니다. 식권은 발급한 가맹점에서만 사용할 수 있다는 전제입니다(확인 필요).</p>
+</section>
+
+<section>
+  <h2>3. 핵심 개념 용어</h2>
+  <div class="table-wrap"><table>
+    <tr><th>용어</th><th>정의</th><th>비고</th></tr>
+    <tr><td><b>식권</b></td><td>이용자가 식사에 쓰는 선불 가치. 사용자에게 보이는 이름이다.</td><td>시스템 내부 데이터는 <code>coupon</code></td></tr>
+    <tr><td><b>식권 코드</b></td><td>식권을 식별하는 고유 코드. QR로 표시한다.</td><td>형식은 prd.txt 규칙 유지: <code>{가맹점 사업자번호}-{요일}-{ID}-{유형}-{패리티}</code></td></tr>
+    <tr><td><b>발급</b></td><td>이용자에게 식권을 새로 만들어 지급하는 것</td><td>기존 "신규쿠폰 생성"</td></tr>
+    <tr><td><b>충전</b></td><td>기존 식권에 금액을 추가하는 것</td><td>거래 유형 <code>충전</code></td></tr>
+    <tr><td><b>사용</b></td><td>QR 스캔으로 식권 잔액을 차감하는 것</td><td>거래 유형 <code>사용</code> (구 DEDUCTION)</td></tr>
+    <tr><td><b>잔액</b></td><td>식권에 남은 금액 = 충전 합계 − 사용 합계</td><td>서버에서는 거래 내역 합산으로 계산</td></tr>
+    <tr><td><b>구매</b></td><td>고객사가 가맹점에 식권 금액을 지불하는 거래</td><td>식권 충전의 원인이 되는 상위 개념</td></tr>
+    <tr><td><b>선불 / 후불</b></td><td>선불: 지불 후 충전. 후불: 사용 후 청구.</td><td>기존 결제 유형 <code>prepaid</code> / 그 외</td></tr>
+    <tr><td><b>정산</b></td><td>가맹점이 고객사에 사용분을 청구하거나 대금을 확인하는 것</td><td>월별 리포트 기능과 연결</td></tr>
+    <tr><td><b>거래 내역</b></td><td>충전·사용 이력 한 건</td><td><code>transaction</code>, 고유 ID로 동기화 중복 방지</td></tr>
+    <tr><td><b>동기화</b></td><td>기기의 데이터를 서버로 올리는 것(하루 2~3회)</td><td>서버는 열람용 사본을 보관</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>4. 기존 코드 용어와의 대응</h2>
+  <div class="table-wrap"><table>
+    <tr><th>현재 코드/문서</th><th>새 용어</th><th>새 영문 식별자 제안</th></tr>
+    <tr><td><code>Corporate</code> / <code>corporate</code> (거래처, 기업)</td><td>고객사</td><td><code>client</code></td></tr>
+    <tr><td><code>Employee</code> / <code>employee</code> (직원)</td><td>이용자</td><td><code>member</code></td></tr>
+    <tr><td><code>Coupon</code> / <code>coupon</code> (쿠폰)</td><td>식권</td><td><code>ticket</code> (또는 <code>coupon</code> 유지)</td></tr>
+    <tr><td>발급자 사업자등록번호 (settings)</td><td>가맹점 사업자번호</td><td><code>merchant_biz_no</code></td></tr>
+    <tr><td><code>Transaction</code></td><td>거래 내역</td><td><code>transaction</code> 유지</td></tr>
+    <tr><td><code>CouponDelivery</code></td><td>식권 발송 이력</td><td><code>ticket_delivery</code></td></tr>
+    <tr><td>(없음)</td><td>플랫폼 공급사, 가맹점 계정</td><td><code>provider</code>, <code>merchant</code> — 서버(여러 가맹점)용 신규</td></tr>
+  </table></div>
+  <div class="note ok"><b>제안:</b> 화면과 문서의 한글은 새 용어로 통일하되, 포크 초기에는 코드 식별자(<code>corporate</code>, <code>employee</code>, <code>coupon</code>)를 유지하는 것도 방법입니다. 이름 일괄 변경은 위험이 커서, 신규 코드부터 새 식별자를 쓰고 나머지는 점진적으로 바꾸는 방식을 권합니다.</div>
+</section>
+
+<section>
+  <h2>5. 누가 무엇을 볼 수 있는가 (열람 권한 초안)</h2>
+  <div class="table-wrap"><table>
+    <tr><th>데이터</th><th>공급사</th><th>가맹점</th><th>고객사</th><th>이용자</th></tr>
+    <tr><td>가맹점 목록·계약 정보</td><td>전체</td><td>자기 것</td><td>—</td><td>—</td></tr>
+    <tr><td>고객사 목록</td><td>전체(필요 시)</td><td>자기 고객사</td><td>자기 회사</td><td>—</td></tr>
+    <tr><td>이용자(직원) 정보</td><td>최소한</td><td>자기 고객사 소속</td><td>자기 회사 직원</td><td>본인</td></tr>
+    <tr><td>식권 잔액·코드</td><td>집계만</td><td>전체</td><td>자기 회사 직원분</td><td>본인</td></tr>
+    <tr><td>사용·충전 내역</td><td>집계만</td><td>전체</td><td>자기 회사 직원분</td><td>본인</td></tr>
+    <tr><td>월별 정산·통계</td><td>집계</td><td>자기 것</td><td>자기 회사</td><td>—</td></tr>
+  </table></div>
+  <p class="q">공급사가 가맹점의 이용자 개인정보를 볼 수 있는지는 개인정보 처리 방침(위탁 관계)과 연결되는 사항이라 별도 결정이 필요합니다.</p>
+</section>
+
+<section>
+  <h2>6. 식권이 흐르는 순서</h2>
+  <ol>
+    <li><b>가맹점 등록</b> — 공급사가 가맹점을 등록하고 시스템을 설치한다.</li>
+    <li><b>고객사 등록</b> — 가맹점이 거래 기업을 고객사로 등록하고, 이용자(직원)를 등록하거나 엑셀로 가져온다.</li>
+    <li><b>구매</b> — 고객사가 가맹점에 식권 금액을 지불한다(선불/후불).</li>
+    <li><b>발급·충전</b> — 가맹점이 이용자별로 식권을 발급하거나 충전한다.</li>
+    <li><b>사용</b> — 이용자가 식사 후 QR을 제시하고, 가맹점이 스캔해 잔액을 차감한다.</li>
+    <li><b>동기화·열람</b> — 기기가 서버로 올리고, 고객사·공급사는 서버에서 열람한다.</li>
+    <li><b>정산</b> — 월별로 고객사별 사용액을 확인하고 청구·수금한다.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>7. 결정이 필요한 항목</h2>
+  <ul>
+    <li><b>"가맹점" vs "입점업체/매장/제휴점"</b> — 식당이 우리와 계약해 시스템을 쓰는 관계라면 가맹점이 무난하지만, 프랜차이즈 가맹 계약과 혼동될 수 있습니다.</li>
+    <li><b>"고객사" vs "제휴기업/거래기업"</b> — 가맹점 입장의 고객이라 고객사를 제안했습니다.</li>
+    <li><b>"이용자" vs "사원/직원/회원"</b> — 고객사 직원이 아닌 사람이 쓸 가능성이 있으면 이용자가 안전합니다.</li>
+    <li><b>"식권" vs "쿠폰"</b> — 사용자 화면은 식권, 내부 데이터는 coupon으로 나눠도 됩니다. 식권 외 상품(주차 등)이 늘어날 계획이면 "쿠폰"이 더 넓은 개념입니다.</li>
+    <li><b>식권이 가맹점 전용인지</b>, 여러 가맹점에서 쓰는 통합 식권인지에 따라 데이터 구조가 크게 달라집니다.</li>
+    <li><b>공급사 관리자 화면</b>이 필요한지(가맹점 여러 곳을 한 서버에서 관리하는 구조인지).</li>
+  </ul>
+</section>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CouponMan 프로젝트 구조</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#1d2433;--muted:#667085;--line:#e4e7ec;--accent:#4f46e5;--a2:#0e9f6e;--a3:#d97706;--a4:#db2777;--code:#f1f3f9}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1220;--card:#181c2f;--text:#e8eaf2;--muted:#9aa3b8;--line:#2a3050;--accent:#8b87ff;--a2:#34d399;--a3:#fbbf24;--a4:#f472b6;--code:#20253d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 system-ui,"Malgun Gothic",sans-serif}
+header{padding:32px 16px 8px;max-width:1100px;margin:auto}
+h1{margin:0 0 4px;font-size:28px}
+header p{margin:0;color:var(--muted)}
+main{max-width:1100px;margin:auto;padding:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:19px}
+h3{margin:16px 0 6px;font-size:15px;color:var(--accent)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.box{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.box b{display:block;margin-bottom:4px}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--code);color:var(--muted);margin:2px 2px 2px 0}
+code,.mono{font-family:Consolas,monospace;font-size:13px;background:var(--code);padding:1px 6px;border-radius:5px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.table-wrap{overflow-x:auto}
+pre{background:var(--code);padding:14px;border-radius:10px;overflow-x:auto;font:13px/1.55 Consolas,monospace;margin:0}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.node{padding:8px 14px;border-radius:10px;border:2px solid var(--accent);font-weight:600;font-size:14px}
+.node.g{border-color:var(--a2)}.node.o{border-color:var(--a3)}.node.p{border-color:var(--a4)}
+.arrow{color:var(--muted)}
+.warn{border-left:4px solid var(--a3);background:var(--bg);padding:10px 14px;border-radius:6px;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎫 CouponMan 프로젝트 구조</h1>
+  <p>패키지 <code>com.example.couponman_6</code> · Android(Java) 앱 안에 내장 HTTP 서버 + 웹 대시보드 · 마지막 점검 2026-11-20</p>
+</header>
+<main>
+
+<section>
+  <h2>1. 한눈에 보기</h2>
+  <p>기업체 직원에게 <b>식권/쿠폰을 발행·충전</b>하고, QR 스캔으로 <b>사용 시 차감</b>하는 시스템입니다. 안드로이드 폰/태블릿이 서버 역할을 하며(NanoHTTPD), 같은 네트워크의 브라우저(웹 대시보드)에서도 관리할 수 있습니다.</p>
+  <div class="flow" style="margin-top:12px">
+    <span class="node">웹 대시보드<br><small>external_dashboard.html</small></span><span class="arrow">⇄ REST /api/*</span>
+    <span class="node g">ApiServer (NanoHTTPD)<br><small>ApiServerService 로 상주</small></span><span class="arrow">→</span>
+    <span class="node o">DAO 계층</span><span class="arrow">→</span>
+    <span class="node p">SQLite<br><small>DatabaseHelper</small></span>
+  </div>
+  <div class="flow" style="margin-top:10px">
+    <span class="node">Android 화면(Activity)</span><span class="arrow">→</span>
+    <span class="node o">DAO 계층</span>
+    <span class="arrow" style="margin-left:18px">·</span>
+    <span class="node g">QRScanActivity</span><span class="arrow">→</span><span class="node o">쿠폰 검증/차감</span>
+    <span class="arrow" style="margin-left:18px">·</span>
+    <span class="node p">server_plugin (WordPress PHP)</span><span class="arrow">⇠ 쿠폰 등록 연동</span>
+  </div>
+  <h3>기술 스택</h3>
+  <span class="tag">Java</span><span class="tag">minSdk 26 / compileSdk 36</span><span class="tag">Gradle Kotlin DSL</span>
+  <span class="tag">NanoHTTPD 2.3.1</span><span class="tag">OkHttp 4.12</span><span class="tag">Gson</span>
+  <span class="tag">ZXing (QR)</span><span class="tag">CameraX 1.3.1</span><span class="tag">Apache POI (Excel)</span><span class="tag">Material</span>
+</section>
+
+<section>
+  <h2>2. 디렉터리 구조</h2>
+<pre>couponman_6/
+├─ app/
+│  ├─ build.gradle.kts            의존성/SDK 설정
+│  └─ src/main/
+│     ├─ AndroidManifest.xml      Activity 13개 + ApiServerService 등록
+│     ├─ java/com/example/couponman_6/   ← 모든 Java 소스 (아래 3장)
+│     ├─ res/
+│     │  ├─ layout/               activity_*.xml, item_coupon_target_row.xml
+│     │  ├─ drawable/             버튼/카드 스타일, 아이콘
+│     │  ├─ raw/                  payment_success.mp3, payment_failed.mp3
+│     │  ├─ values/, values-night/ 색상·문자열·테마(다크모드)
+│     │  └─ xml/                  network_security_config, backup 규칙
+│     └─ assets/web/
+│        ├─ dashboard.html            (351줄, 앱 내부 WebView용 간단 대시보드)
+│        └─ external_dashboard.html   (5,500줄, 외부 브라우저용 풀 대시보드)
+├─ server_plugin/couponman-api.php   WordPress 플러그인(쿠폰 등록 REST API)
+├─ assets/                         ← 웹 UI 분리 버전(시안/리팩터링 작업물)
+│  ├─ css/   base, layout, components, modals, navigation, tables, animations, responsive
+│  └─ js/
+│     ├─ core/     api, app, auth, navigation
+│     ├─ modules/  corporate, employee, coupon-issue/manage/send, delivery-history,
+│     │            management-info, backup, email-config, sms-config, system-settings, developer
+│     └─ utils/    export, formatters, notifications
+├─ index.html, index_v2.html, index_v3.html   분리형 웹 UI 진입 페이지
+├─ prd.txt                         요구사항(쿠폰 코드 규칙, DB 스키마 설계)
+├─ README.md, DEVELOPER_GUIDE.md, REFACTORING_SUMMARY.md, FILE_STRUCTURE.txt
+└─ validate_structure.sh           구조 검증 스크립트</pre>
+  <div class="warn">⚠ 루트의 <code>assets/</code>, <code>index*.html</code> 은 앱 빌드에 포함되지 않습니다. 실제 앱에 들어가는 웹 UI는 <code>app/src/main/assets/web/</code> 안의 HTML 입니다.</div>
+</section>
+
+<section>
+  <h2>3. Java 소스 (약 14,900줄)</h2>
+  <div class="grid">
+    <div class="box"><b>🖥 서버 / 통신</b>
+      <code>ApiServer</code> 5,450줄 – 모든 REST 라우팅·비즈니스 로직<br>
+      <code>ApiServerService</code> – 포그라운드 서비스로 서버 유지<br>
+      <code>ServerAddressHelper</code> – 접속 IP 계산<br>
+      <code>WebSocketClient</code> – 웹소켓 클라이언트</div>
+    <div class="box"><b>🗄 DB / DAO</b>
+      <code>DatabaseHelper</code> – 테이블 6개 생성/마이그레이션<br>
+      <code>CorporateDAO</code> · <code>EmployeeDAO</code> · <code>CouponDAO</code><br>
+      <code>TransactionDAO</code> · <code>CouponDeliveryDAO</code></div>
+    <div class="box"><b>📦 모델</b>
+      <code>Corporate</code> · <code>Employee</code> · <code>Coupon</code><br>
+      <code>Transaction</code> · <code>CouponDelivery</code><br>
+      <code>CouponPreset</code> / <code>CouponPresetStore</code> / <code>CouponTargetDraft</code></div>
+    <div class="box"><b>📱 화면(Activity)</b>
+      <code>MainActivity</code> – 런처, 메인 메뉴<br>
+      <code>QRScanActivity</code> – QR 결제/차감 (1,191줄)<br>
+      <code>CouponIssueActivity</code> · <code>CouponRechargeActivity</code><br>
+      <code>CouponListActivity</code> · <code>CouponManagementActivity</code><br>
+      <code>CustomerManagementActivity</code> · <code>ManagementInfoActivity</code><br>
+      <code>ServerInfoActivity</code> · <code>AdminSettingsActivity</code> · <code>BusinessSettingsActivity</code><br>
+      <code>WebDashboardActivity</code> · <code>ParkingWebViewActivity</code></div>
+    <div class="box"><b>🔧 유틸</b>
+      <code>QRCodeGenerator</code> – QR 이미지 생성<br>
+      <code>CouponBatchService</code> – 쿠폰 일괄 처리<br>
+      <code>ExcelEmployeeImporter</code> – 엑셀로 직원 일괄 등록<br>
+      <code>ScreenOrientationHelper</code></div>
+  </div>
+</section>
+
+<section>
+  <h2>4. 데이터베이스 (SQLite)</h2>
+  <div class="table-wrap"><table>
+    <tr><th>테이블</th><th>역할</th><th>관계</th></tr>
+    <tr><td><code>corporate</code></td><td>거래처(기업) – 사업자번호 등</td><td>직원·쿠폰의 상위</td></tr>
+    <tr><td><code>employee</code></td><td>직원 – 이름/전화/이메일/부서</td><td>corporate 에 소속</td></tr>
+    <tr><td><code>coupon</code></td><td>쿠폰 및 잔액, 전체 코드</td><td>employee 에게 발급</td></tr>
+    <tr><td><code>transaction</code></td><td>충전(+)/사용(−) 내역</td><td>coupon·employee 참조</td></tr>
+    <tr><td><code>coupon_delivery</code></td><td>쿠폰 발송 이력(SMS/이메일/카카오)</td><td>coupon 참조</td></tr>
+    <tr><td><code>system_settings</code></td><td>시스템·사업자·단가·SMS/메일 설정</td><td>key-value</td></tr>
+  </table></div>
+  <h3>쿠폰 코드 규칙 (prd.txt)</h3>
+  <p><code>{발급자 사업자번호}-{사용가능요일 7자리 0/1}-{coupon_id 10자리}-{결제유형 1|2}-{패리티 3자리}</code><br>
+  <small style="color:var(--muted)">결제유형: prepaid=1, 그 외=2 · 요일 순서: 일월화수목금토</small></p>
+</section>
+
+<section>
+  <h2>5. REST API 엔드포인트 (<code>ApiServer</code>)</h2>
+  <div class="table-wrap"><table>
+    <tr><th>영역</th><th>경로</th></tr>
+    <tr><td>인증/상태</td><td><code>/api/login</code> · <code>/api/server/status</code></td></tr>
+    <tr><td>거래처</td><td><code>/api/corporates</code>, <code>/api/corporates/{id}</code></td></tr>
+    <tr><td>직원</td><td><code>/api/employees</code>, <code>/api/employees/check-phone</code></td></tr>
+    <tr><td>쿠폰</td><td><code>/api/coupons</code>, <code>/validate</code>, <code>/charge-bulk</code></td></tr>
+    <tr><td>거래내역</td><td><code>/api/transactions</code>, <code>/monthly</code>, <code>/employee/{id}</code></td></tr>
+    <tr><td>통계</td><td><code>/api/statistics/corporate</code>, <code>/corporate/{id}</code></td></tr>
+    <tr><td>쿠폰 발송</td><td><code>/api/coupon-send/sms|email|kakao</code></td></tr>
+    <tr><td>설정</td><td><code>/api/system/settings</code> · <code>/business-settings</code> · <code>/price-settings</code> · <code>/sms-config</code> · <code>/email-config</code> · <code>/email-logs</code></td></tr>
+    <tr><td>백업</td><td><code>/api/backup</code> · <code>/api/restore</code></td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>6. 웹 대시보드 (외부 브라우저)</h2>
+  <p><code>external_dashboard.html</code> 한 파일에 모든 화면이 들어 있습니다. 거래처·직원·쿠폰 발급/관리/발송, 발송 이력, 경영정보(월별 리포트·통계), 백업, 이메일/SMS 설정, 시스템 설정을 제공합니다.
+  루트 <code>assets/js/modules/*</code> 는 이 기능들을 모듈로 쪼갠 리팩터링 버전입니다(REFACTORING_SUMMARY.md 참고).</p>
+</section>
+
+<section>
+  <h2>7. 현재 작업 상태 (git)</h2>
+  <p>브랜치 <code>master</code> · 마지막 커밋 <code>cfed776</code> “Major UI/UX overhaul: dashboard home stats, price settings, login modal, MainActivity redesign”</p>
+  <h3>커밋되지 않은 수정</h3>
+  <span class="tag">external_dashboard.html</span><span class="tag">ApiServer.java</span><span class="tag">Corporate.java</span><span class="tag">CorporateDAO.java</span><span class="tag">CouponDAO.java</span><span class="tag">DatabaseHelper.java</span><span class="tag">typing.txt</span>
+  <h3>추적되지 않은 파일(임시/로그 추정)</h3>
+  <span class="tag">compile_errors.txt</span><span class="tag">convert.ps1</span><span class="tag">flyer.html</span><span class="tag">workflow.html</span><span class="tag">log_extract.txt</span><span class="tag">prompt.txt</span><span class="tag">hs_err_pid31540.log</span><span class="tag">.claude/settings.json</span>
+  <p style="color:var(--muted)">최근 커밋 흐름: 거래처 통계 → 월별 리포트(연도 2035까지, '사용' 타입 지원) → 사용내역 금액 표시 → UI/UX 개편. 현재 수정 중인 Corporate/DB 변경은 거래처 관련 필드 추가로 보입니다 (<code>git diff</code>로 확인 권장).</p>
+</section>
+
+</main>
+</body>
+</html>
